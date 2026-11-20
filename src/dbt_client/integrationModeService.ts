@@ -2,11 +2,15 @@ import {
   DBT_PROJECT_FILE,
   DBTTerminal,
   DbtV2Binary,
+  EnvironmentVariables,
   findDbtV2Binary,
   FindDbtV2BinaryOptions,
+  findProfilesFile,
   probePythonDbtCore,
+  readAndParseProjectConfig,
+  resolveProfileTargets,
 } from "@altimateai/dbt-integration";
-import { existsSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import * as path from "path";
 import {
   commands,
@@ -23,11 +27,14 @@ import { PROJECT_EXCLUDE_PATTERN } from "./dbtWorkspaceFolder";
 import {
   DbtCoreCheck,
   decideDbtIntegrationMode,
+  FusionAdapterCheck,
   getDbtIntegrationMode,
+  projectAdapterCheck,
   pythonDbtCoreFromCheck,
   readConfiguredDbtIntegration,
   setEffectiveDbtIntegrationMode,
   SwitchHeldReason,
+  windowAdapterCheck,
 } from "./integrationMode";
 import { isInterpreterPath, PythonEnvironment } from "./pythonEnvironment";
 
@@ -69,25 +76,64 @@ const PROBE_GRACE_MS = 5_000;
 
 const HELD_CAUSES: Record<SwitchHeldReason, string> = {
   dbtCore: "dbt-core imports in the selected interpreter",
+  adapterUnsupported: "dbt Fusion does not support the profile's adapter",
   dbtLoom: "a dbt-loom config is present",
   dbtCoreUnknown: "dbt-core could not be checked in the selected interpreter",
 };
 const HELD_BECAUSE: Record<SwitchHeldReason, string> = {
   dbtCore: "the interpreter has dbt-core",
+  adapterUnsupported:
+    "the dbt profile uses an adapter dbt Fusion does not support",
   dbtLoom: "a dbt-loom config is present",
   dbtCoreUnknown: "dbt-core could not be checked in the selected interpreter",
 };
+/**
+ * For a window held for its adapter: what dbt Core mode, which it keeps,
+ * still needs when the selected interpreter cannot run it.
+ */
+const CORE_MODE_NEEDS: Partial<Record<DbtCoreCheck, string>> = {
+  notInstalled:
+    "dbt Core mode needs dbt-core, which the selected Python interpreter does not have.",
+  noInterpreter: "dbt Core mode needs a Python interpreter with dbt-core.",
+};
+
+/** "the dbt profile uses the sqlserver adapter, which dbt Fusion does not support" */
+function unsupportedAdaptersPhrase(types: string[]): string {
+  const names =
+    types.length > 1
+      ? `${types.slice(0, -1).join(", ")} and ${types[types.length - 1]}`
+      : types[0];
+  return types.length > 1
+    ? `the dbt profile targets use the ${names} adapters, which dbt Fusion does not support`
+    : `the dbt profile uses the ${names} adapter, which dbt Fusion does not support`;
+}
+
+/** What an adapter type looks like, for telemetry. */
+const ADAPTER_NAME = /^[A-Za-z0-9_-]{1,40}$/;
+
+/** What the adapter check found, for the decision, the notices and telemetry. */
+interface AdapterFindings {
+  check: FusionAdapterCheck;
+  /** The candidate adapter types read, sorted, each once. */
+  types: string[];
+  /** The types of the projects found unsupported, sorted, each once. */
+  unsupported: string[];
+}
 
 export interface AutoSwitch {
   from: string;
   binary: DbtV2Binary;
   dbtCoreCheck: DbtCoreCheck;
+  fusionAdapterCheck: FusionAdapterCheck;
 }
 
 export interface SwitchHeld {
   reason: SwitchHeldReason;
   binary: DbtV2Binary;
   dbtCoreCheck: DbtCoreCheck;
+  fusionAdapterCheck: FusionAdapterCheck;
+  /** The adapter types dbt Fusion does not support, for "adapterUnsupported". */
+  unsupportedAdapters: string[];
 }
 
 /** How the user answered the offer to switch back to dbt Core. */
@@ -149,6 +195,11 @@ export class IntegrationModeService {
     let binary: DbtV2Binary | undefined;
     let dbtCoreCheck: DbtCoreCheck = "noInterpreter";
     let dbtLoom = false;
+    let adapters: AdapterFindings = {
+      check: "noProjects",
+      types: [],
+      unsupported: [],
+    };
     if (!configured.explicit) {
       await this.pythonEnvironment.initialize();
       const env = this.pythonEnvironment.getEnvironmentVariables();
@@ -165,8 +216,11 @@ export class IntegrationModeService {
       });
       if (binary) {
         dbtCoreCheck = await this.checkDbtCore(pythonPath, fromOverride, env);
+        const projectRoots = await this.listProjectRoots();
         dbtLoom =
-          Boolean(env.DBT_LOOM_CONFIG_PATH) || (await this.dbtLoomConfigured());
+          Boolean(env.DBT_LOOM_CONFIG_PATH) ||
+          this.dbtLoomConfigured(projectRoots);
+        adapters = this.checkAdapters(projectRoots, env, binary.version);
       }
       // A setting made explicit while the probes ran wins over their result.
       configured = readConfiguredDbtIntegration();
@@ -178,15 +232,29 @@ export class IntegrationModeService {
         dbtV2Found: binary !== undefined,
         pythonDbtCore: pythonDbtCoreFromCheck(dbtCoreCheck),
         dbtLoom,
+        fusionAdapterUnsupported: adapters.check === "unsupported",
       },
     );
+    // Adapter names as telemetry sees them; anything else a profile holds is "other".
+    const adapterTypes = adapters.types
+      .map((type) => (ADAPTER_NAME.test(type) ? type : "other"))
+      .join(",");
     setEffectiveDbtIntegrationMode(mode);
     if (heldBack && binary) {
-      this.switchHeld = { reason: heldBack, binary, dbtCoreCheck };
-      const cause = HELD_CAUSES[heldBack];
+      this.switchHeld = {
+        reason: heldBack,
+        binary,
+        dbtCoreCheck,
+        fusionAdapterCheck: adapters.check,
+        unsupportedAdapters: adapters.unsupported,
+      };
+      const cause =
+        heldBack === "adapterUnsupported"
+          ? `${HELD_CAUSES[heldBack]} (${adapters.unsupported.join(", ")})`
+          : HELD_CAUSES[heldBack];
       this.terminal.info(
         "dbtIntegrationSwitchHeld",
-        `${binary.path} is dbt ${binary.version.join(".")}, but ${cause}: keeping ${mode} (dbt-core check: ${dbtCoreCheck})`,
+        `${binary.path} is dbt ${binary.version.join(".")}, but ${cause}: keeping ${mode} (dbt-core check: ${dbtCoreCheck}, adapter check: ${adapters.check})`,
         false,
       );
       this.telemetry.sendTelemetryEvent("dbtIntegrationSwitchHeld", {
@@ -194,13 +262,20 @@ export class IntegrationModeService {
         binaryVersion: binary.version.join("."),
         binaryLocation: binary.location,
         dbtCoreCheck,
+        fusionAdapterCheck: adapters.check,
+        adapterTypes,
       });
     }
     if (autoSwitched && binary) {
-      this.autoSwitch = { from: configured.value, binary, dbtCoreCheck };
+      this.autoSwitch = {
+        from: configured.value,
+        binary,
+        dbtCoreCheck,
+        fusionAdapterCheck: adapters.check,
+      };
       this.terminal.info(
         "dbtIntegrationAutoSwitched",
-        `dbt.dbtIntegration is not set and ${binary.path} is dbt ${binary.version.join(".")}: using dbt Fusion (dbt-core check: ${dbtCoreCheck})`,
+        `dbt.dbtIntegration is not set and ${binary.path} is dbt ${binary.version.join(".")}: using dbt Fusion (dbt-core check: ${dbtCoreCheck}, adapter check: ${adapters.check})`,
         false,
       );
       this.telemetry.setTelemetryCustomAttribute(
@@ -213,6 +288,8 @@ export class IntegrationModeService {
         binaryVersion: binary.version.join("."),
         binaryLocation: binary.location,
         dbtCoreCheck,
+        fusionAdapterCheck: adapters.check,
+        adapterTypes,
       });
     }
     return mode;
@@ -272,41 +349,114 @@ export class IntegrationModeService {
   }
 
   /**
-   * Whether a dbt-loom config sits at a workspace folder root or beside any
-   * dbt project under one, the roots `discoverProjects` will find. The
-   * library reads dbt-loom from each project's root, so a nested project's
-   * config holds the switch back too.
+   * The roots of the dbt projects under the workspace folders, as
+   * `discoverProjects` will find them.
    */
-  private async dbtLoomConfigured(): Promise<boolean> {
-    const folders = workspace.workspaceFolders ?? [];
-    if (
-      folders.some((folder) =>
-        existsSync(path.join(folder.uri.fsPath, DBT_LOOM_CONFIG)),
-      )
-    ) {
-      return true;
-    }
-    for (const folder of folders) {
+  private async listProjectRoots(): Promise<string[]> {
+    const roots: string[] = [];
+    for (const folder of workspace.workspaceFolders ?? []) {
       let projectFiles: Uri[] = [];
       try {
         projectFiles = await this.probes.findProjectFiles(folder);
       } catch (error) {
         // Discovery retries this later; for the mode decision an unreadable
-        // folder is a folder without a dbt-loom config.
+        // folder is a folder without dbt projects.
         this.terminal.debug(
-          "dbtIntegrationLoomCheck",
+          "dbtIntegrationProjectList",
           `Could not list dbt projects under ${folder.uri.fsPath}: ${error}`,
         );
       }
-      if (
-        projectFiles.some((file) =>
-          existsSync(path.join(path.dirname(file.fsPath), DBT_LOOM_CONFIG)),
-        )
-      ) {
-        return true;
+      for (const file of projectFiles) {
+        const root = path.dirname(file.fsPath);
+        if (!roots.includes(root)) {
+          roots.push(root);
+        }
       }
     }
-    return false;
+    return roots;
+  }
+
+  /**
+   * Whether a dbt-loom config sits at a workspace folder root or beside any
+   * dbt project under one. The library reads dbt-loom from each project's
+   * root, so a nested project's config holds the switch back too.
+   */
+  private dbtLoomConfigured(projectRoots: string[]): boolean {
+    const folders = (workspace.workspaceFolders ?? []).map(
+      (folder) => folder.uri.fsPath,
+    );
+    return [...folders, ...projectRoots].some((dir) =>
+      existsSync(path.join(dir, DBT_LOOM_CONFIG)),
+    );
+  }
+
+  /**
+   * Whether dbt Fusion `version` accepts the adapter each project's profile
+   * uses, read from profiles.yml as dbt Fusion would find it.
+   */
+  private checkAdapters(
+    projectRoots: string[],
+    env: EnvironmentVariables,
+    version: number[],
+  ): AdapterFindings {
+    const checks: FusionAdapterCheck[] = [];
+    const types = new Set<string>();
+    const unsupported = new Set<string>();
+    for (const root of projectRoots) {
+      const candidates = this.profileAdapterTypes(root, env);
+      const check = projectAdapterCheck(candidates, version);
+      checks.push(check);
+      for (const type of candidates) {
+        if (type !== undefined) {
+          types.add(type);
+          if (check === "unsupported") {
+            unsupported.add(type);
+          }
+        }
+      }
+    }
+    return {
+      check: windowAdapterCheck(checks),
+      types: [...types].sort(),
+      unsupported: [...unsupported].sort(),
+    };
+  }
+
+  /**
+   * The adapter types a project may run with: its profile's default target's
+   * type, or every output's when the default target cannot be told without
+   * dbt. Empty when the profile cannot be read; `undefined` for an output
+   * whose type cannot be read.
+   */
+  private profileAdapterTypes(
+    projectRoot: string,
+    env: EnvironmentVariables,
+  ): (string | undefined)[] {
+    try {
+      const profileName = readAndParseProjectConfig(projectRoot)?.profile;
+      if (typeof profileName !== "string" || profileName.includes("{{")) {
+        return [];
+      }
+      const profilesFile = findProfilesFile(projectRoot, env);
+      if (!profilesFile) {
+        return [];
+      }
+      const profile = resolveProfileTargets(
+        readFileSync(profilesFile, "utf8"),
+        profileName,
+        env,
+      );
+      if (profile.defaultTarget !== undefined) {
+        return [profile.adapterTypes[profile.defaultTarget]];
+      }
+      return profile.targets.map((target) => profile.adapterTypes[target]);
+    } catch (error) {
+      this.terminal.debug(
+        "dbtIntegrationAdapterCheck",
+        `Could not read the profile of ${projectRoot}: ${error}`,
+      );
+      return [];
+    }
   }
 
   /**
@@ -457,9 +607,18 @@ export class IntegrationModeService {
       return;
     }
     await this.workspaceState.update(SWITCH_HELD_NOTIFIED_KEY, true);
-    const because = HELD_BECAUSE[held.reason];
+    const because =
+      held.reason === "adapterUnsupported" &&
+      held.unsupportedAdapters.length > 0
+        ? unsupportedAdaptersPhrase(held.unsupportedAdapters)
+        : HELD_BECAUSE[held.reason];
+    const needs =
+      held.reason === "adapterUnsupported"
+        ? CORE_MODE_NEEDS[held.dbtCoreCheck]
+        : undefined;
     const answer = await window.showInformationMessage(
-      `dbt Fusion ${held.binary.version.join(".")} was found at ${held.binary.path}, but this window keeps dbt Core mode because ${because}.`,
+      `dbt Fusion ${held.binary.version.join(".")} was found at ${held.binary.path}, but this window keeps dbt Core mode because ${because}.` +
+        (needs ? ` ${needs}` : ""),
       USE_FUSION,
       DISMISS,
     );

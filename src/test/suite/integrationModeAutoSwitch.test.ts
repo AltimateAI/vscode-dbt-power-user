@@ -10,10 +10,14 @@ import { ConfigurationTarget, Uri, window, workspace } from "vscode";
 import {
   DbtCoreCheck,
   decideDbtIntegrationMode,
+  FusionAdapterCheck,
+  fusionAdapterSupport,
   getDbtIntegrationMode,
+  projectAdapterCheck,
   pythonDbtCoreFromCheck,
   readConfiguredDbtIntegration,
   setEffectiveDbtIntegrationMode,
+  windowAdapterCheck,
 } from "../../dbt_client/integrationMode";
 import {
   AUTO_SWITCH_NOTIFIED_KEY,
@@ -195,7 +199,12 @@ describe("readConfiguredDbtIntegration", () => {
 });
 
 describe("decideDbtIntegrationMode", () => {
-  const onlyV2 = { dbtV2Found: true, pythonDbtCore: false, dbtLoom: false };
+  const onlyV2 = {
+    dbtV2Found: true,
+    pythonDbtCore: false,
+    dbtLoom: false,
+    fusionAdapterUnsupported: false,
+  };
   it.each([
     [{ value: "core", explicit: false }, onlyV2, "fusion", true],
     [
@@ -226,6 +235,13 @@ describe("decideDbtIntegrationMode", () => {
     [{ pythonDbtCore: true, dbtLoom: true }, "dbtCore"],
     [{ pythonDbtCore: "unknown" as const }, "dbtCoreUnknown"],
     [{ pythonDbtCore: "unknown" as const, dbtLoom: true }, "dbtLoom"],
+    [{ fusionAdapterUnsupported: true }, "adapterUnsupported"],
+    [{ pythonDbtCore: true, fusionAdapterUnsupported: true }, "dbtCore"],
+    [{ fusionAdapterUnsupported: true, dbtLoom: true }, "adapterUnsupported"],
+    [
+      { pythonDbtCore: "unknown" as const, fusionAdapterUnsupported: true },
+      "adapterUnsupported",
+    ],
   ])(
     "keeps the default when the project can run in dbt Core mode: %j",
     (facts, reason) => {
@@ -274,6 +290,8 @@ describe("IntegrationModeService.resolve", () => {
         binaryVersion: "2.0.9",
         binaryLocation: "installer",
         dbtCoreCheck: "notInstalled",
+        fusionAdapterCheck: "noProjects",
+        adapterTypes: "",
       },
     );
     expect(telemetry.setTelemetryCustomAttribute).toHaveBeenCalledWith(
@@ -310,6 +328,8 @@ describe("IntegrationModeService.resolve", () => {
         binaryVersion: "2.0.9",
         binaryLocation: "installer",
         dbtCoreCheck: "importable",
+        fusionAdapterCheck: "noProjects",
+        adapterTypes: "",
       },
     );
     expect(telemetry.sendTelemetryEvent).not.toHaveBeenCalledWith(
@@ -713,7 +733,9 @@ describe("IntegrationModeService.resolve: the dbt-core check", () => {
       }
       expect(terminal.info).toHaveBeenCalledWith(
         event,
-        expect.stringContaining(`(dbt-core check: ${check})`),
+        expect.stringContaining(
+          `(dbt-core check: ${check}, adapter check: noProjects)`,
+        ),
         false,
       );
     },
@@ -825,7 +847,7 @@ describe("IntegrationModeService.resolve: the dbt-core check", () => {
     expect(terminal.info).toHaveBeenCalledWith(
       "dbtIntegrationAutoSwitched",
       expect.stringContaining(
-        "using dbt Fusion (dbt-core check: noInterpreter)",
+        "using dbt Fusion (dbt-core check: noInterpreter, adapter check: noProjects)",
       ),
       false,
     );
@@ -991,5 +1013,368 @@ describe("IntegrationModeService.rebuildStatusChanged", () => {
     } else {
       expect(update).not.toHaveBeenCalled();
     }
+  });
+});
+
+describe("fusionAdapterSupport", () => {
+  it.each<[string, number[], string]>([
+    ["snowflake", [2, 0, 0], "supported"],
+    ["databricks", [2, 0, 12], "supported"],
+    // Builds that report 2.0.0 list from 7 to 14 types: only the 7 are sure.
+    ["duckdb", [2, 0, 0], "unconfirmed"],
+    ["clickhouse", [2, 0, 5], "unconfirmed"],
+    ["duckdb", [2, 0, 6], "supported"],
+    ["lakecompute", [2, 0, 12], "supported"],
+    ["duckdb", [2, 1, 0], "supported"],
+    ["spark", [3], "supported"],
+    // An empty version is older than every entry.
+    ["snowflake", [], "unconfirmed"],
+    ["sqlserver", [2, 0, 12], "unsupported"],
+    ["athena", [2, 0, 0], "unsupported"],
+    ["fabricspark", [2, 0, 12], "unsupported"],
+    // As written: dbt Fusion matches the type exactly.
+    ["Snowflake", [2, 0, 12], "unsupported"],
+    ["constructor", [2, 0, 12], "unsupported"],
+  ])("%s on dbt Fusion %j is %s", (type, version, support) => {
+    expect(fusionAdapterSupport(type, version)).toBe(support);
+  });
+});
+
+describe("projectAdapterCheck and windowAdapterCheck", () => {
+  it.each<[(string | undefined)[], number[], FusionAdapterCheck]>([
+    [["snowflake"], [2, 0, 9], "supported"],
+    [["sqlserver"], [2, 0, 9], "unsupported"],
+    [["duckdb"], [2, 0, 0], "unconfirmed"],
+    [["snowflake", "duckdb"], [2, 0, 0], "unconfirmed"],
+    // Every candidate unsupported: whichever target dbt picks fails.
+    [["sqlserver", "athena"], [2, 0, 9], "unsupported"],
+    // Candidates that disagree, or an unreadable one, cannot be told.
+    [["sqlserver", "snowflake"], [2, 0, 9], "unknown"],
+    [["snowflake", undefined], [2, 0, 9], "unknown"],
+    [[undefined], [2, 0, 9], "unknown"],
+    [[], [2, 0, 9], "unknown"],
+  ])("a project with %j on %j is %s", (types, version, check) => {
+    expect(projectAdapterCheck(types, version)).toBe(check);
+  });
+
+  it.each<[FusionAdapterCheck[], FusionAdapterCheck]>([
+    [[], "noProjects"],
+    [["supported"], "supported"],
+    [["supported", "unconfirmed"], "unconfirmed"],
+    [["unconfirmed", "unknown"], "unknown"],
+    [["supported", "unknown", "unsupported"], "unsupported"],
+  ])("a window with %j is %s", (checks, check) => {
+    expect(windowAdapterCheck(checks)).toBe(check);
+  });
+});
+
+describe("IntegrationModeService.resolve: the adapter check", () => {
+  let dir: string;
+  beforeEach(() => {
+    dir = mkdtempSync(path.join(tmpdir(), "fusion-adapter-"));
+    (workspace as { workspaceFolders: unknown }).workspaceFolders = [
+      { uri: Uri.file(dir), name: "repo", index: 0 },
+    ];
+  });
+  afterEach(() => rmSync(dir, { recursive: true, force: true }));
+
+  /** A dbt project under the folder using profile `name`, with its own profiles.yml when given. */
+  function project(name: string, profilesYml?: string): string {
+    const root = path.join(dir, name);
+    mkdirSync(root, { recursive: true });
+    writeFileSync(
+      path.join(root, "dbt_project.yml"),
+      `name: ${name}\nversion: "1.0"\nprofile: ${name}\n`,
+    );
+    if (profilesYml !== undefined) {
+      writeFileSync(path.join(root, "profiles.yml"), profilesYml);
+    }
+    return root;
+  }
+
+  const profile = (name: string, target: string, outputs: object) =>
+    JSON.stringify({ [name]: { target, outputs } });
+
+  const projectsIn = (...roots: string[]) => ({
+    [dir]: roots.map((root) => path.join(root, "dbt_project.yml")),
+  });
+
+  it("holds a window whose profile uses an adapter dbt Fusion does not support, and says what dbt Core mode needs", async () => {
+    const root = project(
+      "warehouse",
+      profile("warehouse", "dev", { dev: { type: "sqlserver" } }),
+    );
+    const { svc, telemetry, terminal } = service({
+      projectFiles: projectsIn(root),
+    });
+    await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe("core");
+    expect(svc.autoSwitched).toBeUndefined();
+    expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+      "dbtIntegrationSwitchHeld",
+      {
+        reason: "adapterUnsupported",
+        binaryVersion: "2.0.9",
+        binaryLocation: "installer",
+        dbtCoreCheck: "notInstalled",
+        fusionAdapterCheck: "unsupported",
+        adapterTypes: "sqlserver",
+      },
+    );
+    expect(terminal.info).toHaveBeenCalledWith(
+      "dbtIntegrationSwitchHeld",
+      "/home/user/.local/bin/dbt is dbt 2.0.9, but dbt Fusion does not support the profile's adapter (sqlserver): keeping core (dbt-core check: notInstalled, adapter check: unsupported)",
+      false,
+    );
+    await svc.notifySwitchHeld();
+    expect(shown()[0][0]).toBe(
+      "dbt Fusion 2.0.9 was found at /home/user/.local/bin/dbt, but this window keeps dbt Core mode because the dbt profile uses the sqlserver adapter, which dbt Fusion does not support. dbt Core mode needs dbt-core, which the selected Python interpreter does not have.",
+    );
+  });
+
+  it("says a Python interpreter is needed when there is none", async () => {
+    const root = project(
+      "warehouse",
+      profile("warehouse", "dev", { dev: { type: "athena" } }),
+    );
+    const { svc } = service({
+      projectFiles: projectsIn(root),
+      pythonExtensionAvailable: false,
+    });
+    await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe("core");
+    await svc.notifySwitchHeld();
+    expect(shown()[0][0]).toContain(
+      "the dbt profile uses the athena adapter, which dbt Fusion does not support. dbt Core mode needs a Python interpreter with dbt-core.",
+    );
+  });
+
+  it("adds nothing about dbt Core mode when the dbt-core check could not tell", async () => {
+    const root = project(
+      "warehouse",
+      profile("warehouse", "dev", { dev: { type: "sqlserver" } }),
+    );
+    const { svc } = service({
+      projectFiles: projectsIn(root),
+      dbtCore: unknownBecause("spawnError"),
+    });
+    await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe("core");
+    await svc.notifySwitchHeld();
+    expect(shown()[0][0]).toMatch(
+      /the sqlserver adapter, which dbt Fusion does not support\.$/,
+    );
+  });
+
+  it("reports dbt-core over the adapter when dbt-core imports", async () => {
+    const root = project(
+      "warehouse",
+      profile("warehouse", "dev", { dev: { type: "sqlserver" } }),
+    );
+    const { svc, telemetry } = service({
+      projectFiles: projectsIn(root),
+      dbtCore: IMPORTABLE,
+    });
+    await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe("core");
+    expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+      "dbtIntegrationSwitchHeld",
+      expect.objectContaining({
+        reason: "dbtCore",
+        fusionAdapterCheck: "unsupported",
+      }),
+    );
+  });
+
+  it("switches when dbt Fusion supports the adapter", async () => {
+    const root = project(
+      "shop",
+      profile("shop", "dev", { dev: { type: "snowflake" } }),
+    );
+    const { svc, telemetry } = service({ projectFiles: projectsIn(root) });
+    await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
+      "fusion",
+    );
+    expect(svc.autoSwitched?.fusionAdapterCheck).toBe("supported");
+    expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+      "dbtIntegrationAutoSwitched",
+      expect.objectContaining({
+        fusionAdapterCheck: "supported",
+        adapterTypes: "snowflake",
+      }),
+    );
+  });
+
+  it("switches a build that reports 2.0.0 for an adapter only later versions are sure to accept", async () => {
+    const root = project(
+      "local",
+      profile("local", "dev", { dev: { type: "duckdb" } }),
+    );
+    const { svc, telemetry } = service({
+      projectFiles: projectsIn(root),
+      binary: { ...V2, version: [2, 0, 0] },
+    });
+    await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
+      "fusion",
+    );
+    expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+      "dbtIntegrationAutoSwitched",
+      expect.objectContaining({
+        binaryVersion: "2.0.0",
+        fusionAdapterCheck: "unconfirmed",
+        adapterTypes: "duckdb",
+      }),
+    );
+  });
+
+  it("reads the target DBT_TARGET names and profiles.yml from DBT_PROFILES_DIR, relative to the project", async () => {
+    const root = project("shop");
+    mkdirSync(path.join(root, "config"));
+    writeFileSync(
+      path.join(root, "config", "profiles.yml"),
+      profile("shop", "dev", {
+        dev: { type: "snowflake" },
+        legacy: { type: "sqlserver" },
+      }),
+    );
+    // A profiles.yml in the project itself is not read while DBT_PROFILES_DIR is set.
+    writeFileSync(
+      path.join(root, "profiles.yml"),
+      profile("shop", "dev", { dev: { type: "snowflake" } }),
+    );
+    const { svc, telemetry } = service({
+      projectFiles: projectsIn(root),
+      env: {
+        PATH: "/usr/bin",
+        DBT_PROFILES_DIR: "config",
+        DBT_TARGET: "legacy",
+      },
+    });
+    await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe("core");
+    expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+      "dbtIntegrationSwitchHeld",
+      expect.objectContaining({
+        reason: "adapterUnsupported",
+        adapterTypes: "sqlserver",
+      }),
+    );
+  });
+
+  it("judges every output when the default target is a template: all unsupported holds", async () => {
+    const root = project(
+      "warehouse",
+      profile("warehouse", "{{ env_var('WAREHOUSE_TARGET') }}", {
+        dev: { type: "sqlserver" },
+        prod: { type: "athena" },
+      }),
+    );
+    const { svc, telemetry } = service({ projectFiles: projectsIn(root) });
+    await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe("core");
+    expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+      "dbtIntegrationSwitchHeld",
+      expect.objectContaining({
+        reason: "adapterUnsupported",
+        fusionAdapterCheck: "unsupported",
+        adapterTypes: "athena,sqlserver",
+      }),
+    );
+    await svc.notifySwitchHeld();
+    expect(shown()[0][0]).toContain(
+      "because the dbt profile targets use the athena and sqlserver adapters, which dbt Fusion does not support.",
+    );
+  });
+
+  it("switches when a templated default target could pick a supported adapter", async () => {
+    const root = project(
+      "warehouse",
+      profile("warehouse", "{{ env_var('WAREHOUSE_TARGET') }}", {
+        dev: { type: "snowflake" },
+        legacy: { type: "sqlserver" },
+      }),
+    );
+    const { svc, telemetry } = service({ projectFiles: projectsIn(root) });
+    await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
+      "fusion",
+    );
+    expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+      "dbtIntegrationAutoSwitched",
+      expect.objectContaining({
+        fusionAdapterCheck: "unknown",
+        adapterTypes: "snowflake,sqlserver",
+      }),
+    );
+  });
+
+  it("switches, as before, when the profile cannot be read", async () => {
+    const empty = path.join(dir, "no-profiles");
+    mkdirSync(empty);
+    const root = project("shop");
+    const { svc, telemetry } = service({
+      projectFiles: projectsIn(root),
+      // No profiles.yml there, and dbt does not fall back from DBT_PROFILES_DIR.
+      env: { PATH: "/usr/bin", DBT_PROFILES_DIR: empty },
+    });
+    await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
+      "fusion",
+    );
+    expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+      "dbtIntegrationAutoSwitched",
+      expect.objectContaining({
+        fusionAdapterCheck: "unknown",
+        adapterTypes: "",
+      }),
+    );
+  });
+
+  it("switches when dbt_project.yml cannot be parsed", async () => {
+    const root = path.join(dir, "broken");
+    mkdirSync(root);
+    writeFileSync(path.join(root, "dbt_project.yml"), "name: [unclosed\n");
+    const { svc, terminal } = service({ projectFiles: projectsIn(root) });
+    await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
+      "fusion",
+    );
+    expect(terminal.debug).toHaveBeenCalledWith(
+      "dbtIntegrationAdapterCheck",
+      expect.stringContaining(`Could not read the profile of ${root}`),
+    );
+  });
+
+  it("sends an adapter type that is not a plain name as other", async () => {
+    const root = project(
+      "shop",
+      profile("shop", "dev", { dev: { type: "my adapter: secret?" } }),
+    );
+    const { svc, telemetry } = service({ projectFiles: projectsIn(root) });
+    await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe("core");
+    expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+      "dbtIntegrationSwitchHeld",
+      expect.objectContaining({
+        reason: "adapterUnsupported",
+        adapterTypes: "other",
+      }),
+    );
+  });
+
+  it("holds the window when one of its projects uses an unsupported adapter, and names that adapter", async () => {
+    const shop = project(
+      "shop",
+      profile("shop", "dev", { dev: { type: "snowflake" } }),
+    );
+    const lake = project(
+      "lake",
+      profile("lake", "dev", { dev: { type: "athena" } }),
+    );
+    const { svc, telemetry } = service({
+      projectFiles: projectsIn(shop, lake),
+    });
+    await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe("core");
+    expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+      "dbtIntegrationSwitchHeld",
+      expect.objectContaining({
+        reason: "adapterUnsupported",
+        adapterTypes: "athena,snowflake",
+      }),
+    );
+    await svc.notifySwitchHeld();
+    expect(shown()[0][0]).toContain(
+      "because the dbt profile uses the athena adapter, which dbt Fusion does not support.",
+    );
   });
 });
