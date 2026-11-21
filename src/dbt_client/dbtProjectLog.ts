@@ -117,7 +117,8 @@ export class DBTProjectLog implements Disposable {
       if (channel !== this.outputChannel) {
         return;
       }
-      let skipToNextLine = this.seekToUnread(size, ino, channel, logPath);
+      // Where skipped output began, until the first shown line is found.
+      let skippedFrom = this.seekToUnread(size, ino);
       let position = this.logPosition;
       const buffer = Buffer.alloc(
         Math.min(DBTProjectLog.CHUNK_BYTES, size - position),
@@ -132,15 +133,23 @@ export class DBTProjectLog implements Disposable {
         if (channel !== this.outputChannel || bytesRead === 0) {
           return;
         }
+        const chunkStart = position;
         position += bytesRead;
         this.logPosition = position;
-        let text = this.decoder.write(buffer.subarray(0, bytesRead));
-        if (skipToNextLine) {
-          const lineEnd = text.indexOf("\n");
-          skipToNextLine = lineEnd === -1;
-          text = text.slice(lineEnd + 1);
+        let from = 0;
+        if (skippedFrom !== undefined) {
+          // A newline byte never occurs inside a multi-byte UTF-8 character.
+          from = buffer.subarray(0, bytesRead).indexOf(0x0a) + 1;
+          if (from === 0) {
+            continue;
+          }
+          channel.appendLine(
+            DBTProjectLog.skipNotice(chunkStart + from - skippedFrom, logPath),
+          );
+          skippedFrom = undefined;
         }
-        if (text && !skipToNextLine) {
+        const text = this.decoder.write(buffer.subarray(from, bytesRead));
+        if (text) {
           channel.append(stripANSI(text));
         }
       }
@@ -165,29 +174,26 @@ export class DBTProjectLog implements Disposable {
   }
 
   /**
-   * Moves the read position to the first byte to show from a log of `size` bytes. Returns true
-   * when older output is skipped; the position is then one byte before the cut, and the caller
-   * drops everything up to the first newline so the output starts on a whole line.
+   * Moves the read position to the first byte to read from a log of `size` bytes. When more than
+   * MAX_UNREAD_BYTES are unread, returns the position older output is skipped from and moves to
+   * one byte before the last MAX_UNREAD_BYTES; the caller then shows output from the first
+   * newline on, so it starts on a whole line.
    */
-  private seekToUnread(
-    size: number,
-    ino: number,
-    channel: OutputChannel,
-    logPath: string,
-  ): boolean {
+  private seekToUnread(size: number, ino: number): number | undefined {
     if (size < this.logPosition || ino !== this.logFileId) {
       this.restartFrom(0);
     }
     this.logFileId = ino;
-    const skipped = size - this.logPosition - DBTProjectLog.MAX_UNREAD_BYTES;
-    if (skipped <= 0) {
-      return false;
+    const skippedFrom = this.logPosition;
+    if (size - skippedFrom <= DBTProjectLog.MAX_UNREAD_BYTES) {
+      return undefined;
     }
-    channel.appendLine(
-      `Skipped ${(skipped / (1024 * 1024)).toFixed(1)} MB of earlier output, showing the most recent part. The full log is at ${logPath}`,
-    );
     this.restartFrom(size - DBTProjectLog.MAX_UNREAD_BYTES - 1);
-    return true;
+    return skippedFrom;
+  }
+
+  private static skipNotice(skippedBytes: number, logPath: string): string {
+    return `Skipped ${(skippedBytes / (1024 * 1024)).toFixed(1)} MB of earlier output, showing the most recent part. The full log is at ${logPath}`;
   }
 
   public dispose() {

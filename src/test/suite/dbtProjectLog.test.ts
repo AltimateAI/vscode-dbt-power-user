@@ -124,6 +124,20 @@ describe("DBTProjectLog", () => {
     expect(shown.slice(1)).toEqual(lines(recent));
   });
 
+  it("counts a long partial line at the cut in the skipped amount", async () => {
+    // A 3 MB line crosses the cut, so 3 MB is skipped and only the 1 MB after it is shown.
+    fs.writeFileSync(
+      logFile,
+      "x".repeat(3 * MB - 1) + "\n" + "y\n".repeat(MB / 2),
+    );
+    fireConfig();
+    await idle();
+    const shown = lines(lastChannel().text);
+    expect(shown[0]).toMatch(/^Skipped 3\.0 MB of earlier output/);
+    expect(shown).toHaveLength(MB / 2 + 1);
+    expect(shown.slice(1).every((line) => line === "y")).toBe(true);
+  });
+
   it("reads off the calling turn, so a project-config event never blocks", async () => {
     fs.writeFileSync(logFile, LINE);
     fireConfig();
