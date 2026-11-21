@@ -593,15 +593,20 @@ export class DBTProject implements Disposable {
 
   /**
    * The first error that kept this project from loading: the Python bridge,
-   * the project configuration check, or the latest manifest rebuild.
+   * the project configuration check, or the latest manifest rebuild. An error
+   * without a message still counts; Problems has its details.
    */
   private getLoadError(): string | undefined {
     const diagnostics = this.getCurrentProjectIntegration().getDiagnostics();
-    return [
+    const error = [
       ...diagnostics.pythonBridgeDiagnostics,
       ...diagnostics.projectConfigDiagnostics,
       ...diagnostics.rebuildManifestDiagnostics,
-    ].find(({ severity }) => severity === "error")?.message;
+    ].find(({ severity }) => severity === "error");
+    if (!error) {
+      return undefined;
+    }
+    return error.message.trim() || "see Problems for the error";
   }
 
   /** Says why Generate model can't run, with Show problems and Re-parse. */

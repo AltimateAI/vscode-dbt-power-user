@@ -162,6 +162,23 @@ describe("Generate model", () => {
       );
     });
 
+    it("blocks on an error diagnostic without a message", async () => {
+      const diagnostics = noDiagnostics();
+      diagnostics.rebuildManifestDiagnostics = [diagnostic("")];
+      const { project, getColumnsOfSource } = makeProject({ diagnostics });
+
+      await project.generateModel("raw", "raw_customers", sourceDir);
+
+      expect(getColumnsOfSource).not.toHaveBeenCalled();
+      expect(errorToasts()).toEqual([
+        [
+          "Can't generate the model: the dbt project didn't load: see Problems for the error",
+          "Show problems",
+          "Re-parse",
+        ],
+      ]);
+    });
+
     it("re-parses this project from the Re-parse action", async () => {
       (window.showErrorMessage as jest.Mock).mockReturnValue(
         Promise.resolve("Re-parse"),
