@@ -135,6 +135,8 @@ function service({
   // An override interpreter; without one, the extension's when it is there.
   pythonPath = undefined as string | undefined,
   env = { PATH: "/usr/bin" } as Record<string, string>,
+  // More variables per workspace folder path, as each folder's .env adds them.
+  folderEnv = {} as Record<string, Record<string, string>>,
 } = {}) {
   const telemetry = {
     sendTelemetryEvent: jest.fn(),
@@ -158,7 +160,8 @@ function service({
       pythonPath: pythonPath ?? (pythonExtensionAvailable ? extensionPath : ""),
       pythonPathFromOverride: pythonPath !== undefined,
       pythonExtensionAvailable,
-      getEnvironmentVariables: () => env,
+      getEnvironmentVariables: (folder?: { uri: { fsPath: string } }) =>
+        folder ? { ...env, ...folderEnv[folder.uri.fsPath] } : env,
     } as never,
     telemetry as never,
     terminal as never,
@@ -737,6 +740,54 @@ describe("IntegrationModeService.notifyHeldWithoutDbtCore", () => {
       "Install dbt Core",
       "Use dbt Fusion",
     ]);
+  });
+
+  it("shows no notice when detection showed the error while the notice was being remembered", async () => {
+    const { svc } = service({ dbtCore: unknownBecause("timeout") });
+    const memento = new FakeMemento();
+    await svc.resolve(memento as never);
+    let remembered: () => void = () => undefined;
+    memento.update = () =>
+      new Promise<void>((resolve) => {
+        remembered = resolve;
+      });
+    const notice = svc.notifySwitchHeld();
+    await svc.notifyHeldWithoutDbtCore();
+    remembered();
+    await notice;
+    expect(errors()).toHaveLength(1);
+    expect(shown()).toHaveLength(0);
+  });
+
+  it("offers dbt Core with the experimental adapter's error", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "fusion-held-error-"));
+    try {
+      writeFileSync(
+        path.join(dir, "dbt_project.yml"),
+        'name: shop\nversion: "1.0"\nprofile: shop\n',
+      );
+      writeFileSync(
+        path.join(dir, "profiles.yml"),
+        JSON.stringify({
+          shop: { target: "dev", outputs: { dev: { type: "postgres" } } },
+        }),
+      );
+      (workspace as { workspaceFolders: unknown }).workspaceFolders = [
+        { uri: Uri.file(dir), name: "repo", index: 0 },
+      ];
+      const { svc } = service({
+        projectFiles: { [dir]: [path.join(dir, "dbt_project.yml")] },
+      });
+      await svc.resolve(new FakeMemento() as never);
+      await svc.notifyHeldWithoutDbtCore();
+      expect(errors()[0].slice(1)).toEqual([
+        "Install dbt Core",
+        "Open setting",
+        "Use dbt Fusion",
+      ]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it("installs dbt Core on Install dbt Core", async () => {
@@ -1731,6 +1782,65 @@ describe("IntegrationModeService.resolve: the adapter check", () => {
       await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
         "fusion",
       );
+    });
+
+    // dbt runs each project with its own folder's environment (.env), so a
+    // DBT_PROFILES_DIR set only in the second folder must be the one read.
+    it("reads each project's profile with its own workspace folder's environment", async () => {
+      const second = mkdtempSync(path.join(tmpdir(), "fusion-adapter-b-"));
+      const byFirstFolder = (
+        workspace.getWorkspaceFolder as jest.Mock
+      ).getMockImplementation();
+      try {
+        const profilesDir = path.join(second, "profiles");
+        mkdirSync(profilesDir);
+        writeFileSync(
+          path.join(profilesDir, "profiles.yml"),
+          profile("lake", "dev", { dev: { type: "snowflake" } }),
+        );
+        const shop = project(
+          "shop",
+          profile("shop", "dev", { dev: { type: "snowflake" } }),
+        );
+        const lake = path.join(second, "lake");
+        mkdirSync(lake);
+        writeFileSync(
+          path.join(lake, "dbt_project.yml"),
+          'name: lake\nversion: "1.0"\nprofile: lake\n',
+        );
+        const folders = [
+          { uri: Uri.file(dir), name: "repo", index: 0 },
+          { uri: Uri.file(second), name: "lake", index: 1 },
+        ];
+        (workspace as { workspaceFolders: unknown }).workspaceFolders = folders;
+        (workspace.getWorkspaceFolder as jest.Mock).mockImplementation(
+          (uri: unknown) =>
+            folders.find((folder) =>
+              (uri as { fsPath: string }).fsPath.startsWith(folder.uri.fsPath),
+            ),
+        );
+        const { svc, telemetry } = service({
+          projectFiles: {
+            [dir]: [path.join(shop, "dbt_project.yml")],
+            [second]: [path.join(lake, "dbt_project.yml")],
+          },
+          // Only lake's folder sets DBT_PROFILES_DIR. Read with the window's
+          // environment, lake has no profile (in its folder or ~/.dbt) and holds.
+          folderEnv: { [second]: { DBT_PROFILES_DIR: profilesDir } },
+        });
+        await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
+          "fusion",
+        );
+        expect(telemetry.sendTelemetryEvent).not.toHaveBeenCalledWith(
+          "dbtIntegrationSwitchHeld",
+          expect.anything(),
+        );
+      } finally {
+        (workspace.getWorkspaceFolder as jest.Mock).mockImplementation(
+          byFirstFolder!,
+        );
+        rmSync(second, { recursive: true, force: true });
+      }
     });
 
     it("names the missing profile before an adapter dbt Fusion runs only as experimental", async () => {

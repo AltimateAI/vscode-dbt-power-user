@@ -87,6 +87,7 @@ describe("activate listens for dbt.dbtIntegration before the held-switch notice"
     let listenerAtNotice: boolean | undefined;
     let detectedAtNotice: boolean | undefined;
     let detected = false;
+    let finishDetection: () => void = () => undefined;
     const integrationModeService = {
       resolve: jest.fn(() => Promise.resolve("core")),
       notifySwitchHeld: jest.fn(() => {
@@ -98,10 +99,16 @@ describe("activate listens for dbt.dbtIntegration before the held-switch notice"
     const container = {
       setContext: jest.fn(),
       initializeWalkthrough: jest.fn(),
-      detectDBT: jest.fn(() => {
-        detected = true;
-        return Promise.resolve();
-      }),
+      // Settles only when the test says so.
+      detectDBT: jest.fn(
+        () =>
+          new Promise<void>((resolve) => {
+            finishDetection = () => {
+              detected = true;
+              resolve();
+            };
+          }),
+      ),
       // Never settles: the rest of activate never runs.
       initializeDBTProjects: jest.fn(() => new Promise<void>(() => undefined)),
       dispose: jest.fn(),
@@ -136,7 +143,12 @@ describe("activate listens for dbt.dbtIntegration before the held-switch notice"
       workspaceState: {},
     } as never);
     await new Promise((r) => setImmediate(r));
+    // Detection is still running: no notice yet.
+    expect(container.detectDBT).toHaveBeenCalledTimes(1);
+    expect(integrationModeService.notifySwitchHeld).not.toHaveBeenCalled();
 
+    finishDetection();
+    await new Promise((r) => setImmediate(r));
     expect(integrationModeService.notifySwitchHeld).toHaveBeenCalledTimes(1);
     expect(listenerAtNotice).toBe(true);
     expect(detectedAtNotice).toBe(true);

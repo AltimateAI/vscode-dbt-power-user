@@ -553,16 +553,18 @@ export class IntegrationModeService {
     env: EnvironmentVariables,
     version: number[],
   ): AdapterFindings {
-    const allowExperimental = experimentalAdaptersAllowed(env);
     const checks: FusionAdapterCheck[] = [];
     const types = new Set<string>();
     const unsupported = new Set<string>();
     const experimental = new Set<string>();
     let profileProblem: ProfileProblem | undefined;
     for (const root of projectRoots) {
+      // dbt runs each project with its own workspace folder's environment.
+      const projectEnv = this.projectEnvironment(root, env);
+      const allowExperimental = experimentalAdaptersAllowed(projectEnv);
       const { types: candidates, problem } = this.profileAdapterTypes(
         root,
-        env,
+        projectEnv,
       );
       profileProblem ??= problem;
       const check = projectAdapterCheck(candidates, version, allowExperimental);
@@ -590,6 +592,26 @@ export class IntegrationModeService {
       experimental: [...experimental].sort(),
       profileProblem,
     };
+  }
+
+  /**
+   * The environment dbt runs a project with: its workspace folder's (that
+   * folder's `.env`), as `DBTProject` reads `DBT_PROFILES_DIR`; the window's
+   * when the project is in no folder.
+   */
+  private projectEnvironment(
+    projectRoot: string,
+    windowEnv: EnvironmentVariables,
+  ): EnvironmentVariables {
+    const folder = workspace.getWorkspaceFolder(Uri.file(projectRoot));
+    if (!folder) {
+      return windowEnv;
+    }
+    try {
+      return this.pythonEnvironment.getEnvironmentVariables(folder);
+    } catch {
+      return windowEnv;
+    }
   }
 
   /**
@@ -837,6 +859,10 @@ export class IntegrationModeService {
       return;
     }
     await this.workspaceState.update(SWITCH_HELD_NOTIFIED_KEY, true);
+    // A detection during that write may have shown the hold as its error.
+    if (this.heldErrorShown) {
+      return;
+    }
     const { text, actions } = heldMessage(held, false);
     const answer = await window.showInformationMessage(
       text,
@@ -983,7 +1009,7 @@ function heldMessage(
         text: withNeeds(
           `${lead("this window", blocker)} To use dbt Fusion with it, add ${ALLOW_EXPERIMENTAL_ADAPTERS}=true to ${terminalEnvSetting()}, then reload the window.`,
         ),
-        actions: [OPEN_SETTINGS, USE_FUSION],
+        actions: installOr(OPEN_SETTINGS, USE_FUSION),
       };
     }
     case "profileNotFound":

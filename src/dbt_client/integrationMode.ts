@@ -331,8 +331,10 @@ const HOLD_ORDER: [
  * dbt-core in the interpreter, no dbt-loom config), its profile is where dbt
  * looks and dbt Fusion runs its adapter without an opt-in, and the default
  * when not. `heldBack` says why a found binary did not switch the window.
- * A missing profile comes before the adapter and the dbt-core check: it stops
- * both modes.
+ * A missing profile comes before an adapter dbt Fusion runs only as
+ * experimental and before a dbt-core check that could not tell: it stops both
+ * modes. An importable dbt-core, an unsupported adapter and a dbt-loom config
+ * come first, as before.
  */
 export function decideDbtIntegrationMode(
   configured: ConfiguredDbtIntegration,
