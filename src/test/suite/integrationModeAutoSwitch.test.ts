@@ -1659,6 +1659,44 @@ describe("IntegrationModeService.resolve: the adapter check", () => {
       );
     });
 
+    it("holds when dbt_project.yml names a profile that only looks present (__proto__)", async () => {
+      const root = path.join(dir, "shop");
+      mkdirSync(root);
+      writeFileSync(
+        path.join(root, "dbt_project.yml"),
+        'name: shop\nversion: "1.0"\nprofile: __proto__\n',
+      );
+      writeFileSync(
+        path.join(root, "profiles.yml"),
+        profile("shop", "dev", { dev: { type: "snowflake" } }),
+      );
+      const { svc, telemetry } = service({ projectFiles: projectsIn(root) });
+      await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
+        "core",
+      );
+      expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+        "dbtIntegrationSwitchHeld",
+        expect.objectContaining({ profileCheck: "profileMissing" }),
+      );
+    });
+
+    it.each([
+      ["a Jinja statement", "{% if true %}dev{% endif %}"],
+      ["a Jinja comment", "dev{# the default #}"],
+    ])(
+      "switches when the target is written with %s, which only dbt renders",
+      async (_, target) => {
+        const root = project(
+          "shop",
+          profile("shop", target, { dev: { type: "snowflake" } }),
+        );
+        const { svc } = service({ projectFiles: projectsIn(root) });
+        await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
+          "fusion",
+        );
+      },
+    );
+
     it("switches when dbt_project.yml is a YAML list, not a mapping", async () => {
       const root = path.join(dir, "shop");
       mkdirSync(root);

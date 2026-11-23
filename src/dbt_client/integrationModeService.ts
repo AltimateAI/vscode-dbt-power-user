@@ -181,27 +181,30 @@ function profilesSearched(
 const SINGLE_ENV_VAR =
   /^\{\{\s*env_var\(\s*(['"])([^'"]+)\1\s*(?:,\s*(['"])([^'"]*)\3\s*)?\)\s*\}\}$/;
 
+/** Jinja dbt renders before it reads a value: an expression, a statement or a comment. */
+const isTemplated = (value: string) => /\{[{%#]/.test(value);
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
 /**
- * The target dbt selects for `profileName`, for the message: `DBT_TARGET`,
- * else the profile's `target:`, literal or a single `env_var` call resolved
- * as `resolveProfileTargets` resolves it.
+ * The target dbt selects for a profile, when it can be told without dbt:
+ * `DBT_TARGET`, else the profile's `target:` when it is a plain name or a
+ * single `env_var` call (resolved as `resolveProfileTargets` resolves it).
+ * Undefined for any other template, which only dbt can render.
  */
 function selectedTarget(
-  profilesYaml: string,
-  profileName: string,
+  profile: Record<string, unknown>,
   env: EnvironmentVariables,
 ): string | undefined {
   if (env.DBT_TARGET !== undefined) {
     return env.DBT_TARGET;
   }
-  const document: unknown = parseYaml(profilesYaml);
-  const target = (document as Record<string, { target?: unknown }>)?.[
-    profileName
-  ]?.target;
+  const target = profile.target;
   if (typeof target !== "string") {
     return undefined;
   }
-  if (!target.includes("{{")) {
+  if (!isTemplated(target)) {
     return target;
   }
   const match = SINGLE_ENV_VAR.exec(target);
@@ -618,7 +621,7 @@ export class IntegrationModeService {
           problem: { check: "noProfileName", projectRoot },
         };
       }
-      if (typeof profileName !== "string" || profileName.includes("{{")) {
+      if (typeof profileName !== "string" || isTemplated(profileName)) {
         return { types: [] };
       }
       const profilesFile = findProfilesFile(projectRoot, env);
@@ -634,8 +637,15 @@ export class IntegrationModeService {
         };
       }
       const profilesYaml = readFileSync(profilesFile, "utf8");
+      // The profile as its own key: a name like `__proto__` isn't a profile.
+      const document: unknown = parseYaml(profilesYaml);
+      const ownProfile =
+        isRecord(document) &&
+        Object.prototype.hasOwnProperty.call(document, profileName)
+          ? document[profileName]
+          : undefined;
       const profile = resolveProfileTargets(profilesYaml, profileName, env);
-      if (profile.unresolved === "no-profile") {
+      if (!isRecord(ownProfile) || profile.unresolved === "no-profile") {
         return {
           types: [],
           problem: {
@@ -650,7 +660,9 @@ export class IntegrationModeService {
         profile.defaultTarget !== undefined
           ? [profile.adapterTypes[profile.defaultTarget]]
           : profile.targets.map((target) => profile.adapterTypes[target]);
-      if (profile.unresolved === "unknown-target") {
+      // Held only for a target we can name: any other template is dbt's to render.
+      const target = selectedTarget(ownProfile, env);
+      if (profile.unresolved === "unknown-target" && target !== undefined) {
         return {
           types,
           problem: {
@@ -658,7 +670,7 @@ export class IntegrationModeService {
             projectRoot,
             profilesFile,
             profile: profileName,
-            target: selectedTarget(profilesYaml, profileName, env),
+            target,
           },
         };
       }
