@@ -29,6 +29,7 @@ describe("DBTProjectLog", () => {
   let logFile: string;
   let channels: FakeChannel[];
   let watcherChange: (() => void) | undefined;
+  let watcher: { dispose: jest.Mock };
   let emitter: EventEmitter<any>;
   let log: DBTProjectLog;
 
@@ -79,7 +80,7 @@ describe("DBTProjectLog", () => {
         dispose: jest.fn(),
       };
     }) as any);
-    jest.spyOn(workspace, "createFileSystemWatcher").mockReturnValue({
+    watcher = {
       onDidChange: jest.fn((handler: () => void) => {
         watcherChange = handler;
         return { dispose: jest.fn() };
@@ -87,7 +88,10 @@ describe("DBTProjectLog", () => {
       onDidCreate: jest.fn(() => ({ dispose: jest.fn() })),
       onDidDelete: jest.fn(() => ({ dispose: jest.fn() })),
       dispose: jest.fn(),
-    } as any);
+    } as any;
+    jest
+      .spyOn(workspace, "createFileSystemWatcher")
+      .mockReturnValue(watcher as any);
     emitter = new EventEmitter<any>();
     log = new DBTProjectLog(emitter.event as any);
   });
@@ -120,7 +124,8 @@ describe("DBTProjectLog", () => {
     fireConfig();
     await idle();
     const shown = lines(lastChannel().text);
-    expect(shown[0]).toContain("Skipped");
+    // 6000 bytes of older output; a megabyte-only notice said "Skipped 0.0 MB".
+    expect(shown[0]).toMatch(/^Skipped 5\.9 KB of earlier output/);
     expect(shown.slice(1)).toEqual(lines(recent));
   });
 
@@ -136,6 +141,40 @@ describe("DBTProjectLog", () => {
     expect(shown[0]).toMatch(/^Skipped 3\.0 MB of earlier output/);
     expect(shown).toHaveLength(MB / 2 + 1);
     expect(shown.slice(1).every((line) => line === "y")).toBe(true);
+  });
+
+  it.each([
+    ["after the escape byte", 1],
+    ["inside its parameters", 3],
+  ])("strips an ANSI code cut %s at a chunk boundary", async (_, cut) => {
+    // The 256 KB read chunk ends inside "\u001b[31m". Stripping each chunk on its own left the
+    // escape byte, or let the code's tail ("1m") through.
+    const before = "a".repeat(256 * 1024 - cut);
+    fs.writeFileSync(logFile, before + "\u001b[31mred\n");
+    fireConfig();
+    await idle();
+    expect(lastChannel().text).toBe(before + "red\n");
+  });
+
+  it("strips an ANSI code split across two appends", async () => {
+    fs.writeFileSync(logFile, "first run\n");
+    fireConfig();
+    await idle();
+    fs.appendFileSync(logFile, "second \u001b[3");
+    watcherChange!();
+    await idle();
+    fs.appendFileSync(logFile, "1mrun\n");
+    watcherChange!();
+    await idle();
+    expect(lastChannel().text).toBe("first run\nsecond run\n");
+  });
+
+  it("disposes the log file watcher with the log", async () => {
+    fs.writeFileSync(logFile, "first run\n");
+    fireConfig();
+    await idle();
+    log.dispose();
+    expect(watcher.dispose).toHaveBeenCalledTimes(1);
   });
 
   it("reads off the calling turn, so a project-config event never blocks", async () => {

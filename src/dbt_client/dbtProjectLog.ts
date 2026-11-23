@@ -20,6 +20,8 @@ export class DBTProjectLog implements Disposable {
   private logPosition: number = 0;
   private logFileId?: number;
   private decoder = new StringDecoder("utf8");
+  // The start of an ANSI escape sequence cut off at the end of the last read.
+  private pendingEscape = "";
   private readChain: Promise<void> = Promise.resolve();
   private readQueued = false;
   private static LOG_PATH = "logs";
@@ -27,6 +29,8 @@ export class DBTProjectLog implements Disposable {
   // Most unread output shown at once; anything older is skipped with a notice.
   private static MAX_UNREAD_BYTES = 2 * 1024 * 1024;
   private static CHUNK_BYTES = 256 * 1024;
+  // An escape sequence that may still be incomplete at the end of the text.
+  private static PARTIAL_ESCAPE = /[\u001b\u009b][[()#;?0-9]{0,32}$/;
   private currentProjectName?: string;
   private disposables: Disposable[] = [];
 
@@ -78,6 +82,7 @@ export class DBTProjectLog implements Disposable {
   private restartFrom(position: number) {
     this.logPosition = position;
     this.decoder = new StringDecoder("utf8");
+    this.pendingEscape = "";
   }
 
   /**
@@ -148,15 +153,29 @@ export class DBTProjectLog implements Disposable {
           );
           skippedFrom = undefined;
         }
-        const text = this.decoder.write(buffer.subarray(from, bytesRead));
-        if (text) {
-          channel.append(stripANSI(text));
-        }
+        this.appendText(
+          channel,
+          this.decoder.write(buffer.subarray(from, bytesRead)),
+        );
       }
     } catch (error) {
       console.log("Could not read log file", error);
     } finally {
       await handle?.close().catch(() => undefined);
+    }
+  }
+
+  /**
+   * Appends decoded log text without its ANSI codes. A read can end inside an escape sequence, so
+   * a trailing sequence that may be incomplete is held back and stripped with the next read.
+   */
+  private appendText(channel: OutputChannel, decoded: string) {
+    const text = this.pendingEscape + decoded;
+    const partial = DBTProjectLog.PARTIAL_ESCAPE.exec(text);
+    const end = partial ? partial.index : text.length;
+    this.pendingEscape = text.slice(end);
+    if (end > 0) {
+      channel.append(stripANSI(text.slice(0, end)));
     }
   }
 
@@ -193,7 +212,17 @@ export class DBTProjectLog implements Disposable {
   }
 
   private static skipNotice(skippedBytes: number, logPath: string): string {
-    return `Skipped ${(skippedBytes / (1024 * 1024)).toFixed(1)} MB of earlier output, showing the most recent part. The full log is at ${logPath}`;
+    return `Skipped ${DBTProjectLog.formatSize(skippedBytes)} of earlier output, showing the most recent part. The full log is at ${logPath}`;
+  }
+
+  private static formatSize(bytes: number): string {
+    if (bytes >= 1024 * 1024) {
+      return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    }
+    if (bytes >= 1024) {
+      return `${(bytes / 1024).toFixed(1)} KB`;
+    }
+    return `${bytes} bytes`;
   }
 
   public dispose() {
@@ -201,6 +230,8 @@ export class DBTProjectLog implements Disposable {
       this.outputChannel.dispose();
       this.outputChannel = undefined;
     }
+    this.logFileWatcher?.dispose();
+    this.logFileWatcher = undefined;
     while (this.disposables.length) {
       const x = this.disposables.pop();
       if (x) {
