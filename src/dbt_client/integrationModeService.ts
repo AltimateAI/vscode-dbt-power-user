@@ -176,7 +176,16 @@ function profilesSearched(
   ];
 }
 
-/** The target dbt selects for `profileName`, when it is written out. */
+// `{{ env_var('NAME') }}` or `{{ env_var("NAME", "default") }}`, as
+// dbt-integration's `resolveProfileTargets` reads a profile's `target:`.
+const SINGLE_ENV_VAR =
+  /^\{\{\s*env_var\(\s*(['"])([^'"]+)\1\s*(?:,\s*(['"])([^'"]*)\3\s*)?\)\s*\}\}$/;
+
+/**
+ * The target dbt selects for `profileName`, for the message: `DBT_TARGET`,
+ * else the profile's `target:`, literal or a single `env_var` call resolved
+ * as `resolveProfileTargets` resolves it.
+ */
 function selectedTarget(
   profilesYaml: string,
   profileName: string,
@@ -189,9 +198,18 @@ function selectedTarget(
   const target = (document as Record<string, { target?: unknown }>)?.[
     profileName
   ]?.target;
-  return typeof target === "string" && !target.includes("{{")
-    ? target
-    : undefined;
+  if (typeof target !== "string") {
+    return undefined;
+  }
+  if (!target.includes("{{")) {
+    return target;
+  }
+  const match = SINGLE_ENV_VAR.exec(target);
+  if (!match) {
+    return undefined;
+  }
+  const [, , name, , fallback] = match;
+  return (env[name] !== undefined ? env[name] : fallback) || undefined;
 }
 
 /** Why the window was held, with what was found, for the log. */
@@ -582,7 +600,11 @@ export class IntegrationModeService {
   ): { types: (string | undefined)[]; problem?: ProfileProblem } {
     try {
       const config: unknown = readAndParseProjectConfig(projectRoot);
-      if (typeof config !== "object" || config === null) {
+      if (
+        typeof config !== "object" ||
+        config === null ||
+        Array.isArray(config)
+      ) {
         return { types: [] };
       }
       const profileName = (config as { profile?: unknown }).profile;

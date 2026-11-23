@@ -1620,6 +1620,62 @@ describe("IntegrationModeService.resolve: the adapter check", () => {
       },
     );
 
+    // dbt resolves a target written as one env_var call from the same
+    // environment dbt Fusion runs with, so a name it doesn't define fails there too.
+    it("holds when a target written as env_var names an output the profile lacks, and names it", async () => {
+      const root = project(
+        "shop",
+        profile("shop", "{{ env_var('DEPLOY_TARGET') }}", {
+          dev: { type: "snowflake" },
+        }),
+      );
+      const { svc, telemetry } = service({
+        projectFiles: projectsIn(root),
+        env: { PATH: "/usr/bin", DEPLOY_TARGET: "prod" },
+      });
+      await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
+        "core",
+      );
+      expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+        "dbtIntegrationSwitchHeld",
+        expect.objectContaining({ profileCheck: "targetMissing" }),
+      );
+      await svc.notifySwitchHeld();
+      expect(shown()[0][0]).toContain(
+        ": target 'prod' is not in profile 'shop'",
+      );
+    });
+
+    it("switches when a target written as env_var names an output the profile has", async () => {
+      const root = project(
+        "shop",
+        profile("shop", "{{ env_var('DEPLOY_TARGET', 'dev') }}", {
+          dev: { type: "snowflake" },
+        }),
+      );
+      const { svc } = service({ projectFiles: projectsIn(root) });
+      await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
+        "fusion",
+      );
+    });
+
+    it("switches when dbt_project.yml is a YAML list, not a mapping", async () => {
+      const root = path.join(dir, "shop");
+      mkdirSync(root);
+      writeFileSync(
+        path.join(root, "dbt_project.yml"),
+        "- name: shop\n- profile: shop\n",
+      );
+      writeFileSync(
+        path.join(root, "profiles.yml"),
+        profile("shop", "dev", { dev: { type: "snowflake" } }),
+      );
+      const { svc } = service({ projectFiles: projectsIn(root) });
+      await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
+        "fusion",
+      );
+    });
+
     it("names the missing profile before an adapter dbt Fusion runs only as experimental", async () => {
       const shop = project(
         "shop",
