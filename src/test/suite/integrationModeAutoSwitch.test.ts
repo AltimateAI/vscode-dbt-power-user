@@ -1697,6 +1697,25 @@ describe("IntegrationModeService.resolve: the adapter check", () => {
       },
     );
 
+    it("does not hold on a missing target when DBT_TARGET is null", async () => {
+      const root = project(
+        "shop",
+        profile("shop", "dev", { dev: { type: "snowflake" } }),
+      );
+      const { svc, telemetry } = service({
+        projectFiles: projectsIn(root),
+        env: { PATH: "/usr/bin", DBT_TARGET: null } as unknown as Record<
+          string,
+          string
+        >,
+      });
+      await svc.resolve(new FakeMemento() as never);
+      expect(telemetry.sendTelemetryEvent).not.toHaveBeenCalledWith(
+        "dbtIntegrationSwitchHeld",
+        expect.objectContaining({ profileCheck: "targetMissing" }),
+      );
+    });
+
     it("switches when dbt_project.yml is a YAML list, not a mapping", async () => {
       const root = path.join(dir, "shop");
       mkdirSync(root);
@@ -1851,6 +1870,24 @@ describe("IntegrationModeService.resolve: the adapter check", () => {
         );
       },
     );
+
+    // terminal.integrated.env can set a variable to null, which unsets it.
+    it("reads an opt-in of null as not set, without failing", async () => {
+      const shop = project(
+        "shop",
+        profile("shop", "dev", { dev: { type: "snowflake" } }),
+      );
+      const { svc } = service({
+        projectFiles: projectsIn(shop),
+        env: {
+          PATH: "/usr/bin",
+          DBT_ALLOW_EXPERIMENTAL_ADAPTERS: null,
+        } as unknown as Record<string, string>,
+      });
+      await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
+        "fusion",
+      );
+    });
 
     it("holds when no target is runnable without the opt-in, and names only the experimental adapters", async () => {
       const root = project(

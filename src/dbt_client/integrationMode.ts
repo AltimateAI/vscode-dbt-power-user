@@ -133,9 +133,10 @@ export const ALLOW_EXPERIMENTAL_ADAPTERS = "DBT_ALLOW_EXPERIMENTAL_ADAPTERS";
 export function experimentalAdaptersAllowed(
   env: Record<string, string | undefined>,
 ): boolean {
-  const value = env[ALLOW_EXPERIMENTAL_ADAPTERS];
+  // `terminal.integrated.env` can hold null (unset): only a string counts.
+  const value: unknown = env[ALLOW_EXPERIMENTAL_ADAPTERS];
   return (
-    value !== undefined &&
+    typeof value === "string" &&
     ["true", "1", "yes", "on"].includes(value.toLowerCase())
   );
 }

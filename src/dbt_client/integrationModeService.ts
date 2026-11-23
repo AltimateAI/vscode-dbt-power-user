@@ -197,8 +197,11 @@ function selectedTarget(
   profile: Record<string, unknown>,
   env: EnvironmentVariables,
 ): string | undefined {
-  if (env.DBT_TARGET !== undefined) {
-    return env.DBT_TARGET;
+  // Set to something other than a string (null in terminal.integrated.env):
+  // only dbt can tell what it selects.
+  const dbtTarget: unknown = env.DBT_TARGET;
+  if (dbtTarget !== undefined) {
+    return typeof dbtTarget === "string" ? dbtTarget : undefined;
   }
   const target = profile.target;
   if (typeof target !== "string") {
