@@ -144,6 +144,22 @@ describe("TelemetryService.sendTelemetryError forwards diagnostic fields", () =>
     },
   );
 
+  it("sends the error without the fields when reading them throws", () => {
+    const err = new Error("boom");
+    Object.defineProperty(err, "errorCodes", {
+      get() {
+        throw new Error("getter");
+      },
+    });
+    expect(() =>
+      telemetry.sendTelemetryError("dbtFusionParseProjectUserError", err),
+    ).not.toThrow();
+    const { properties, measurements } = captureCall();
+    expect(properties.error_message).toBe("boom");
+    expect(properties.errorCodes).toBeUndefined();
+    expect(measurements.errorCount).toBeUndefined();
+  });
+
   it("forwards error.name as a top-level property", () => {
     const err = new TypeError("Cannot destructure property 'returnResult'");
     telemetry.sendTelemetryError("unhandledRejectionError", err);

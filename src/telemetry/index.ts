@@ -101,6 +101,7 @@ export class TelemetryService implements vscode.Disposable {
         ? error.stack
         : safeSerializeTelemetryValue(error);
     const structured = extractStructuredFields(error, rawStack);
+    const report = dbtErrorReport(error);
     this.telemetryReporter.sendTelemetryErrorEvent(
       eventName,
       {
@@ -117,14 +118,14 @@ export class TelemetryService implements vscode.Disposable {
           : "false",
         stack: sanitizeForTelemetry(rawStack),
         ...this.extractErrorFields(error),
-        ...dbtErrorReport(error).properties,
+        ...report.properties,
         ...structured.properties,
         ...fusionFailureClassProperties(eventName, error),
         ...this.customAttributes,
       },
       {
         ...measurements,
-        ...dbtErrorReport(error).measurements,
+        ...report.measurements,
         ...structured.measurements,
       },
     );
@@ -181,10 +182,17 @@ export function dbtErrorReport(error: unknown): {
   if (typeof error !== "object" || error === null) {
     return { properties: {}, measurements: {} };
   }
-  const { errorCodes, errorCount } = error as {
-    errorCodes?: unknown;
-    errorCount?: unknown;
-  };
+  let errorCodes: unknown;
+  let errorCount: unknown;
+  try {
+    ({ errorCodes, errorCount } = error as {
+      errorCodes?: unknown;
+      errorCount?: unknown;
+    });
+  } catch {
+    // A getter that throws: telemetry never breaks its caller.
+    return { properties: {}, measurements: {} };
+  }
   const codes =
     typeof errorCodes === "string"
       ? errorCodes.split(",").filter((code) => DBT_ERROR_CODE.test(code))
