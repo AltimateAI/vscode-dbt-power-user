@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import * as path from "path";
-import { ConfigurationTarget, Uri, window, workspace } from "vscode";
+import { commands, ConfigurationTarget, Uri, window, workspace } from "vscode";
 import {
   DbtCoreCheck,
   decideDbtIntegrationMode,
@@ -176,6 +176,9 @@ function service({
 
 const shown = () =>
   (window.showInformationMessage as jest.Mock).mock.calls as unknown[][];
+/** What a notification rejects with when VS Code cancels it (the window closed). */
+const canceled = () =>
+  Object.assign(new Error("Canceled"), { name: "Canceled" });
 
 describe("readConfiguredDbtIntegration", () => {
   it("tells the default from an explicit value at any level", () => {
@@ -545,6 +548,16 @@ describe("IntegrationModeService.notifyProjects", () => {
     await svc.notifyProjects([jaffle]);
     expect(shown()).toHaveLength(0);
   });
+
+  it("takes a notice VS Code cancels as no answer, not an error", async () => {
+    const { svc } = service();
+    await svc.resolve(new FakeMemento() as never);
+    (window.showInformationMessage as jest.Mock).mockReturnValueOnce(
+      Promise.reject(canceled()),
+    );
+    await expect(svc.notifyProjects([jaffle])).resolves.toBeUndefined();
+    expect(commands.executeCommand).not.toHaveBeenCalled();
+  });
 });
 
 describe("IntegrationModeService.resolve when the dbt-core probe does not answer", () => {
@@ -640,6 +653,20 @@ describe("IntegrationModeService.notifySwitchHeld", () => {
     // The setting is now explicit and differs from the running mode.
     useSetting({ workspaceValue: "fusion" });
     expect(svc.needsReload()).toBe(true);
+  });
+
+  it("takes a notice VS Code cancels as no answer, not an error", async () => {
+    const { svc, telemetry } = service(withDbtCore);
+    await svc.resolve(new FakeMemento() as never);
+    (window.showInformationMessage as jest.Mock).mockReturnValueOnce(
+      Promise.reject(canceled()),
+    );
+    await expect(svc.notifySwitchHeld()).resolves.toBeUndefined();
+    expect(update).not.toHaveBeenCalled();
+    expect(telemetry.sendTelemetryEvent).not.toHaveBeenCalledWith(
+      "dbtIntegrationUseFusion",
+      expect.anything(),
+    );
   });
 
   it("writes nothing on Dismiss, and shows nothing after a switch", async () => {
@@ -983,6 +1010,64 @@ describe("IntegrationModeService.rebuildStatusChanged", () => {
     await rebuild(explicit, jaffle, 2);
 
     expect(warned()).toHaveLength(0);
+  });
+
+  it("counts the offer when it is shown, before it is answered", async () => {
+    // A warning that slides into the notification center is never answered.
+    const { svc, telemetry } = await switchedService();
+    (window.showWarningMessage as jest.Mock).mockReturnValueOnce(
+      new Promise(() => undefined),
+    );
+    await svc.rebuildStatusChanged({
+      ...jaffle,
+      inProgress: true,
+      errorCount: 0,
+    });
+    void svc.rebuildStatusChanged({
+      ...jaffle,
+      inProgress: false,
+      errorCount: 2,
+    });
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(warned()).toHaveLength(1);
+    expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+      "dbtIntegrationAutoSwitchParseFailedOffered",
+      { binaryVersion: "2.0.9", dbtCoreCheck: "notInstalled" },
+      { errorCount: 2 },
+    );
+    expect(telemetry.sendTelemetryEvent).not.toHaveBeenCalledWith(
+      "dbtIntegrationAutoSwitchParseFailed",
+      expect.anything(),
+      expect.anything(),
+    );
+  });
+
+  it("takes an offer VS Code cancels as no answer, not an error", async () => {
+    // The window closed with the warning open.
+    const { svc, telemetry } = await switchedService();
+    (window.showWarningMessage as jest.Mock).mockReturnValueOnce(
+      Promise.reject(canceled()),
+    );
+    await expect(rebuild(svc, jaffle, 2)).resolves.toBeUndefined();
+    expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+      "dbtIntegrationAutoSwitchParseFailedOffered",
+      expect.anything(),
+      expect.anything(),
+    );
+    expect(telemetry.sendTelemetryEvent).not.toHaveBeenCalledWith(
+      "dbtIntegrationAutoSwitchParseFailed",
+      expect.anything(),
+      expect.anything(),
+    );
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it("still fails on an error that is not a cancellation", async () => {
+    const { svc } = await switchedService();
+    (window.showWarningMessage as jest.Mock).mockReturnValueOnce(
+      Promise.reject(new Error("Canceled")),
+    );
+    await expect(rebuild(svc, jaffle, 2)).rejects.toThrow("Canceled");
   });
 
   it.each([
