@@ -98,6 +98,16 @@ export function interpreterExists(
     );
 }
 
+/**
+ * The integration mode's say on a missing dbt Core: in a window held in dbt
+ * Core mode instead of switching to dbt Fusion, the reason it was held is
+ * the error to show.
+ */
+export interface HeldSwitchNotice {
+  /** Shows why the window was held, as an error; false when it shows nothing. */
+  notifyHeldWithoutDbtCore(): Promise<boolean>;
+}
+
 export class DBTClient implements Disposable {
   private _onDBTInstallationVerificationEvent =
     new EventEmitter<DBTInstallationVerificationEvent>();
@@ -120,6 +130,7 @@ export class DBTClient implements Disposable {
     private pythonEnvironment: PythonEnvironment,
     @inject("Factory<DBTDetection>")
     private dbtDetectionFactory: () => DBTDetection,
+    private heldSwitchNotice?: HeldSwitchNotice,
   ) {}
 
   dispose() {
@@ -301,6 +312,13 @@ export class DBTClient implements Disposable {
         // We don't want to flood the user with errors
         this.shownError = true;
         const dbtIntegrationMode = getDbtIntegrationMode();
+        // A window held in dbt Core mode: its reason replaces "install dbt Core".
+        if (
+          ["core", "corecommand"].includes(dbtIntegrationMode) &&
+          (await this.heldSwitchNotice?.notifyHeldWithoutDbtCore())
+        ) {
+          return false;
+        }
         switch (dbtIntegrationMode) {
           case "fusion":
             await this.showDbtFusionNotFound();

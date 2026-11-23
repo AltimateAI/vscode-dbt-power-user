@@ -74,7 +74,10 @@ describe("activate hands the context to the project container before its first a
 describe("activate listens for dbt.dbtIntegration before the held-switch notice", () => {
   const stub = () => ({ dispose: jest.fn() }) as never;
 
-  it("has registered the configuration listener when notifySwitchHeld runs", async () => {
+  // The notice comes after dbt detection: where dbt Core mode can't start,
+  // detection shows why the window was held instead (as its "dbt is not
+  // installed" error), and the notice then shows nothing.
+  it("has registered the configuration listener when notifySwitchHeld runs, after detection", async () => {
     (window as unknown as Record<string, unknown>).registerUriHandler = jest.fn(
       () => ({ dispose: () => undefined }),
     );
@@ -82,19 +85,25 @@ describe("activate listens for dbt.dbtIntegration before the held-switch notice"
       workspace.onDidChangeConfiguration as unknown as jest.Mock;
     onDidChangeConfiguration.mockClear();
     let listenerAtNotice: boolean | undefined;
+    let detectedAtNotice: boolean | undefined;
+    let detected = false;
     const integrationModeService = {
       resolve: jest.fn(() => Promise.resolve("core")),
       notifySwitchHeld: jest.fn(() => {
         listenerAtNotice = onDidChangeConfiguration.mock.calls.length > 0;
+        detectedAtNotice = detected;
         return Promise.resolve();
       }),
     };
     const container = {
       setContext: jest.fn(),
       initializeWalkthrough: jest.fn(),
-      // Detection never settles: the rest of activate never runs.
-      detectDBT: jest.fn(() => new Promise<void>(() => undefined)),
-      initializeDBTProjects: jest.fn(),
+      detectDBT: jest.fn(() => {
+        detected = true;
+        return Promise.resolve();
+      }),
+      // Never settles: the rest of activate never runs.
+      initializeDBTProjects: jest.fn(() => new Promise<void>(() => undefined)),
       dispose: jest.fn(),
     };
     const mcpServer = {
@@ -130,5 +139,6 @@ describe("activate listens for dbt.dbtIntegration before the held-switch notice"
 
     expect(integrationModeService.notifySwitchHeld).toHaveBeenCalledTimes(1);
     expect(listenerAtNotice).toBe(true);
+    expect(detectedAtNotice).toBe(true);
   });
 });
