@@ -78,6 +78,15 @@ describe("MCP tool schema Gemini compatibility", () => {
         expect(jsonSchema).toHaveProperty("properties");
       });
 
+      it("keeps every parameter of the schema", () => {
+        const parameters = Object.keys(
+          (schema as z.ZodObject<z.ZodRawShape>).shape,
+        );
+        expect(Object.keys(jsonSchema.properties ?? {}).sort()).toEqual(
+          parameters.sort(),
+        );
+      });
+
       it("should not have additionalProperties: true", () => {
         // additionalProperties: false is fine (and required by Gemini)
         // additionalProperties: true or missing is rejected
