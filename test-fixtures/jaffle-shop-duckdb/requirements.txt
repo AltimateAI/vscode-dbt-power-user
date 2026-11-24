@@ -13,7 +13,7 @@ attrs==25.4.0
     #   referencing
 babel==2.18.0
     # via agate
-certifi==2026.2.25
+certifi==2026.10.18
     # via requests
 chardet==5.2.0
     # via
