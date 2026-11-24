@@ -4,6 +4,7 @@ import {
   CancellationToken,
   commands,
   Disposable,
+  languages,
   TextEditor,
   Uri,
   WebviewView,
@@ -25,6 +26,8 @@ export interface LineagePanelView extends WebviewViewProvider {
   changedActiveColorTheme(): void;
   changedActiveTextEditor(event: TextEditor | undefined): void;
   changedTextEditorSelection(editor: TextEditor): void;
+  changedDiagnostics(uris?: readonly Uri[]): void;
+  changedRebuildStatus(inProgress: boolean): void;
   handleCommand(message: { command: string; args: any }): Promise<void> | void;
 }
 
@@ -63,6 +66,19 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
       (event) => {
         this.getPanel().changedTextEditorSelection(event.textEditor);
       },
+      null,
+      this.disposables,
+    );
+    // A parse error that appears or clears changes the stale-graph banner
+    // without a new manifest or an editor switch.
+    languages.onDidChangeDiagnostics(
+      (event) => this.getPanel().changedDiagnostics(event.uris),
+      null,
+      this.disposables,
+    );
+    // A parse that ends can change the error without touching a diagnostic.
+    this.dbtProjectContainer.onRebuildManifestStatusChange(
+      (event) => this.getPanel().changedRebuildStatus(event.inProgress),
       null,
       this.disposables,
     );

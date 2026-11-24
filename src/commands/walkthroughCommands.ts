@@ -14,6 +14,7 @@ import {
   workspace,
 } from "vscode";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import { getDbtIntegrationMode } from "../dbt_client/integrationMode";
 import { PythonEnvironment } from "../dbt_client/pythonEnvironment";
 import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
 import { TelemetryService } from "../telemetry";
@@ -53,11 +54,7 @@ export class WalkthroughCommands {
       return;
     }
     let debugCommand = "dbt debug";
-    if (
-      workspace
-        .getConfiguration("dbt")
-        .get<string>("dbtIntegration", "core") === "cloud"
-    ) {
+    if (getDbtIntegrationMode() === "cloud") {
       debugCommand = "dbt environment show";
     }
     if (!skipConfirmation) {
@@ -88,11 +85,14 @@ export class WalkthroughCommands {
         `Error when validating ${projectContext.label}`,
         err,
       );
-      window.showErrorMessage(
-        "Error running dbt debug for project " +
-          projectContext.label +
-          ". Please check the output tab for more details.",
-      );
+      // Callers that skip the confirmation show the error themselves.
+      if (!skipConfirmation) {
+        window.showErrorMessage(
+          "Error running dbt debug for project " +
+            projectContext.label +
+            ". Please check the output tab for more details.",
+        );
+      }
       throw err;
     }
   }
@@ -134,19 +134,20 @@ export class WalkthroughCommands {
         err,
       );
       this.telemetry.sendTelemetryError("installDepsError", err);
-      window.showErrorMessage(
-        "Error installing dbt dependencies for project " +
-          projectContext.label +
-          ". Please check the output tab for more details.",
-      );
+      if (!skipConfirmation) {
+        window.showErrorMessage(
+          "Error installing dbt dependencies for project " +
+            projectContext.label +
+            ". Please check the output tab for more details.",
+        );
+      }
       throw err;
     }
   }
 
-  async installDbt(): Promise<void> {
-    const dbtIntegration = workspace
-      .getConfiguration("dbt")
-      .get<string>("dbtIntegration", "core");
+  async installDbt(
+    dbtIntegration: string = getDbtIntegrationMode(),
+  ): Promise<void> {
     switch (dbtIntegration) {
       case "core":
         return this.installDbtCore();
@@ -331,7 +332,9 @@ export class WalkthroughCommands {
     const telemetryProps = {
       adapter: adapter.label,
       packageName,
-      dbtVersion: packageVersion,
+      // The version the user picked to install; `dbtVersion` is the detected
+      // version every event carries once a project reports it.
+      requestedDbtVersion: packageVersion,
       platform,
       pythonPath: this.pythonEnvironment.pythonPath ?? "unknown",
       pythonVersion: this.pythonEnvironment.pythonVersion ?? "unknown",

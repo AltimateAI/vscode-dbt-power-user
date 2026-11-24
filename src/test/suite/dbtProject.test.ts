@@ -17,6 +17,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import childProcess from "child_process";
 import { EventEmitter } from "events";
 import * as path from "path";
 import * as vscode from "vscode";
@@ -24,6 +25,7 @@ import { AltimateRequest } from "../../altimate";
 import { DBTProject } from "../../dbt_client/dbtProject";
 import { DBTProjectLog } from "../../dbt_client/dbtProjectLog";
 import { ManifestCacheChangedEvent } from "../../dbt_client/event/manifestCacheChangedEvent";
+import { setEffectiveDbtIntegrationMode } from "../../dbt_client/integrationMode";
 import { PythonEnvironment } from "../../dbt_client/pythonEnvironment";
 import { AltimateAuthService } from "../../services/altimateAuthService";
 import { RunHistoryService } from "../../services/runHistoryService";
@@ -100,7 +102,10 @@ jest.mock("vscode", () => {
 jest.mock("../../utils", () => {
   return {
     getProjectRelativePath: jest.fn(() => "test-project"),
-    extendErrorWithSupportLinks: jest.fn((error: any) => error),
+    // The real helper: the docs tests assert its support-link suffix.
+    extendErrorWithSupportLinks:
+      jest.requireActual<typeof import("../../utils")>("../../utils")
+        .extendErrorWithSupportLinks,
     getColumnNameByCase: jest.fn((name: string) => name),
   };
 });
@@ -170,6 +175,7 @@ describe("DBTProject Test Suite", () => {
       sendTelemetryEvent: jest.fn(),
       sendTelemetryError: jest.fn(),
       setTelemetryCustomAttribute: jest.fn(),
+      deleteTelemetryCustomAttribute: jest.fn(),
       startTelemetryEvent: jest.fn(),
       endTelemetryEvent: jest.fn(),
       dispose: jest.fn(),
@@ -194,7 +200,10 @@ describe("DBTProject Test Suite", () => {
 
     // Mock PythonEnvironment
     mockPythonEnvironment = {
+      pythonExtensionAvailable: true,
+      pythonPath: "/usr/bin/python3",
       initialize: jest.fn(() => Promise.resolve()),
+      showInterpreterNotFound: jest.fn(() => Promise.resolve()),
       onPythonEnvironmentChanged: jest.fn().mockReturnValue({
         dispose: jest.fn(),
       }),
@@ -278,6 +287,7 @@ describe("DBTProject Test Suite", () => {
       initialize: jest.fn(),
       parseManifest: jest.fn(),
       rebuildManifest: jest.fn(),
+      reparseProject: jest.fn(),
       createDbtCommand: jest.fn(),
       runDbtCommand: jest.fn(),
       dispose: jest.fn(),
@@ -418,6 +428,157 @@ describe("DBTProject Test Suite", () => {
 
       expect(mockProjectIntegration.initialize).toHaveBeenCalled();
     });
+
+    function makeProject() {
+      return new DBTProject(
+        mockPythonEnvironment,
+        dbtProjectLogFactory as any,
+        mockCommandFactory,
+        mockTerminal,
+        mockSharedStateService,
+        mockTelemetry,
+        mockExecutionInfrastructure,
+        jest.fn().mockReturnValue(mockProjectIntegration) as any,
+        mockAltimate,
+        mockValidationProvider,
+        mockAltimateAuthService,
+        mockRunHistoryService,
+        vscode.Uri.file("/test/project"),
+        {},
+        mockManifestChangedEmitter,
+      );
+    }
+
+    it("names a missing Python interpreter instead of reporting an unexpected error", async () => {
+      // dbt-integration's PythonInterpreterNotFound.
+      const notFound = Object.assign(
+        new Error(
+          "Python bridge could not start: the Python interpreter /gone/.venv/bin/python was not found. It may have been moved or deleted.",
+        ),
+        { interpreterPath: "/gone/.venv/bin/python", errorClass: "python_env" },
+      );
+      mockProjectIntegration.initialize.mockRejectedValueOnce(notFound);
+      dbtProject = makeProject();
+
+      await dbtProject.initialize();
+
+      expect(
+        mockPythonEnvironment.showInterpreterNotFound,
+      ).toHaveBeenCalledWith("/gone/.venv/bin/python");
+      expect(vscode.window.showErrorMessage).not.toHaveBeenCalled();
+    });
+
+    describe("without the Python extension", () => {
+      const getConfiguration = vscode.workspace.getConfiguration as jest.Mock;
+      const defaultConfiguration = getConfiguration.getMockImplementation();
+      afterEach(() => {
+        getConfiguration.mockImplementation(defaultConfiguration!);
+      });
+
+      const withMode = (dbtIntegration: string) =>
+        (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue({
+          get: jest.fn((key: string, fallback?: unknown) =>
+            key === "dbtIntegration" ? dbtIntegration : fallback,
+          ),
+        });
+      const noExtension = (pythonPath = "") =>
+        Object.assign(mockPythonEnvironment, {
+          pythonExtensionAvailable: false,
+          pythonPath,
+        });
+
+      it("waits for the Python environment before deciding whether to hold the integration", async () => {
+        withMode("core");
+        let ready = false;
+        Object.defineProperty(mockPythonEnvironment, "pythonPath", {
+          configurable: true,
+          get: () => {
+            if (!ready) {
+              throw new Error(
+                "executionDetails is undefined, cannot retrieve environment variables",
+              );
+            }
+            return process.execPath;
+          },
+        });
+        Object.assign(mockPythonEnvironment, {
+          pythonExtensionAvailable: false,
+          initialize: jest.fn(async () => {
+            await new Promise((resolve) => setTimeout(resolve, 5));
+            ready = true;
+          }),
+        });
+        dbtProject = makeProject();
+
+        await dbtProject.initialize();
+
+        expect(mockPythonEnvironment.initialize).toHaveBeenCalled();
+        expect(mockProjectIntegration.initialize).toHaveBeenCalled();
+        expect(vscode.window.showErrorMessage).not.toHaveBeenCalled();
+      });
+
+      // The installation check prompts for the extension; the integration
+      // would only fail on the missing interpreter (and the dbt Cloud CLI
+      // check marks dbt_project.yml with it).
+      it("doesn't start the integration in cloud mode with no interpreter", async () => {
+        withMode("cloud");
+        noExtension();
+        dbtProject = makeProject();
+
+        await dbtProject.initialize();
+
+        expect(mockProjectIntegration.initialize).not.toHaveBeenCalled();
+        expect(vscode.window.showErrorMessage).not.toHaveBeenCalled();
+      });
+
+      it("starts the integration in fusion mode", async () => {
+        withMode("fusion");
+        noExtension();
+        dbtProject = makeProject();
+
+        await dbtProject.initialize();
+
+        expect(mockProjectIntegration.initialize).toHaveBeenCalled();
+      });
+
+      it("starts the integration when dbt.dbtPythonPathOverride names an interpreter", async () => {
+        withMode("cloud");
+        noExtension(process.execPath);
+        dbtProject = makeProject();
+
+        await dbtProject.initialize();
+
+        expect(mockProjectIntegration.initialize).toHaveBeenCalled();
+      });
+
+      it("doesn't start the integration when dbt.dbtPythonPathOverride names a missing interpreter", async () => {
+        withMode("cloud");
+        noExtension("/gone/.venv/bin/python");
+        dbtProject = makeProject();
+
+        await dbtProject.initialize();
+
+        expect(mockProjectIntegration.initialize).not.toHaveBeenCalled();
+      });
+    });
+
+    it("still reports any other initialization failure", async () => {
+      mockProjectIntegration.initialize.mockRejectedValueOnce(
+        new Error("Python bridge could not start: spawn python EACCES"),
+      );
+      dbtProject = makeProject();
+
+      await dbtProject.initialize();
+
+      expect(
+        mockPythonEnvironment.showInterpreterNotFound,
+      ).not.toHaveBeenCalled();
+      expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+        expect.stringContaining(
+          "An unexpected error occured while initializing the dbt project at",
+        ),
+      );
+    });
   });
 
   describe("Project Configuration Methods", () => {
@@ -439,6 +600,47 @@ describe("DBTProject Test Suite", () => {
         projectUri,
         {},
         mockManifestChangedEmitter,
+      );
+    });
+
+    it("re-parses through the adapter and settles when it has", async () => {
+      let finish!: () => void;
+      mockProjectIntegration.reparseProject.mockReturnValue(
+        new Promise<void>((resolve) => (finish = resolve)),
+      );
+      let settled = false;
+      const reparsing = dbtProject.reparseProject().then(() => {
+        settled = true;
+      });
+      await Promise.resolve();
+      expect(mockProjectIntegration.reparseProject).toHaveBeenCalledTimes(1);
+      expect(settled).toBe(false);
+      finish();
+      await reparsing;
+      expect(settled).toBe(true);
+    });
+
+    it("reads DBT_PROFILES_DIR from the project's own workspace folder", () => {
+      // dbt's process gets the variables of the project's folder, which
+      // include that folder's .env file.
+      const folder = {
+        uri: vscode.Uri.file("/test"),
+        name: "test",
+        index: 1,
+      };
+      jest
+        .mocked(vscode.workspace.getWorkspaceFolder)
+        .mockReturnValueOnce(folder);
+      mockPythonEnvironment.getEnvironmentVariables = jest.fn(
+        (workspaceFolder?: vscode.WorkspaceFolder) => ({
+          DBT_PROFILES_DIR:
+            workspaceFolder === folder ? "/test/conf" : "/first/conf",
+        }),
+      );
+
+      expect(dbtProject.getProfilesDirEnv()).toBe("/test/conf");
+      expect(vscode.workspace.getWorkspaceFolder).toHaveBeenCalledWith(
+        dbtProject.projectRoot,
       );
     });
 
@@ -739,6 +941,75 @@ describe("DBTProject Test Suite", () => {
       expect(vscode.window.showErrorMessage).toHaveBeenCalled();
     });
 
+    const SUPPORT_LINK =
+      " If the issue persists, please [contact us](https://www.altimate.ai/support?utm_source=dbt-power-user&utm_medium=extension) via chat or Slack";
+
+    it("reports Fusion's unsupported docs generation as its own event", async () => {
+      (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue({
+        get: jest.fn((key: string) =>
+          key === "dbtIntegration" ? "fusion" : undefined,
+        ),
+      });
+      mockProjectIntegration.generateDocs = jest
+        .fn<() => Promise<unknown>>()
+        .mockRejectedValue(
+          new Error("dbt fusion does not support docs generation"),
+        );
+
+      await dbtProject.generateDocs();
+
+      expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+        "Could not generate docs: dbt fusion does not support docs generation." +
+          " To generate docs, update dbt Fusion to 2.0.9 or newer, or set dbt.dbtIntegration to core or cloud.",
+      );
+      expect(mockTelemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+        "generateDocsUnsupported",
+      );
+      expect(mockTelemetry.sendTelemetryError).not.toHaveBeenCalled();
+      expect(mockTelemetry.sendTelemetryEvent).not.toHaveBeenCalledWith(
+        "generateDocs",
+      );
+    });
+
+    it("reports other docs generation failures as errors", async () => {
+      const error = new Error("dbt docs generate failed");
+      mockProjectIntegration.generateDocs = jest
+        .fn<() => Promise<unknown>>()
+        .mockRejectedValue(error);
+
+      await dbtProject.generateDocs();
+
+      expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+        "Could not generate docs: dbt docs generate failed." + SUPPORT_LINK,
+      );
+      expect(mockTelemetry.sendTelemetryError).toHaveBeenCalledWith(
+        "generateDocsError",
+        error,
+      );
+      expect(mockTelemetry.sendTelemetryEvent).not.toHaveBeenCalledWith(
+        "generateDocsUnsupported",
+      );
+      expect(mockTelemetry.sendTelemetryEvent).not.toHaveBeenCalledWith(
+        "generateDocs",
+      );
+    });
+
+    it("shows the reason when docs generation rejects with a non-Error", async () => {
+      mockProjectIntegration.generateDocs = jest
+        .fn<() => Promise<unknown>>()
+        .mockRejectedValue("dbt exited with code 2");
+
+      await dbtProject.generateDocs();
+
+      expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+        "Could not generate docs: dbt exited with code 2." + SUPPORT_LINK,
+      );
+      expect(mockTelemetry.sendTelemetryError).toHaveBeenCalledWith(
+        "generateDocsError",
+        "dbt exited with code 2",
+      );
+    });
+
     it("should validate SQL", async () => {
       const request = {
         sql: "SELECT * FROM table",
@@ -753,6 +1024,103 @@ describe("DBTProject Test Suite", () => {
 
       expect(mockExecutionInfrastructure.createPythonBridge).toHaveBeenCalled();
       expect(mockExecutionInfrastructure.closePythonBridge).toHaveBeenCalled();
+    });
+
+    const fusionProject = () => {
+      (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue({
+        get: jest.fn((key: string, fallback?: unknown) =>
+          key === "dbtIntegration" ? "fusion" : fallback,
+        ),
+      });
+      const projectUri = vscode.Uri.file("/test/project");
+      return new DBTProject(
+        mockPythonEnvironment,
+        dbtProjectLogFactory as any,
+        mockCommandFactory,
+        mockTerminal,
+        mockSharedStateService,
+        mockTelemetry,
+        mockExecutionInfrastructure,
+        jest.fn().mockReturnValue(mockProjectIntegration) as any,
+        mockAltimate,
+        mockValidationProvider,
+        mockAltimateAuthService,
+        mockRunHistoryService,
+        projectUri,
+        {},
+        mockManifestChangedEmitter,
+      );
+    };
+
+    it("keeps the mode it was created with when the setting changes afterwards", async () => {
+      const project = fusionProject();
+      // The window can be switched to another mode without the setting changing.
+      // `cloud` would also demand authentication, which a Fusion project must not.
+      (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue({
+        get: jest.fn((key: string, fallback?: unknown) =>
+          key === "dbtIntegration" ? "cloud" : fallback,
+        ),
+      });
+      (mockValidationProvider as any).throwIfNotAuthenticated = jest.fn(() => {
+        throw new Error("not authenticated");
+      });
+      mockExecutionInfrastructure.createPythonBridge.mockClear();
+      const outcome = await project
+        .validateSql({ sql: "SELECT 1", dialect: "duckdb", models: [] })
+        .catch((error: Error) => error);
+      expect(
+        mockExecutionInfrastructure.createPythonBridge,
+      ).not.toHaveBeenCalled();
+      expect(
+        (mockValidationProvider as any).throwIfNotAuthenticated,
+      ).not.toHaveBeenCalled();
+      // The real library ran and failed only on the missing native module.
+      expect(outcome).toBeInstanceOf(Error);
+      expect((outcome as Error).message).not.toContain("not authenticated");
+      expect((outcome as Error).message).toContain(
+        "no Python bridge was provided",
+      );
+    });
+
+    it("validates SQL in dbt Fusion mode without starting a Python bridge", async () => {
+      dbtProject = fusionProject();
+      // Only the bridges this validation starts count.
+      mockExecutionInfrastructure.createPythonBridge.mockClear();
+      mockExecutionInfrastructure.closePythonBridge.mockClear();
+      const spawn = jest.spyOn(childProcess, "spawn");
+      const models = [
+        {
+          name: "customers",
+          schema: "main",
+          columns: { id: { name: "id", data_type: "INTEGER" } },
+        },
+      ];
+
+      // altimate-core validates without Python. Jest can't load its native
+      // module, so here the library reports that instead; either way no
+      // bridge is asked for.
+      const outcome = await dbtProject
+        .validateSql({
+          sql: "SELECT id FROM customers",
+          dialect: "duckdb",
+          models,
+        })
+        .catch((error: Error) => error);
+
+      expect(
+        mockExecutionInfrastructure.createPythonBridge,
+      ).not.toHaveBeenCalled();
+      expect(
+        mockExecutionInfrastructure.closePythonBridge,
+      ).not.toHaveBeenCalled();
+      expect(spawn).not.toHaveBeenCalled();
+      // The real library ran (the module mock does not replace it here) and,
+      // with no native altimate-core under jest, reports that it was given no
+      // bridge: the Fusion call shape, seen from the library's side.
+      expect(outcome).toBeInstanceOf(Error);
+      expect((outcome as Error).message).toContain(
+        "no Python bridge was provided",
+      );
     });
   });
 
@@ -1108,6 +1476,298 @@ describe("DBTProject Test Suite", () => {
         "dbtLoomInstalled",
         "true",
       );
+    });
+
+    // Spawning the probe's interpreter can fail outside `ex` (EBADARCH on a
+    // wrong-architecture binary, EPERM, ENOEXEC): the constructor must record
+    // "not installed" and must not leak an unhandled rejection.
+    const construct = () =>
+      new DBTProject(
+        mockPythonEnvironment,
+        dbtProjectLogFactory as any,
+        mockCommandFactory,
+        mockTerminal,
+        mockSharedStateService,
+        mockTelemetry,
+        mockExecutionInfrastructure,
+        jest.fn().mockReturnValue(mockProjectIntegration) as any,
+        mockAltimate,
+        mockValidationProvider,
+        mockAltimateAuthService,
+        mockRunHistoryService,
+        vscode.Uri.file("/test/project"),
+        {},
+        mockManifestChangedEmitter,
+      );
+
+    const captureUnhandled = async (run: () => void) => {
+      const unhandled: unknown[] = [];
+      const onUnhandled = (reason: unknown) => {
+        unhandled.push(reason);
+      };
+      process.on("unhandledRejection", onUnhandled);
+      try {
+        run();
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      } finally {
+        process.off("unhandledRejection", onUnhandled);
+      }
+      return unhandled;
+    };
+
+    it("records dbt loom as not installed when the probe bridge cannot be spawned", async () => {
+      mockExecutionInfrastructure.createPythonBridge.mockImplementationOnce(
+        () => {
+          throw Object.assign(new Error("spawn Unknown system error -86"), {
+            code: "Unknown system error -86",
+          });
+        },
+      );
+
+      const unhandled = await captureUnhandled(() => {
+        dbtProject = construct();
+      });
+
+      expect(unhandled).toEqual([]);
+      expect(mockTelemetry.setTelemetryCustomAttribute).toHaveBeenCalledWith(
+        "dbtLoomInstalled",
+        "false",
+      );
+      expect(
+        mockExecutionInfrastructure.closePythonBridge,
+      ).not.toHaveBeenCalled();
+    });
+
+    it("records dbt loom as not installed when the probe bridge fails and cannot be closed", async () => {
+      const pythonBridge = mockExecutionInfrastructure.createPythonBridge();
+      (pythonBridge.ex as any).mockRejectedValue(new Error("spawn EPERM"));
+      mockExecutionInfrastructure.createPythonBridge.mockReturnValueOnce(
+        pythonBridge as any,
+      );
+      mockExecutionInfrastructure.closePythonBridge.mockRejectedValueOnce(
+        new Error("spawn EPERM"),
+      );
+
+      const unhandled = await captureUnhandled(() => {
+        dbtProject = construct();
+      });
+
+      expect(unhandled).toEqual([]);
+      expect(mockTelemetry.setTelemetryCustomAttribute).toHaveBeenCalledWith(
+        "dbtLoomInstalled",
+        "false",
+      );
+      expect(mockTerminal.debug).toHaveBeenCalledWith(
+        "dbtProject:isDbtLoomInstalled",
+        expect.stringContaining("close"),
+        expect.anything(),
+      );
+    });
+
+    it("keeps the probe's answer when only closing the bridge fails", async () => {
+      // dbt-loom imported fine; the bridge then fails to close. The answer
+      // is "installed": the close failure is logged, nothing leaks.
+      const pythonBridge = mockExecutionInfrastructure.createPythonBridge();
+      (pythonBridge.ex as any).mockResolvedValue(undefined);
+      mockExecutionInfrastructure.createPythonBridge.mockReturnValueOnce(
+        pythonBridge as any,
+      );
+      mockExecutionInfrastructure.closePythonBridge.mockRejectedValueOnce(
+        new Error("close failed"),
+      );
+
+      const unhandled = await captureUnhandled(() => {
+        dbtProject = construct();
+      });
+
+      expect(unhandled).toEqual([]);
+      expect(mockTelemetry.setTelemetryCustomAttribute).toHaveBeenCalledWith(
+        "dbtLoomInstalled",
+        "true",
+      );
+      expect(mockTerminal.debug).toHaveBeenCalledWith(
+        "dbtProject:isDbtLoomInstalled",
+        expect.stringContaining("close"),
+        expect.anything(),
+      );
+    });
+  });
+
+  describe("dbt setup telemetry", () => {
+    const useMode = (mode: string) => {
+      (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue({
+        get: jest.fn((key: string) => {
+          if (key === "dbtIntegration") {
+            return mode;
+          }
+          if (key === "deferConfigPerProject") {
+            return {};
+          }
+          return undefined;
+        }),
+        has: jest.fn(),
+        update: jest.fn(),
+      });
+    };
+
+    const construct = () =>
+      new DBTProject(
+        mockPythonEnvironment,
+        dbtProjectLogFactory as any,
+        mockCommandFactory,
+        mockTerminal,
+        mockSharedStateService,
+        mockTelemetry,
+        mockExecutionInfrastructure,
+        jest.fn().mockReturnValue(mockProjectIntegration) as any,
+        mockAltimate,
+        mockValidationProvider,
+        mockAltimateAuthService,
+        mockRunHistoryService,
+        vscode.Uri.file("/test/project"),
+        {},
+        mockManifestChangedEmitter,
+      );
+
+    const emit = (event: string, ...args: unknown[]) => {
+      const onCall = mockProjectIntegration.on.mock.calls.find(
+        (call: any) => call[0] === event,
+      );
+      onCall![1](...args);
+    };
+
+    // The value each setup property was last set to, and the properties
+    // removed since.
+    const stamped = () => {
+      const values: Record<string, string> = {};
+      for (const [key, value] of mockTelemetry.setTelemetryCustomAttribute.mock
+        .calls as [string, string][]) {
+        values[key] = value;
+      }
+      return values;
+    };
+    const removed = () =>
+      mockTelemetry.deleteTelemetryCustomAttribute.mock.calls.map(
+        (call) => call[0],
+      );
+
+    beforeEach(() => {
+      mockProjectIntegration.getCloudVariantInfo = jest.fn(() => null);
+      mockProjectIntegration.getAdapterType = jest.fn(() => "snowflake");
+      mockProjectIntegration.getVersion = jest.fn(() => [1, 12, 6]);
+    });
+
+    it("stamps the dbt-core version and adapter of a core project", () => {
+      useMode("core");
+      dbtProject = construct();
+
+      emit(DBTProjectIntegrationAdapterEvents.PROJECT_CONFIG_CHANGED);
+
+      expect(stamped()).toMatchObject({
+        dbtVersion: "1.12.6",
+        dbtVersionMinor: "1.12",
+        dbtAdapter: "snowflake",
+      });
+      expect(stamped()).not.toHaveProperty("dbtFusionVersion");
+      expect(removed()).toContain("dbtFusionVersion");
+    });
+
+    it("stamps the version again after a parse", () => {
+      useMode("corecommand");
+      mockProjectIntegration.getVersion = jest.fn(() => [1, 10, 2]);
+      dbtProject = construct();
+
+      emit(DBTProjectIntegrationAdapterEvents.MANIFEST_PARSED, {});
+
+      expect(stamped()).toMatchObject({
+        dbtVersion: "1.10.2",
+        dbtVersionMinor: "1.10",
+        dbtAdapter: "snowflake",
+      });
+    });
+
+    it("stamps unknown for a Fusion project that reports 0.0.0", () => {
+      useMode("fusion");
+      mockProjectIntegration.getVersion = jest.fn(() => [0, 0, 0]);
+      dbtProject = construct();
+
+      emit(DBTProjectIntegrationAdapterEvents.PROJECT_CONFIG_CHANGED);
+
+      expect(stamped()).toMatchObject({
+        dbtVersion: "unknown",
+        dbtVersionMinor: "unknown",
+        dbtFusionVersion: "unknown",
+        dbtAdapter: "snowflake",
+      });
+      expect(removed()).not.toContain("dbtFusionVersion");
+    });
+
+    it("stamps by the mode in effect, not the raw setting, after an auto-switch", () => {
+      // The setting still reads core in a window that switched itself to
+      // Fusion; the stamp must follow the effective mode or Fusion windows
+      // lose their dbtFusionVersion.
+      useMode("core");
+      setEffectiveDbtIntegrationMode("fusion");
+      try {
+        mockProjectIntegration.getVersion = jest.fn(() => [2, 0, 11]);
+        dbtProject = construct();
+
+        emit(DBTProjectIntegrationAdapterEvents.PROJECT_CONFIG_CHANGED);
+
+        expect(stamped()).toMatchObject({ dbtFusionVersion: "2.0.11" });
+        expect(removed()).not.toContain("dbtFusionVersion");
+      } finally {
+        setEffectiveDbtIntegrationMode(undefined);
+      }
+    });
+
+    it("stamps the Fusion version a Fusion project reports", () => {
+      useMode("fusion");
+      mockProjectIntegration.getVersion = jest.fn(() => [2, 0, 9]);
+      mockProjectIntegration.getAdapterType = jest.fn(() => "bigquery");
+      dbtProject = construct();
+
+      emit(DBTProjectIntegrationAdapterEvents.PROJECT_CONFIG_CHANGED);
+
+      expect(stamped()).toMatchObject({
+        dbtVersion: "2.0.9",
+        dbtVersionMinor: "2.0",
+        dbtFusionVersion: "2.0.9",
+        dbtAdapter: "bigquery",
+      });
+    });
+
+    it("stamps unknown when the integration cannot report the version or adapter", () => {
+      useMode("core");
+      mockProjectIntegration.getVersion = jest.fn(() => {
+        throw new Error("bridge not ready");
+      });
+      mockProjectIntegration.getAdapterType = jest.fn(() => undefined);
+      dbtProject = construct();
+
+      expect(() =>
+        emit(DBTProjectIntegrationAdapterEvents.PROJECT_CONFIG_CHANGED),
+      ).not.toThrow();
+
+      expect(stamped()).toMatchObject({
+        dbtVersion: "unknown",
+        dbtVersionMinor: "unknown",
+        dbtAdapter: "unknown",
+      });
+    });
+
+    it("does not let a telemetry failure stop a parse from being delivered", () => {
+      useMode("core");
+      dbtProject = construct();
+      // Once: the dbt-loom probe sets an attribute later, outside this test.
+      mockTelemetry.setTelemetryCustomAttribute.mockImplementationOnce(() => {
+        throw new Error("telemetry down");
+      });
+
+      expect(() =>
+        emit(DBTProjectIntegrationAdapterEvents.MANIFEST_PARSED, {}),
+      ).not.toThrow();
+      expect(mockManifestChangedEmitter.fire).toHaveBeenCalled();
     });
   });
 });

@@ -4,13 +4,13 @@ description: "Required VS Code settings to configure Power User for dbt: dbt pro
 ---
 
 /// admonition | Only use the following steps for "dbt Core" environments. If you have a dbt Cloud environment, use the [required config instructions for "dbt Cloud" environments](./reqdConfigCloud.md). If you have a dbt Fusion environment, use the [required config instructions for "dbt Fusion" environments](./reqdConfigFusion.md).
-type: warning
+    type: warning
 ///
 
 ## Use the setup wizard for configuration (recommended)
 
 /// admonition | Need to setup environment variables? Refer to this [section](/setup/optConfig/#environment-variables-setup)
-type: warning
+    type: warning
 ///
 
 This method will save a bunch of time for you, and you can also validate your configuration. Setup wizard will help you in associating sql files with jinja-sql, selecting the right Python interpreter, make sure dbt dependencies are correctly installed etc. In the end, it will also validate your configuration.
@@ -24,12 +24,22 @@ You can start the setup wizard by clicking on dbt status icon in bottom status b
 
 **Here are steps covered in the setup wizard**
 
+/// admonition | dbt Core needs the Python extension
+    type: info
+
+Installing Power User for dbt doesn't install the Python extension (`ms-python.python`). Without it, Power User shows:
+
+> dbt Core runs through the Python extension, which is not installed. Install it, or switch dbt.dbtIntegration to fusion to use dbt Fusion without Python.
+
+Install the Python extension: **Install Python extension** installs it and then offers **Reload window**, and in the Get Started panel the Python interpreter check offers **Install Python Extension**. If your project runs on dbt Fusion, set `dbt.dbtIntegration` to `fusion` instead. The prompt also doesn't appear when `dbt.dbtPythonPathOverride` names an interpreter that exists, but avoid that setting unless you use Meltano; see [the warning about Python path overrides](#associate-python-interpreter-with-dbt-installation).
+///
+
 **Select Python Interpreter**
 
 Click on the action button - "Select Python Interpreter" and choose your preferred python interpreter. Usually, choosing interpreter that's recommended, or mapped to your virtual environment software (e.g. venv) as per the list is a good idea. If you know the path of your Python environment, you can choose it from the list or if the path is not present there, you can enter it manually.
 
 /// admonition | If needed, please run 'where python' command on terminal to see if it shows path to Python interpreter that you are using.
-type: tip
+    type: tip
 ///
 
 **Install dbt**
@@ -47,13 +57,13 @@ Last step is clicking on button - "Validate Project" It will run a bunch of chec
 If there are some issues, it will tell you exactly what's wrong as well.
 
 /// admonition | If you still can't get the extension setup correctly, please contact us via slack or chat through [support page](https://www.altimate.ai/support?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link)
-type: tip
+    type: tip
 ///
 
 ## Manual method of configuration
 
 /// admonition | Please follow the manual method only if you couldn't use the setup wizard above.
-type: info
+    type: info
 
 ///
 
@@ -97,14 +107,14 @@ Select the Python interpreter that has dbt installed.
 ![Select Python interpreter](images/selectInterpreter.gif)
 
 /// admonition | Tip
-type: info
+    type: info
 
 If you select a python environment with dbt already installed, the dbt label on the bottom strip of the VS Code will show a checkmark.
 
 ///
 
 /// details | If dbt is shown as not installed in the extension, the extension can install dbt for you automatically - just click on the dbt status icon on the bottom strip of the VSCode.
-type: tip
+    type: tip
 
 <interactive demo to install dbt in Python environment>
 
@@ -113,7 +123,7 @@ type: tip
 ///
 
 /// admonition | Warning for Python path overrides
-type: warning
+    type: warning
 
 Avoid using the setting dbt.dbtPythonPathOverride unless using Meltano, the extension depends on the Python interpreter for visual code compatible environment variable parsing.
 

@@ -32,16 +32,18 @@ import { SharedStateService } from "../services/sharedStateService";
 import { UsersService } from "../services/usersService";
 import { TelemetryService } from "../telemetry";
 import { TelemetryEvents } from "../telemetry/events";
-import {
-  extendErrorWithSupportLinks,
-  getFormattedDateTime,
-  getStringSizeInMb,
-} from "../utils";
+import { extendErrorWithSupportLinks, getFormattedDateTime } from "../utils";
 import {
   AltimateWebviewProvider,
   SendMessageProps,
   SharedStateEventEmitterProps,
 } from "./altimateWebviewProvider";
+import { toElapsedSeconds } from "./queryElapsedTime";
+import {
+  buildCappedRows,
+  evictToBudget,
+  totalPayloadChars,
+} from "./queryResultPayload";
 import path = require("path");
 
 interface JsonObj {
@@ -69,6 +71,8 @@ interface RenderQuery {
   rows: JsonObj[];
   raw_sql: string;
   compiled_sql: string;
+  // Seconds the query took, as measured here; the header shows it.
+  elapsedTime?: number;
 }
 
 interface RenderError {
@@ -146,6 +150,8 @@ interface QueryHistory {
   columnNames: string[];
   columnTypes: string[];
   modelName: string;
+  /** Serialized size of `data`, counted when the result was built. */
+  payloadChars?: number;
 }
 
 // Pick a backtick fence long enough to survive any backtick sequence inside the
@@ -166,15 +172,38 @@ function fenceCodeBlock(content: string, language = ""): string {
   return `${fence}${language}\n${safe}\n${fence}`;
 }
 
+// Where a run's render messages go: the bottom view, or the webview of the tab
+// a Query History or Bookmark "Execute" opened for that run.
+type Destination = "bottom" | Webview;
+
 export class QueryResultPanel extends AltimateWebviewProvider {
   public static readonly viewType = "dbtPowerUser.PreviewResults";
   protected viewPath = "/query-panel";
   protected panelDescription = "Query results panel";
   private _queryTabData: any;
+  // The result each tab opened with ("Open in Tab", a history entry), which
+  // its data request gets whenever the tab asks.
+  private tabResults = new WeakMap<Webview, unknown>();
   private _bottomPanel: WebviewView | undefined;
 
   private queryExecution?: QueryExecution;
-  private incomingMessages: SendMessageProps[] = [];
+  // How render messages (loading, rows, error, reset) are routed:
+  // - A run's destination comes with it and is fixed when it starts: the tab
+  //   a Query History or Bookmark "Execute" opened for it, or otherwise the
+  //   bottom view. An "Open in Tab" panel is never one; it shows the result it
+  //   asks for when it loads.
+  // - Each webview is ready once its own script reports `webview:ready`.
+  // - Each destination has its own queue: a message waits there until the
+  //   destination's webview is ready, then all go out in the order sent. The
+  //   bottom view's queue belongs to the view, not to a webview, so a webview
+  //   that replaces another (the view closed and opened again) takes it. A
+  //   closed tab gets nothing more.
+  // - Nothing is re-aimed at another destination or reordered.
+  private bottomQueue: SendMessageProps[] = [];
+  private tabQueues = new WeakMap<Webview, SendMessageProps[]>();
+  private readyWebviews = new WeakSet<Webview>();
+  // Read when the bottom view resolves: a disposed view's `webview` throws.
+  private bottomWebview?: Webview;
 
   // stored only for current session, if user reloads or opens new workspace, this will be reset
   private _queryHistory: QueryHistory[] = [];
@@ -239,7 +268,11 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     );
   }
 
-  private async sendUpdatedContextToWebview() {
+  /** Sends the query limit, theme and active editor to `to` (by default, the
+   * current panel's webview). */
+  private async sendUpdatedContextToWebview(
+    to: Webview | undefined = this._panel?.webview,
+  ) {
     const perspectiveTheme = workspace
       .getConfiguration("dbt")
       .get("perspectiveTheme", "Vintage");
@@ -248,18 +281,16 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       .get("disableQueryHistory", false);
 
     const limit = workspace.getConfiguration("dbt").get<number>("queryLimit");
-    if (this._panel) {
-      await this._panel.webview.postMessage({
-        command: OutboundCommand.GetContext,
-        limit,
-        perspectiveTheme,
-        queryHistoryDisabled,
-        activeEditor: {
-          query: window.activeTextEditor?.document.getText(),
-          filepath: window.activeTextEditor?.document.uri.fsPath,
-        },
-      });
-    }
+    await to?.postMessage({
+      command: OutboundCommand.GetContext,
+      limit,
+      perspectiveTheme,
+      queryHistoryDisabled,
+      activeEditor: {
+        query: window.activeTextEditor?.document.getText(),
+        filepath: window.activeTextEditor?.document.uri.fsPath,
+      },
+    });
   }
 
   private collectQueryResultsDebugInfo() {
@@ -278,7 +309,10 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     );
   }
 
-  private async createQueryResultsPanelVirtualDocument(editorName: string) {
+  /** Opens a Query Results tab and waits for it to load; returns its webview. */
+  private async createQueryResultsPanelVirtualDocument(
+    editorName: string,
+  ): Promise<Webview> {
     this.isWebviewReady = false;
     const webviewPanel = window.createWebviewPanel(
       QueryResultPanel.viewType,
@@ -289,17 +323,39 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       { enableScripts: true, retainContextWhenHidden: true },
     );
     this._panel = webviewPanel;
-    this._webview = webviewPanel.webview;
-    this.renderWebviewView(webviewPanel.webview);
+    const tabWebview = webviewPanel.webview;
+    this._webview = tabWebview;
+    if (this._queryTabData) {
+      this.tabResults.set(tabWebview, this._queryTabData);
+      this._queryTabData = undefined;
+    }
+    // A closed tab gets nothing more: point the panel back at the bottom view
+    // if it still points here, and drop what was waiting for the tab.
+    webviewPanel.onDidDispose(
+      () => {
+        if (this._panel === webviewPanel) {
+          this._panel = this._bottomPanel;
+        }
+        this.readyWebviews.delete(tabWebview);
+        this.tabQueues.delete(tabWebview);
+      },
+      null,
+      this._disposables,
+    );
+    this.renderWebviewView(tabWebview);
     this.setupWebviewHooks();
     await this.checkIfWebviewReady();
+    return tabWebview;
   }
 
-  private updateViewTypeToWebview(viewType: QueryPanelViewType) {
-    this.sendResponseToWebview({
-      command: "updateViewType",
-      data: { type: viewType },
-    });
+  private updateViewTypeToWebview(viewType: QueryPanelViewType, to?: Webview) {
+    this.sendResponseToWebview(
+      {
+        command: "updateViewType",
+        data: { type: viewType },
+      },
+      to,
+    );
   }
 
   protected async onEvent({ command, payload }: SharedStateEventEmitterProps) {
@@ -309,6 +365,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
           payload.query as string,
           payload.fn as Promise<QueryExecution>,
           payload.projectName as string,
+          (payload.tab as Webview | undefined) ?? "bottom",
         );
         break;
       case "queryResultTab:render":
@@ -336,12 +393,13 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     this._panel = panel;
     this._bottomPanel = panel;
     this._webview = panel.webview;
+    this.bottomWebview = panel.webview;
     this.bindWebviewOptions(context);
     this.renderWebviewView(panel.webview);
     this.setupWebviewHooks();
     this.transmitConfig();
     _token.onCancellationRequested(async () => {
-      await this.transmitReset();
+      await this.transmitReset("bottom");
     });
     this.sendQueryPanelViewEvent();
     this._panel.onDidChangeVisibility(this.sendQueryPanelViewEvent);
@@ -383,23 +441,34 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       if (!project) {
         throw new Error("Unable to find project to execute query");
       }
-      if (message.editorName) {
-        await this.createQueryResultsPanelVirtualDocument(message.editorName);
-      }
+      const tab = message.editorName
+        ? await this.createQueryResultsPanelVirtualDocument(message.editorName)
+        : undefined;
       this.updateViewTypeToWebview(
         QueryPanelViewType.OPEN_RESULTS_FROM_HISTORY_BOOKMARKS,
+        tab,
       );
       this.telemetry.sendTelemetryEvent(
         isHistoryTab ? "QueryHistoryExecuteSql" : "QueryBookmarkExecuteSql",
       );
+      // The run shows in the tab opened for it.
       if (message.limit) {
         await project.executeSQLWithLimitOnQueryPanel(
           message.query,
           "",
           message.limit,
+          "inline",
+          undefined,
+          tab,
         );
       } else {
-        await project.executeSQLOnQueryPanel(message.query, "");
+        await project.executeSQLOnQueryPanel(
+          message.query,
+          "",
+          "inline",
+          undefined,
+          tab,
+        );
       }
       return;
     } catch (error) {
@@ -426,9 +495,15 @@ export class QueryResultPanel extends AltimateWebviewProvider {
 
   /** Primary interface for WebviewView inbound communication */
   private setupWebviewHooks() {
-    this._panel!.webview.onDidReceiveMessage(
+    const webview = this._panel!.webview;
+    webview.onDidReceiveMessage(
       async (message) => {
         switch (message.command) {
+          case "webview:ready":
+            this.readyWebviews.add(webview);
+            super.handleCommand(message, webview);
+            this.sendQueued(webview);
+            break;
           // Incase of error in rendering perspective viewer query results, user can click button
           // to disable query history and retry
           case InboundCommand.ClearQueryHistory:
@@ -437,11 +512,14 @@ export class QueryResultPanel extends AltimateWebviewProvider {
               message.error,
             );
             this._queryHistory = [];
-            this.sendResponseToWebview({
-              command: "response",
-              data: {},
-              syncRequestId: message.syncRequestId,
-            });
+            this.sendResponseToWebview(
+              {
+                command: "response",
+                data: {},
+                syncRequestId: message.syncRequestId,
+              },
+              webview,
+            );
             break;
           case InboundCommand.OpenCodeInEditor:
             this.handleOpenCodeInEditor(message);
@@ -477,34 +555,46 @@ export class QueryResultPanel extends AltimateWebviewProvider {
             await this.executeIncomingQuery(message);
             break;
           case InboundCommand.GetQueryHistory:
-            this.sendResponseToWebview({
-              command: "queryHistory",
-              data: this._queryHistory,
-            });
+            this.sendResponseToWebview(
+              {
+                command: "queryHistory",
+                data: this._queryHistory,
+              },
+              webview,
+            );
             break;
-          case InboundCommand.GetQueryTabData:
-            this.sendResponseToWebview({
-              command: "response",
-              data: this._queryTabData,
-              syncRequestId: message.syncRequestId,
-            });
-            // Reset only if opening query results in a tab using "Open in Tab" button
-            if (this._queryTabData) {
-              // reset to bottom panel
+          case InboundCommand.GetQueryTabData: {
+            // Answered to the webview that asks, with its own result: a tab
+            // hidden as it opened may load only once shown, when the panel
+            // points elsewhere.
+            const tabResult = this.tabResults.get(webview);
+            this.sendResponseToWebview(
+              {
+                command: "response",
+                data: tabResult,
+                syncRequestId: message.syncRequestId,
+              },
+              webview,
+            );
+            // A tab with a result has loaded: back to the bottom view.
+            if (tabResult) {
               this._panel = this._bottomPanel;
-              this._queryTabData = undefined;
             }
             break;
+          }
           case InboundCommand.GetQueryPanelContext:
             {
-              await this.sendUpdatedContextToWebview();
+              await this.sendUpdatedContextToWebview(webview);
             }
             break;
           case InboundCommand.CancelQuery:
             if (this.queryExecution) {
               this.queryExecution.cancel();
             }
-            await this.transmitReset();
+            // The view whose Cancel was clicked leaves its loading state.
+            await this.transmitReset(
+              webview === this.bottomWebview ? "bottom" : webview,
+            );
             break;
           case InboundCommand.Error:
             const error = message as RecError;
@@ -635,7 +725,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
             const data = {
               ...message,
               historyItems: this._queryHistory.length,
-              historySize: JSON.stringify(this._queryHistory).length,
+              historySize: totalPayloadChars(this._queryHistory),
             };
             this.dbtTerminal.debug(
               "CollectQueryResultsDebugInfo",
@@ -648,7 +738,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
             );
             break;
           default:
-            super.handleCommand(message);
+            super.handleCommand(message, webview);
         }
       },
       this,
@@ -714,6 +804,8 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     rows: JsonObj[],
     raw_sql: string,
     compiled_sql: string,
+    elapsedTime: number,
+    to: Destination,
   ) {
     const result = {
       columnNames,
@@ -722,12 +814,10 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       raw_sql,
       compiled_sql,
     };
-    if (this._panel) {
-      await this._panel.webview.postMessage({
-        command: OutboundCommand.RenderQuery,
-        ...(<RenderQuery>result),
-      });
-    }
+    await this.postTo(to, {
+      command: OutboundCommand.RenderQuery,
+      ...(<RenderQuery>{ ...result, elapsedTime }),
+    });
 
     return result;
   }
@@ -737,14 +827,13 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     error: any,
     raw_sql: string,
     compiled_sql: string,
+    to: Destination,
   ) {
-    if (this._panel) {
-      // TODO: telemetry
-      await this._panel.webview.postMessage({
-        command: OutboundCommand.RenderError,
-        ...(<RenderError>{ ...error, raw_sql, compiled_sql }),
-      });
-    }
+    // TODO: telemetry
+    await this.postTo(to, {
+      command: OutboundCommand.RenderError,
+      ...(<RenderError>{ ...error, raw_sql, compiled_sql }),
+    });
   }
 
   /** Sends VSCode config data to webview */
@@ -766,50 +855,70 @@ export class QueryResultPanel extends AltimateWebviewProvider {
   }
 
   /** Sends VSCode render loading command to webview */
-  private async transmitLoading() {
-    if (this._panel) {
-      if (this.isWebviewReady) {
-        await this._panel.webview.postMessage({
-          command: OutboundCommand.RenderLoading,
-        });
-        return;
-      }
-    }
-
-    this.incomingMessages.push({
-      command: OutboundCommand.RenderLoading,
-    });
+  private async transmitLoading(to: Destination) {
+    await this.postTo(to, { command: OutboundCommand.RenderLoading });
   }
 
   /** Sends VSCode clear state command */
-  private async transmitReset() {
-    if (this._panel) {
-      await this._panel.webview.postMessage({
-        command: OutboundCommand.ResetState,
-      });
+  private async transmitReset(to: Destination) {
+    await this.postTo(to, { command: OutboundCommand.ResetState });
+  }
+
+  /** Posts a render message to `to`: at once if its webview has loaded,
+   * otherwise into its queue, which {@link sendQueued} sends in order once it
+   * has. A message posted before a webview's script reports ready is lost. */
+  private async postTo(to: Destination, message: SendMessageProps) {
+    const webview = to === "bottom" ? this.bottomWebview : to;
+    if (webview && this.readyWebviews.has(webview)) {
+      await webview.postMessage(message);
+      return;
     }
+    if (to === "bottom") {
+      this.bottomQueue.push(message);
+      return;
+    }
+    const queue = this.tabQueues.get(to) ?? [];
+    queue.push(message);
+    this.tabQueues.set(to, queue);
   }
 
   /** A wrapper for {@link transmitData} which converts server
    * results interface ({@link ExecuteSQLResult}) to what the webview expects */
-  private async transmitDataWrapper(result: ExecuteSQLResult, query: string) {
-    const rows: JsonObj[] = new Array(result.table.rows.length);
-    // Convert compressed array format to dict[] - optimized version
-    for (let i = 0; i < result.table.rows.length; i++) {
-      const row: JsonObj = {};
-      const currentRow = result.table.rows[i];
-      for (let j = 0; j < currentRow.length; j++) {
-        row[result.table.column_names[j]] = currentRow[j] as any;
-      }
-      rows[i] = row;
+  private async transmitDataWrapper(
+    result: ExecuteSQLResult,
+    query: string,
+    elapsedTime: number,
+    to: Destination,
+  ) {
+    // Rows are serialized one at a time while they are built and capped by
+    // their serialized size: one JSON.stringify over the whole result (what
+    // VS Code does when the message is posted) hit V8's string-length limit
+    // on wide results (RangeError: Invalid string length).
+    const { rows, chars, droppedRows } = buildCappedRows<JsonObj>(
+      result.table.column_names,
+      result.table.rows,
+    );
+    if (droppedRows > 0) {
+      const shown = rows.length;
+      const total = shown + droppedRows;
+      this.dbtTerminal.warn(
+        "queryResultPanel:transmitDataWrapper",
+        `Query result capped at ${shown} of ${total} rows (${Math.round(chars / 1024 / 1024)} MB serialized)`,
+      );
+      window.showWarningMessage(
+        `Showing ${shown} of ${total} rows: the result is too large for the results panel. Narrow the query or add a LIMIT to see the rest.`,
+      );
     }
-    return await this.transmitData(
+    const transmitted = await this.transmitData(
       result.table.column_names,
       result.table.column_types,
       rows,
       query,
       result.compiled_sql,
+      elapsedTime,
+      to,
     );
+    return { ...transmitted, payloadChars: chars };
   }
 
   private updateQueryHistory(
@@ -819,6 +928,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       rows: JsonObj[];
       raw_sql: string;
       compiled_sql: string;
+      payloadChars: number;
     },
     projectName: string,
     query: string,
@@ -839,17 +949,6 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       );
       return;
     }
-    const queryHistoryCurrentSize = getStringSizeInMb(
-      JSON.stringify(this._queryHistory),
-    );
-    // if current history size > 3MB, remove the oldest entry
-    if (queryHistoryCurrentSize > 3) {
-      this._queryHistory.pop();
-      this.dbtTerminal.info(
-        "updateQueryHistory",
-        "Query history size exceeded 3MB, cleared oldest entry",
-      );
-    }
     this._queryHistory.unshift({
       rawSql: query,
       compiledSql: result.compiled_sql,
@@ -861,8 +960,19 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       columnNames: result.columnNames,
       columnTypes: result.columnTypes,
       modelName,
+      payloadChars: result.payloadChars,
     });
     this._queryHistory = this._queryHistory.splice(0, 10);
+    // Each entry carries the serialized size of its rows, so the history is
+    // never re-serialized to measure it. Enforce the budget after the insert
+    // so it holds whatever the new result's size; the newest entry stays.
+    const evicted = evictToBudget(this._queryHistory);
+    if (evicted.length > 0) {
+      this.dbtTerminal.info(
+        "updateQueryHistory",
+        `Query history size exceeded 3MB, cleared ${evicted.length} oldest entries`,
+      );
+    }
   }
 
   /** Runs a query transmitting appropriate notifications to webview */
@@ -870,25 +980,34 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     query: string,
     queryExecutionPromise: Promise<QueryExecution>,
     projectName: string,
+    to: Destination = "bottom",
   ) {
     const start = Date.now();
     //using id to focus on the webview is more reliable than using the view title
     await commands.executeCommand("dbtPowerUser.PreviewResults.focus");
-    if (this._panel && this.isWebviewView(this._panel)) {
-      this._panel.show(); // Show the view
-      this._panel.webview.postMessage({ command: "focus" }); // keyboard focus
+    if (to === "bottom" && this._bottomPanel) {
+      this._bottomPanel.show(); // Show the view
+      this.bottomWebview?.postMessage({ command: "focus" }); // keyboard focus
     }
-    this.transmitLoading();
+    this.transmitLoading(to);
     try {
       const queryExecution = (this.queryExecution =
         await queryExecutionPromise);
       const output = await queryExecution.executeQuery();
-      const result = await this.transmitDataWrapper(output, query);
+      // Measured here and sent with the rows: the webview's own timer starts
+      // when it shows the loading state, which may be only as it loads.
+      const duration = Date.now() - start;
+      const result = await this.transmitDataWrapper(
+        output,
+        query,
+        toElapsedSeconds(duration),
+        to,
+      );
       this.updateQueryHistory(
         result,
         projectName,
         query,
-        Date.now() - start,
+        duration,
         output.modelName,
       );
       return result;
@@ -896,7 +1015,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       if (exc instanceof PythonException) {
         if (exc.exception.type.name === "KeyboardInterrupt") {
           // query cancellation
-          this.transmitReset();
+          this.transmitReset(to);
           return;
         }
         window.showErrorMessage(
@@ -913,6 +1032,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
           },
           query,
           query,
+          to,
         );
         return;
       }
@@ -930,6 +1050,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
           },
           query,
           exc.compiled_sql,
+          to,
         );
         return;
       }
@@ -939,6 +1060,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
         },
         query,
         query,
+        to,
       );
     } finally {
       this.queryExecution = undefined;
@@ -946,18 +1068,17 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     }
   }
 
-  protected onWebviewReady() {
-    super.onWebviewReady();
-
-    if (!this._panel) {
-      return;
-    }
-
-    while (this.incomingMessages.length) {
-      const message = this.incomingMessages.pop();
-      if (message) {
-        this.sendResponseToWebview(message);
-      }
+  /** Sends what waited for `webview`, which has just loaded, in the order it
+   * was sent: the bottom view's queue if it is the bottom view's webview, or
+   * else its own as a tab. */
+  private sendQueued(webview: Webview) {
+    const queue =
+      webview === this.bottomWebview
+        ? this.bottomQueue.splice(0)
+        : (this.tabQueues.get(webview) ?? []);
+    this.tabQueues.delete(webview);
+    for (const message of queue) {
+      webview.postMessage(message);
     }
   }
 }

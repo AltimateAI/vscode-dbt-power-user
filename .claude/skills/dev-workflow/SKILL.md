@@ -174,7 +174,7 @@ The symlink directory name **must include the version suffix** (e.g. `innoverio.
 
 ### Language mode timing
 
-`.sql` files may open as "MS SQL" instead of "Jinja SQL" if the `jinjahtml` extension hasn't activated yet when the file opens. This is a race condition — `jinjahtml` maps `.sql` → `jinja-sql` but activation order varies. Workaround: reopen the file or manually switch language mode after extension activation.
+`.sql` files open as "MS SQL" instead of "Jinja SQL" when no `files.associations` entry maps `*.sql` to `jinja-sql`. The extension contributes `jinja-sql`, `jinja-yaml` and `jinja-md` but does not claim `*.sql` or `*.yml` on its own. Run the setup wizard, or add the association to the code-server user settings.
 
 ## Updating altimate-code in Docker
 

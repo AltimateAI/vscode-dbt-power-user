@@ -17,7 +17,7 @@ The provided SQL query is visually broken down into nodes representing CTEs, joi
 - Simplified Debugging: Identify and correct errors quickly by visually tracing query logic.
 
 /// admonition | This functionality is still in beta. The functionality may change further to streamline the experience
-type: info
+    type: info
 ///
 
 ## Trigger the functionality
@@ -50,3 +50,10 @@ Please check more details on how to set up SaaS Discovery UI [here](../discover/
 ## Recorded Demo
 
 <div style="position: relative; padding-bottom: 62.5%; height: 0;"><iframe src="https://www.loom.com/embed/11068668306f4b209450dc7b47b830c9?sid=75ab7592-7f45-4a88-8579-78e411ebadb4" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
+
+## Watch the Video
+
+<figure class="video-clip">
+<div class="video-clip__frame"><iframe src="https://www.youtube.com/embed/1yWejM5YW1o?rel=0&amp;start=767" title="Power User multiple features demo" loading="lazy" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
+<figcaption>Video (44:55): Power User multiple features demo. It starts at 12:47, where this page's feature begins. <a href="https://www.youtube.com/watch?v=1yWejM5YW1o&amp;t=767s" target="_blank" rel="noopener">Watch on YouTube</a>.</figcaption>
+</figure>

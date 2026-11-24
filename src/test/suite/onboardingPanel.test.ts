@@ -1,0 +1,491 @@
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
+import {
+  commands,
+  ConfigurationTarget,
+  ViewColumn,
+  window,
+  workspace,
+} from "vscode";
+import { setEffectiveDbtIntegrationMode } from "../../dbt_client/integrationMode";
+import { OnboardingPanel } from "../../webview_provider/onboardingPanel";
+
+type AnyMock = jest.Mock<any>;
+
+const PROJECT_ROOT = "/repo/jaffle_shop";
+
+const model = (name: string, path: string, packageName = "jaffle_shop") => ({
+  name,
+  path,
+  package_name: packageName,
+  resource_type: "model",
+});
+
+/**
+ * Builds the panel without its constructor, with fakes for the collaborators
+ * the Get Started handlers use, and records what it sends to the webview.
+ */
+const harness = (nodes: unknown[] = []) => {
+  const postMessage: AnyMock = jest.fn();
+  const dispose: AnyMock = jest.fn();
+  const globalState = new Map<string, unknown>();
+  const workspaceState = new Map<string, unknown>();
+  const openAltimateCode: AnyMock = jest.fn(async () => undefined);
+  const sendTelemetryEvent: AnyMock = jest.fn();
+  const editor = { document: { uri: "doc" } };
+
+  (window as any).showTextDocument = jest.fn(async () => editor);
+  (window as any).tabGroups = { all: [{}, {}] };
+  (ViewColumn as any).One = 1;
+
+  const panel = Object.create(OnboardingPanel.prototype) as OnboardingPanel;
+  Object.assign(panel, {
+    _panel: { webview: { postMessage }, dispose },
+    dbtProjectContainer: {
+      setToGlobalState: (key: string, value: unknown) =>
+        globalState.set(key, value),
+      getFromWorkspaceState: (key: string) => workspaceState.get(key),
+      setToWorkspaceState: (key: string, value: unknown) =>
+        workspaceState.set(key, value),
+    },
+    queryManifestService: {
+      getEventByDocument: () => ({
+        project: { getProjectName: () => "jaffle_shop" },
+        nodeMetaMap: { nodes: () => nodes },
+      }),
+    },
+    altimateConnectService: { openAltimateCode },
+    telemetry: { sendTelemetryEvent },
+    dbtTerminal: { debug: jest.fn(), error: jest.fn() },
+  });
+
+  const handle = (command: string, extra: Record<string, unknown> = {}) =>
+    panel.handleCommand({ command, syncRequestId: "req", ...extra } as never);
+  const lastBody = () => {
+    const calls = postMessage.mock.calls;
+    return (calls[calls.length - 1][0] as { args: { body: unknown } }).args
+      .body;
+  };
+
+  return {
+    handle,
+    lastBody,
+    globalState,
+    workspaceState,
+    dispose,
+    openAltimateCode,
+    editor,
+    panel,
+    sendTelemetryEvent,
+  };
+};
+
+describe("OnboardingPanel Get Started", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("offers the project's customers model first", async () => {
+    const h = harness([
+      model("orders", `${PROJECT_ROOT}/models/orders.sql`),
+      model("customers", `${PROJECT_ROOT}/models/customers.sql`),
+    ]);
+
+    await h.handle("getFirstModel", { projectRoot: PROJECT_ROOT });
+
+    expect(h.lastBody()).toEqual({ fileName: "customers.sql" });
+  });
+
+  it("otherwise offers the project's first SQL model by path", async () => {
+    const h = harness([
+      model("stg_orders", `${PROJECT_ROOT}/models/stg_orders.sql`),
+      model("dim_users", `${PROJECT_ROOT}/models/dim_users.sql`),
+      model("forecast", `${PROJECT_ROOT}/models/a_forecast.py`),
+      model("customers", "/pkgs/other/customers.sql", "other_package"),
+    ]);
+
+    await h.handle("getFirstModel", { projectRoot: PROJECT_ROOT });
+
+    expect(h.lastBody()).toEqual({ fileName: "dim_users.sql" });
+  });
+
+  it("opens the model with Altimate Code beside it and finishes", async () => {
+    const h = harness([
+      model("customers", `${PROJECT_ROOT}/models/customers.sql`),
+    ]);
+
+    await h.handle("openFirstModel", {
+      projectRoot: PROJECT_ROOT,
+      action: "chat",
+    });
+
+    expect(window.showTextDocument).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fsPath: `${PROJECT_ROOT}/models/customers.sql`,
+      }),
+      { viewColumn: 1 },
+    );
+    expect(h.openAltimateCode).toHaveBeenCalledWith(PROJECT_ROOT, {
+      beside: true,
+    });
+    expect(commands.executeCommand).not.toHaveBeenCalledWith(
+      "workbench.action.moveEditorToRightGroup",
+    );
+    expect(h.workspaceState.get("onboarding.state")).toEqual({
+      finished: true,
+      resume: false,
+    });
+    expect(h.globalState.get("showSetupWalkthrough")).toBe(false);
+    expect(h.dispose).toHaveBeenCalled();
+  });
+
+  it("records the model action and how Get Started finished", async () => {
+    const h = harness([
+      model("customers", `${PROJECT_ROOT}/models/customers.sql`),
+    ]);
+
+    await h.handle("openFirstModel", {
+      projectRoot: PROJECT_ROOT,
+      action: "chat",
+    });
+    await h.handle("finishOnboarding");
+
+    expect(h.sendTelemetryEvent).toHaveBeenCalledWith(
+      "onboardingFirstModelOpened",
+      { action: "chat" },
+    );
+    expect(h.sendTelemetryEvent).toHaveBeenCalledWith("onboardingFinished", {
+      via: "openModel",
+    });
+    expect(h.sendTelemetryEvent).toHaveBeenCalledWith("onboardingFinished", {
+      via: "finish",
+    });
+  });
+
+  it("records how Get Started opened and on which step", async () => {
+    const h = harness();
+    h.workspaceState.set("onboarding.state", { screen: "workspace" });
+    Object.assign(h.panel, { _panel: { reveal: jest.fn() } });
+
+    await (h.panel as any).onEvent({
+      command: "onboarding:render",
+      payload: { source: "resume" },
+    });
+
+    expect(h.sendTelemetryEvent).toHaveBeenCalledWith("onboardingOpened", {
+      source: "resume",
+      screen: "workspace",
+      alreadyOpen: "true",
+    });
+  });
+
+  it("splits the chat out when it opened in the model's group", async () => {
+    const h = harness([
+      model("customers", `${PROJECT_ROOT}/models/customers.sql`),
+    ]);
+    (window as any).tabGroups = { all: [{}] };
+
+    await h.handle("openFirstModel", {
+      projectRoot: PROJECT_ROOT,
+      action: "chat",
+    });
+
+    expect(commands.executeCommand).toHaveBeenCalledWith(
+      "workbench.action.moveEditorToRightGroup",
+    );
+    expect(window.showTextDocument).toHaveBeenLastCalledWith(
+      h.editor.document,
+      { viewColumn: 1, preserveFocus: true },
+    );
+  });
+
+  it("shows the model's lineage instead of opening chat", async () => {
+    const h = harness([
+      model("customers", `${PROJECT_ROOT}/models/customers.sql`),
+    ]);
+
+    await h.handle("openFirstModel", {
+      projectRoot: PROJECT_ROOT,
+      action: "lineage",
+    });
+
+    expect(commands.executeCommand).toHaveBeenCalledWith(
+      "dbtPowerUser.Lineage.focus",
+    );
+    expect(h.openAltimateCode).not.toHaveBeenCalled();
+  });
+
+  it("stays open when the project has no model to open", async () => {
+    const h = harness([]);
+
+    await h.handle("openFirstModel", {
+      projectRoot: PROJECT_ROOT,
+      action: "chat",
+    });
+
+    expect(h.dispose).not.toHaveBeenCalled();
+    expect(h.workspaceState.get("onboarding.state")).toBeUndefined();
+  });
+
+  it("merges saved progress into what is already kept", async () => {
+    const h = harness();
+    h.workspaceState.set("onboarding.state", { resume: true });
+
+    await h.handle("saveOnboardingState", {
+      state: { screen: "workspace", projectRoot: PROJECT_ROOT },
+    });
+    await h.handle("getOnboardingState");
+
+    expect(h.lastBody()).toEqual({
+      resume: true,
+      screen: "workspace",
+      projectRoot: PROJECT_ROOT,
+    });
+  });
+
+  it("reopens after the reload a new integration type causes", async () => {
+    const h = harness();
+    const update: AnyMock = jest.fn(async () => undefined);
+    (workspace.getConfiguration as AnyMock).mockReturnValue({
+      get: jest.fn(() => "core"),
+      update,
+    });
+    h.workspaceState.set("onboarding.state", {
+      screen: "connect",
+      validation: { models: 5, seeds: 3, tests: 20 },
+    });
+
+    await h.handle("setDbtIntegration", { integrationType: "fusion" });
+
+    expect(h.workspaceState.get("onboarding.state")).toEqual({
+      screen: "connect",
+      validation: null,
+      resume: true,
+    });
+    expect(update).toHaveBeenCalledWith(
+      "dbtIntegration",
+      "fusion",
+      ConfigurationTarget.Workspace,
+    );
+  });
+});
+
+/**
+ * The project step without the Python extension: its interpreter picker
+ * (`python.setInterpreter`) does not exist, so the step offers to install the
+ * extension or open `dbt.dbtPythonPathOverride`, and dbt Fusion needs neither.
+ */
+describe("OnboardingPanel project step without the Python extension", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  const withPythonEnvironment = (
+    h: ReturnType<typeof harness>,
+    pythonEnvironment: Record<string, unknown>,
+  ) => {
+    Object.assign((h.panel as any).dbtProjectContainer, {
+      getProjects: () => [],
+      dbtWorkspaceFolders: [],
+      pythonInstalled: false,
+      dbtInstalled: true,
+      getPythonEnvironment: () => pythonEnvironment,
+    });
+  };
+
+  it("reports whether the Python extension is available", async () => {
+    const h = harness();
+    withPythonEnvironment(h, {
+      initialize: jest.fn(() => Promise.resolve()),
+      pythonPath: "",
+      pythonVersion: undefined,
+      pythonExtensionAvailable: false,
+    });
+    (workspace.getConfiguration as AnyMock).mockReturnValue({
+      get: jest.fn((key: string, fallback?: unknown) =>
+        key === "dbtIntegration" ? "fusion" : fallback,
+      ),
+    });
+    (workspace as any).findFiles = jest.fn(async () => [
+      { fsPath: `${PROJECT_ROOT}/dbt_project.yml` },
+    ]);
+
+    await h.handle("getDiagnosticsStatus");
+
+    expect(h.lastBody()).toMatchObject({
+      dbtIntegrationMode: "fusion",
+      pythonInstalled: false,
+      pythonExtensionAvailable: false,
+      dbtInstalled: true,
+      projectsFound: true,
+    });
+  });
+
+  it("installs the Python extension and offers a reload", async () => {
+    const h = harness();
+    const { PythonEnvironment } =
+      await import("../../dbt_client/pythonEnvironment");
+    withPythonEnvironment(
+      h,
+      new PythonEnvironment({ debug: jest.fn() } as any) as any,
+    );
+    (window.showInformationMessage as AnyMock).mockReturnValueOnce(
+      Promise.resolve("Reload window"),
+    );
+
+    await h.handle("installPythonExtension");
+
+    expect(commands.executeCommand).toHaveBeenCalledWith(
+      "workbench.extensions.installExtension",
+      "ms-python.python",
+    );
+    expect(commands.executeCommand).toHaveBeenCalledWith(
+      "workbench.action.reloadWindow",
+    );
+    expect(h.lastBody()).toEqual({ success: true });
+  });
+
+  it("passes arguments through to the command it runs", async () => {
+    const h = harness();
+
+    await h.handle("executeCommand", {
+      vscodeCommand: "workbench.action.openSettings",
+      args: ["dbt.dbtPythonPathOverride"],
+    });
+
+    expect(commands.executeCommand).toHaveBeenCalledWith(
+      "workbench.action.openSettings",
+      "dbt.dbtPythonPathOverride",
+    );
+  });
+});
+
+/**
+ * On first run Get Started opens during activation, and its setup check runs
+ * before the Python extension has activated. The check must wait for the
+ * Python environment instead of reporting an error for something still
+ * starting.
+ */
+describe("OnboardingPanel getDiagnosticsStatus before the Python environment is ready", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (workspace.getConfiguration as AnyMock).mockReturnValue({
+      get: jest.fn((_key: string, fallback?: unknown) => fallback),
+      has: jest.fn(),
+      update: jest.fn(),
+    });
+    (workspace as any).findFiles = jest.fn(async () => []);
+  });
+
+  const environmentActivatingLater = () => {
+    const env = {
+      ready: false,
+      initialize: jest.fn(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        env.ready = true;
+      }),
+      get pythonPath(): string {
+        if (!env.ready) {
+          throw new Error(
+            "executionDetails is undefined, cannot retrieve environment variables",
+          );
+        }
+        return "/venv/bin/python";
+      },
+      pythonVersion: "3.12.1",
+    };
+    return env;
+  };
+
+  const run = async () => {
+    const h = harness();
+    const env = environmentActivatingLater();
+    Object.assign((h.panel as any).dbtProjectContainer, {
+      getProjects: () => [],
+      dbtWorkspaceFolders: [],
+      pythonInstalled: false,
+      dbtInstalled: false,
+      getPythonEnvironment: () => env,
+    });
+    await h.handle("getDiagnosticsStatus");
+    await new Promise((resolve) => setImmediate(resolve));
+    const calls = (h.panel as any)._panel.webview.postMessage.mock.calls;
+    const response = calls[calls.length - 1][0] as {
+      args: { body?: Record<string, unknown>; error?: string };
+    };
+    return { env, response };
+  };
+
+  it("waits for the Python environment and reports its interpreter", async () => {
+    const { env, response } = await run();
+    expect(env.initialize).toHaveBeenCalled();
+    expect(response.args.error).toBeUndefined();
+    expect(response.args.body).toMatchObject({
+      pythonPath: "/venv/bin/python",
+      pythonVersion: "3.12.1",
+      dbtIntegrationMode: "core",
+    });
+  });
+
+  it("reports the mode resolved while it waited, not the one at the request", async () => {
+    // Get Started can open during activation; the auto-switch resolves while
+    // this handler awaits the Python environment. The response must carry the
+    // mode in effect when it is built.
+    const h = harness();
+    const env = environmentActivatingLater();
+    const initialize = env.initialize;
+    env.initialize = jest.fn(async () => {
+      await initialize();
+      setEffectiveDbtIntegrationMode("fusion");
+    });
+    Object.assign((h.panel as any).dbtProjectContainer, {
+      getProjects: () => [],
+      dbtWorkspaceFolders: [],
+      pythonInstalled: false,
+      dbtInstalled: false,
+      getPythonEnvironment: () => env,
+    });
+    try {
+      await h.handle("getDiagnosticsStatus");
+      await new Promise((resolve) => setImmediate(resolve));
+      const calls = (h.panel as any)._panel.webview.postMessage.mock.calls;
+      const response = calls[calls.length - 1][0] as {
+        args: { body?: Record<string, unknown> };
+      };
+      expect(response.args.body).toMatchObject({
+        dbtIntegrationMode: "fusion",
+      });
+    } finally {
+      setEffectiveDbtIntegrationMode(undefined);
+    }
+  });
+});
+
+describe("OnboardingPanel installDbt", () => {
+  afterEach(() => {
+    setEffectiveDbtIntegrationMode(undefined);
+  });
+
+  it("installs the mode the user picked, not the mode the window started in", async () => {
+    // Picking Fusion writes the setting, but the window's effective mode is
+    // still the one `resolve` pinned at activation; the installer must follow
+    // the pick.
+    (workspace.getConfiguration as AnyMock).mockReturnValue({
+      get: jest.fn((_key: string, fallback?: unknown) => fallback),
+      has: jest.fn(),
+      update: jest.fn(async () => undefined),
+    });
+    setEffectiveDbtIntegrationMode("core");
+    const h = harness();
+    const installDbt = jest.fn(async () => undefined);
+    (h.panel as any).walkthroughCommands = { installDbt };
+    await h.handle("installDbt", { integrationType: "fusion" });
+    expect(installDbt).toHaveBeenCalledWith("fusion");
+  });
+});

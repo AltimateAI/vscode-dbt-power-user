@@ -1,0 +1,19 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Jinja YAML",
+  "scopeName": "text.yaml.jinja",
+  "patterns": [
+    {
+      "include": "source.yaml"
+    }
+  ],
+  "injections": {
+    "L:text.yaml.jinja - comment.block.jinja - meta.statement.jinja - meta.expression.jinja": {
+      "patterns": [
+        {
+          "include": "source.yaml.jinja"
+        }
+      ]
+    }
+  }
+}

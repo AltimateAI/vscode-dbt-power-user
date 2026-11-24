@@ -25,10 +25,11 @@ export class DbtPowerUserActionsCenter implements Disposable {
     });
     commands.registerCommand(
       "dbtPowerUser.openOnboarding",
-      async (initialStep?: string) => {
+      // `source` tells telemetry how Get Started was opened.
+      async (initialStep?: string, source = "command") => {
         this.emitterService.eventEmitter.fire({
           command: "onboarding:render",
-          payload: initialStep ? { initialStep } : {},
+          payload: initialStep ? { initialStep, source } : { source },
         });
       },
     );

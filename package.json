@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.66.1",
+  "version": "0.71.0",
   "engines": {
     "vscode": "^1.95.0",
     "node": ">=20.0.0"
@@ -36,7 +36,8 @@
     "dbt power user"
   ],
   "activationEvents": [
-    "workspaceContains:**/dbt_project.yml"
+    "workspaceContains:**/dbt_project.yml",
+    "onUri"
   ],
   "main": "./dist/extension",
   "contributes": {
@@ -719,6 +720,12 @@
         "icon": "$(clear-all)"
       },
       {
+        "command": "dbtPowerUser.reparseProject",
+        "title": "Re-parse project",
+        "category": "Power User for dbt",
+        "icon": "$(refresh)"
+      },
+      {
         "command": "dbtPowerUser.printEnvVars",
         "title": "Print environment variables",
         "category": "Power User for dbt",
@@ -1197,10 +1204,31 @@
     "languages": [
       {
         "id": "jinja-sql",
+        "aliases": [
+          "Jinja SQL",
+          "jinja-sql"
+        ],
         "icon": {
-          "light": "./media/images/altimate_file_icon.svg",
-          "dark": "./media/images/altimate_file_icon.svg"
-        }
+          "light": "./media/images/dbt_file_icon.svg",
+          "dark": "./media/images/dbt_file_icon.svg"
+        },
+        "configuration": "./language-configuration/jinja-sql.json"
+      },
+      {
+        "id": "jinja-yaml",
+        "aliases": [
+          "Jinja YAML",
+          "jinja-yaml"
+        ],
+        "configuration": "./language-configuration/jinja-yaml.json"
+      },
+      {
+        "id": "jinja-md",
+        "aliases": [
+          "Jinja Markdown",
+          "jinja-md"
+        ],
+        "configuration": "./language-configuration/jinja-md.json"
       }
     ],
     "grammars": [
@@ -1208,6 +1236,21 @@
         "language": "jinja-sql",
         "scopeName": "source.sql.jinja",
         "path": "./syntaxes/jinja-sql.tmLanguage.json"
+      },
+      {
+        "language": "jinja-yaml",
+        "scopeName": "text.yaml.jinja",
+        "path": "./syntaxes/jinja-yaml-language.tmLanguage.json",
+        "tokenTypes": {
+          "meta.expression.jinja": "other",
+          "meta.statement.jinja": "other",
+          "comment.block.jinja": "comment"
+        }
+      },
+      {
+        "language": "jinja-md",
+        "scopeName": "text.html.markdown.jinja",
+        "path": "./syntaxes/jinja-md-language.tmLanguage.json"
       },
       {
         "scopeName": "source.yaml.jinja",
@@ -1261,7 +1304,6 @@
     "@vscode/debugadapter": "^1.68.0",
     "@vscode/debugprotocol": "^1.68.0",
     "@vscode/test-electron": "^3.1.0",
-    "@vscode/zeromq": "^0.2.1",
     "concurrently": "^9.2.1",
     "cross-env": "^7.0.3",
     "eslint": "^8.57.0",
@@ -1289,12 +1331,10 @@
     "webpack": "^5.106.2"
   },
   "extensionDependencies": [
-    "samuelcolvin.jinjahtml",
-    "ms-python.python",
     "altimateai.vscode-altimate-mcp-server"
   ],
   "dependencies": {
-    "@altimateai/dbt-integration": "^0.3.15",
+    "@altimateai/dbt-integration": "^0.3.21",
     "@jupyterlab/coreutils": "^6.2.4",
     "@jupyterlab/nbformat": "^4.2.4",
     "@jupyterlab/services": "^7.0.0",
