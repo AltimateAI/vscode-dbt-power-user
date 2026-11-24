@@ -12,7 +12,7 @@ pandas==2.2.3
 pytest==8.2.1
 
 # Optional development tools
-pylint==3.3.7
+pylint==4.0.9
 sqlfluff~=3.4.0
 sqlfluff-templater-dbt~=3.4.0
 
