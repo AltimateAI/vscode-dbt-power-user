@@ -133,6 +133,11 @@
   }
 }
 
+// In light themes the code-block colour is almost the widget's.
+:global(body.vscode-light) .dbtMessage pre {
+  background: rgba(0, 0, 0, 0.07);
+}
+
 // Six lines of dbt's message before "Show more". The box is border-box (the
 // webview's global sizing), so its height adds the 6px top and bottom padding
 // to the lines.

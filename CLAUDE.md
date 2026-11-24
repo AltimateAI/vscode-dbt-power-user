@@ -26,19 +26,16 @@ The extension follows a **dependency injection pattern** using Inversify contain
 The extension operates across multiple processes:
 
 1. **Main Extension Process** (Node.js/TypeScript)
-
    - VSCode API integration
    - File system operations
    - dbt CLI interactions
 
 2. **Webview Panels** (React/TypeScript)
-
    - Modern React-based UI components
    - Located in `webview_panels/` directory
    - Built with Vite, uses Antd for UI components
 
 3. **Python Bridge Integration**
-
    - dbt core/cloud integration via Python scripts
    - Key files: `dbt_core_integration.py`, `dbt_cloud_integration.py`
    - Jupyter kernel for notebook functionality
@@ -169,9 +166,11 @@ npm run panel:webviews  # Build React components
 
 **Required Extensions**:
 
-- `samuelcolvin.jinjahtml` - Jinja templating support
-- `ms-python.python` - Python environment integration
 - `altimateai.vscode-altimate-mcp-server` - MCP server
+
+**Optional Extensions**:
+
+- `ms-python.python` - Python environment integration. dbt Core (`core`, `corecommand`) and the dbt Cloud CLI (`cloud`) run from the selected interpreter and prompt to install it (or take `dbt.dbtPythonPathOverride`); only dbt Fusion runs without it
 
 ### 2. Major Technical Dependencies
 
@@ -212,7 +211,7 @@ npm run panel:webviews  # Build React components
 
 ### 2. Language Support
 
-**File Type Associations**:
+**Languages** (contributed by the extension itself: grammars in `syntaxes/`, configurations in `language-configuration/`; files map to them through `files.associations`, which the setup wizard writes):
 
 - `jinja-sql` - Primary dbt model files
 - `jinja-yaml` - dbt configuration files

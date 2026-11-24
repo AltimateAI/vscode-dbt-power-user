@@ -3,7 +3,8 @@
 out/**
 src/**
 **/node_modules
-!dist/node_modules/**
+# vsce applies negations after every ignore, so the re-include leaves out source maps.
+!dist/node_modules/**/!(*.map)
 .gitignore
 vsc-extension-quickstart.md
 **/tsconfig.json
@@ -26,6 +27,10 @@ test-fixtures
 monitoring
 .husky
 patches
+
+# README GIFs: the Marketplace listing loads README images from GitHub, and
+# no runtime code reads them
+media/images/*.gif
 
 # Dev/CI config files not needed in the installed extension
 jest.config.js

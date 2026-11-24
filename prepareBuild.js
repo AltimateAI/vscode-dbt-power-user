@@ -1,148 +1,181 @@
 const path = require("path");
 const fs = require("fs");
 
-function getZeroMQPreBuildsFoldersToKeep() {
-  // Possible values of 'VSC_VSCE_TARGET' include platforms supported by `vsce package --target`
-  // See here https://code.visualstudio.com/api/working-with-extensions/publishing-extension#platformspecific-extensions
-  const vsceTarget = process.env.VSC_VSCE_TARGET || process.env.VSCE_TARGET;
-  console.log("vsceTarget", vsceTarget);
-  if (!vsceTarget) {
-    // Keep all of them, as we're not building platform specific bundles.
-    return [];
-  } else if (vsceTarget === "web") {
-    throw new Error("Not supported when targeting the Web");
-  } else if (vsceTarget.includes("win32")) {
-    if (vsceTarget.includes("x64")) {
-      return ["win32-x64"];
-    } else if (vsceTarget.includes("arm64")) {
-      return ["win32-arm64"];
-    } else {
-      return ["win32-x64", "win32-arm64"];
-    }
-  } else if (vsceTarget.includes("linux")) {
-    if (vsceTarget.includes("arm64")) {
-      return ["linux-arm64"];
-    } else if (vsceTarget.includes("x64")) {
-      return ["linux-x64"];
-    } else if (vsceTarget.includes("arm")) {
-      return ["linux-arm"];
-    } else {
-      return ["linux-arm64", "linux-x64", "linux-arm"];
-    }
-  } else if (vsceTarget.includes("alpine")) {
-    if (vsceTarget.includes("arm64")) {
-      return ["linux-arm64"];
-    } else if (vsceTarget.includes("x64")) {
-      return ["linux-x64"];
-    } else if (vsceTarget.includes("armhf")) {
-      return ["linux-arm"];
-    } else {
-      return ["linux-arm64", "linux-x64", "linux-arm"];
-    }
-  } else if (vsceTarget.includes("darwin")) {
-    if (vsceTarget.includes("arm64")) {
-      return ["darwin-arm64"];
-    } else if (vsceTarget.includes("x64")) {
-      return ["darwin-x64"];
-    } else {
-      return ["darwin-x64", "darwin-arm64"];
-    }
-  } else {
-    throw new Error(`Unknown platform '${vsceTarget}'}`);
-  }
-}
-
-function shouldCopyFileFromZmqFolder(resourcePath) {
-  const parentFolder = path.dirname(resourcePath);
-  if (fs.statSync(resourcePath).isDirectory()) {
-    return true;
-  }
-  // return true;
-  const filename = path.basename(resourcePath);
-  // Ensure the code is platform agnostic.
-  resourcePath = (resourcePath || "")
-    .toString()
-    .toLowerCase()
-    .replace(/\\/g, "/");
-  // We do not need to bundle these folders
-  const foldersToIgnore = ["build", "script", "src", "node_modules", "vendor"];
-  if (
-    foldersToIgnore.some((folder) =>
-      resourcePath
-        .toLowerCase()
-        .startsWith(
-          path.join(parentFolder, folder).replace(/\\/g, "/").toLowerCase(),
-        ),
-    )
-  ) {
-    return false;
-  }
-
-  if (
-    resourcePath.endsWith(".js") ||
-    resourcePath.endsWith(".json") ||
-    resourcePath.endsWith(".md") ||
-    resourcePath.endsWith("license")
-  ) {
-    return true;
-  }
-  // if (!resourcePath.includes(path.join(parentFolder, 'prebuilds').replace(/\\/g, '/').toLowerCase())) {
-  if (!parentFolder.includes(`${path.sep}prebuilds${path.sep}`)) {
-    // We do not ship any other sub directory.
-    return false;
-  }
-  if (filename.includes("electron.") && resourcePath.endsWith(".node")) {
-    // We do not ship electron binaries.
-    return false;
-  }
-  const preBuildsFoldersToCopy = getZeroMQPreBuildsFoldersToKeep();
-  console.log("preBuildsFoldersToCopy", preBuildsFoldersToCopy);
-  if (preBuildsFoldersToCopy.length === 0) {
-    // Copy everything from all prebuilds folder.
-    return true;
-  }
-  // Copy if this is a prebuilds folder that needs to be copied across.
-  // Use path.sep as the delimiter, as we do not want linux-arm64 to get compiled with search criteria is linux-arm.
-  if (
-    preBuildsFoldersToCopy.some((folder) =>
-      resourcePath.includes(`${folder.toLowerCase()}/`),
-    )
-  ) {
-    return true;
-  }
-  return false;
-}
-
 const extensionFolder = path.join(__dirname);
+const distNodeModules = path.join(extensionFolder, "dist", "node_modules");
 
-async function deleteUnnecessaryZeromqPrebuilts() {
-  const vsceTarget = process.env.VSC_VSCE_TARGET || process.env.VSCE_TARGET;
+function getVsceTarget() {
+  // Possible values include the platforms supported by `vsce package --target`, see
+  // https://code.visualstudio.com/api/working-with-extensions/publishing-extension#platformspecific-extensions
+  return process.env.VSC_VSCE_TARGET || process.env.VSCE_TARGET;
+}
+
+/** Every file below `dir`, as absolute paths. */
+function listFiles(dir) {
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const child = path.join(dir, entry.name);
+    return entry.isDirectory() ? listFiles(child) : [child];
+  });
+}
+
+/** Delete the directories below `dir` that are left empty, deepest first. */
+function removeEmptyDirs(dir) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (entry.isDirectory()) {
+      const child = path.join(dir, entry.name);
+      removeEmptyDirs(child);
+      if (fs.readdirSync(child).length === 0) {
+        fs.rmdirSync(child);
+      }
+    }
+  }
+}
+
+/**
+ * Platforms with no VSIX of their own, whose users install the nearest one by
+ * hand: Windows on Arm takes the win32-x64 VSIX, and Alpine the linux VSIX of
+ * its arch. Those VSIXes also ship these addons, so notebooks load there too.
+ */
+const ZEROMQ_EXTRA_RUNTIMES = {
+  "win32-x64": ["win32/arm64/msvc"],
+  "linux-x64": ["linux/x64/musl"],
+  "linux-arm64": ["linux/arm64/musl"],
+};
+
+/**
+ * The zeromq addon runtimes a VS Code target ships, as "os/arch/libc" in the
+ * terms of the `build/manifest.json` that zeromq's cmake-ts loader filters on.
+ */
+function getZeromqRuntimes(vsceTarget) {
+  const match = /^(win32|linux|alpine|darwin)-(x64|arm64|armhf|ia32)$/.exec(
+    vsceTarget,
+  );
+  if (!match) {
+    throw new Error(`Unsupported VSCE_TARGET '${vsceTarget}' for zeromq`);
+  }
+  const [, platform, arch] = match;
+  const os = platform === "alpine" ? "linux" : platform;
+  const libc = {
+    win32: "msvc",
+    linux: "glibc",
+    alpine: "musl",
+    darwin: "libc",
+  }[platform];
+  const runtime = `${os}/${arch === "armhf" ? "arm" : arch}/${libc}`;
+  return [runtime, ...(ZEROMQ_EXTRA_RUNTIMES[vsceTarget] || [])];
+}
+
+/**
+ * Keep only the zeromq addons the target ships. zeromq loads its addon
+ * through cmake-ts `loadAddon(build/)`, which reads build/manifest.json, keeps
+ * the entries matching the running os, arch and libc, and tries them from the
+ * newest ABI down. The manifest is rewritten to list only the addons kept, so
+ * the loader never tries a file that isn't shipped.
+ */
+function pruneZeromqAddons(zeromqDir, vsceTarget) {
+  const buildDir = path.join(zeromqDir, "build");
+  const manifestPath = path.join(buildDir, "manifest.json");
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+  const runtimes = getZeromqRuntimes(vsceTarget);
+
+  const kept = {};
+  const found = new Set();
+  for (const [key, addonPath] of Object.entries(manifest)) {
+    const config = JSON.parse(key);
+    const runtime = `${config.os}/${config.arch}/${config.libc}`;
+    if (runtimes.includes(runtime)) {
+      kept[key] = addonPath;
+      found.add(runtime);
+    }
+  }
+  // Windows entries use backslashes; packaging may run on Linux.
+  const keptFiles = new Set(
+    Object.values(kept).map((addonPath) =>
+      path.resolve(buildDir, addonPath.replace(/\\/g, "/")),
+    ),
+  );
+  const absent = runtimes.filter((runtime) => !found.has(runtime));
+  const missing = [...keptFiles].filter((file) => !fs.existsSync(file));
+  if (absent.length > 0 || missing.length > 0) {
+    throw new Error(
+      `Missing zeromq addons for VSCE_TARGET '${vsceTarget}' in ${buildDir}: ${[
+        ...absent,
+        ...missing,
+      ].join(", ")}`,
+    );
+  }
+
+  for (const file of listFiles(buildDir)) {
+    if (file !== manifestPath && !keptFiles.has(file)) {
+      fs.rmSync(file);
+    }
+  }
+  removeEmptyDirs(buildDir);
+  fs.writeFileSync(manifestPath, JSON.stringify(kept));
+  console.log(
+    `kept zeromq addons for ${vsceTarget}:`,
+    Object.values(kept).join(", "),
+  );
+}
+
+/** Delete every file below `dir` except `keep` (paths relative to `dir`). */
+function keepOnly(dir, keep) {
+  const kept = new Set(keep.map((file) => path.join(dir, file)));
+  for (const file of listFiles(dir)) {
+    if (!kept.has(file)) {
+      fs.rmSync(file);
+    }
+  }
+  removeEmptyDirs(dir);
+  const missing = [...kept].filter((file) => !fs.existsSync(file));
+  if (missing.length > 0) {
+    throw new Error(`Required asset missing: ${missing.join(", ")}`);
+  }
+}
+
+/**
+ * Strip zeromq and cmake-ts down to what loads at runtime: zeromq's lib/ and
+ * entry points plus its target addon, and cmake-ts' build/loader.js. Sources,
+ * install scripts, node-addon-api headers, type declarations and build configs
+ * are only used when compiling the addon. `prebuilds/` is never read by
+ * zeromq 6, whose loader looks only in `build/`.
+ */
+function pruneZeromq() {
+  const zeromqDir = path.join(distNodeModules, "zeromq");
+  const cmakeTsDir = path.join(distNodeModules, "cmake-ts");
+  for (const dir of [zeromqDir, cmakeTsDir]) {
+    if (!fs.existsSync(dir)) {
+      throw new Error(`Required asset missing: ${dir}`);
+    }
+  }
+
+  for (const entry of [
+    "src",
+    "script",
+    "node_modules",
+    "prebuilds",
+    "CMakeLists.txt",
+    "vcpkg.json",
+    "tsconfig.json",
+    ".mocharc.js",
+    path.join("lib", "tsconfig.tsbuildinfo"),
+  ]) {
+    fs.rmSync(path.join(zeromqDir, entry), { recursive: true, force: true });
+  }
+  listFiles(zeromqDir)
+    .filter((file) => file.endsWith(".d.ts"))
+    .forEach((file) => fs.rmSync(file));
+  removeEmptyDirs(zeromqDir);
+
+  keepOnly(cmakeTsDir, ["package.json", path.join("build", "loader.js")]);
+
+  const vsceTarget = getVsceTarget();
   if (!vsceTarget) {
-    // Keep all of them, as we're not building platform specific bundles.
-    console.log("vsceTarget is not set");
+    // Keep every platform's addon, as we're not building a platform-specific bundle.
+    console.log("vsceTarget is not set, keeping all zeromq addons");
     return;
   }
-
-  console.log("deleting ZeroMQ prebuilts");
-  const necessaryPrebuilds = getZeroMQPreBuildsFoldersToKeep();
-
-  const zmqPrebuildFolder = path.join(
-    extensionFolder,
-    "dist",
-    "node_modules",
-    "zeromq",
-    "prebuilds",
-  );
-  // delete all folders except the ones in necessaryPrebuilds
-  const files = fs.readdirSync(zmqPrebuildFolder);
-  for (const file of files) {
-    if (!necessaryPrebuilds.includes(file)) {
-      console.log("deleting", path.join(zmqPrebuildFolder, file));
-      fs.rmSync(path.join(zmqPrebuildFolder, file), { recursive: true });
-    }
-  }
-
-  console.log("copied ZeroMQ");
+  pruneZeromqAddons(zeromqDir, vsceTarget);
 }
 
 /**
@@ -150,7 +183,7 @@ async function deleteUnnecessaryZeromqPrebuilts() {
  * Returns empty array if no target is set (keep all).
  */
 function getAltimateCorePackagesToKeep() {
-  const vsceTarget = process.env.VSC_VSCE_TARGET || process.env.VSCE_TARGET;
+  const vsceTarget = getVsceTarget();
   if (!vsceTarget) {
     return [];
   }
@@ -171,7 +204,7 @@ function getAltimateCorePackagesToKeep() {
 }
 
 function deleteUnnecessaryAltimateCorePackages() {
-  const vsceTarget = process.env.VSC_VSCE_TARGET || process.env.VSCE_TARGET;
+  const vsceTarget = getVsceTarget();
   if (!vsceTarget) {
     console.log(
       "vsceTarget is not set, keeping all altimate-core platform packages",
@@ -274,6 +307,6 @@ function assertPythonBridgeSpawnHidden() {
   );
 }
 
-deleteUnnecessaryZeromqPrebuilts();
+pruneZeromq();
 deleteUnnecessaryAltimateCorePackages();
 assertPythonBridgeSpawnHidden();

@@ -30,6 +30,7 @@ import { SharedStateService } from "../services/sharedStateService";
 import { UsersService } from "../services/usersService";
 import { TelemetryService } from "../telemetry";
 import { extendErrorWithSupportLinks } from "../utils";
+import { encodeMentions } from "./mentions";
 import path = require("path");
 
 // Extends vscode commentthread and add extra fields for reference
@@ -333,9 +334,12 @@ export class ConversationProvider implements Disposable {
     return new MarkdownString(text.replace(/@\[(.*?)\]\((.*?)\)/g, "@$2"));
   }
 
-  // convert "@john" to "@[john](john)"
+  // convert "@john doe" to "@[john doe](john doe)"
   private convertTextToDbFormat(text: string) {
-    return new MarkdownString(text).value.replace(/@(\S+)\s/g, "@[$1]($1) ");
+    return encodeMentions(
+      new MarkdownString(text).value,
+      this.usersService.users.map((user) => user.display_name),
+    );
   }
 
   private addComment(reply: CommentReply) {

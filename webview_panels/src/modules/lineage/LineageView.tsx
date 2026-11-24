@@ -13,14 +13,16 @@ import {
 } from "@modules/app/requestExecutor";
 import useAppContext from "@modules/app/useAppContext";
 import { panelLogger } from "@modules/logger";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import ActionWidget from "./ActionWidget";
 import DemoButton from "./components/demo/DemoButton";
 import styles from "./lineage.module.scss";
+import LineageStateCard from "./LineageStateCard";
 import StaleGraphChip from "./StaleGraphChip";
 import "./tailwind-globals.css";
 import {
   LineageBanner as LineageBannerState,
+  LineageCard,
   MissingLineageMessage,
   StaticLineageProps,
 } from "./types";
@@ -41,6 +43,15 @@ const LineageView = (): JSX.Element | null => {
     MissingLineageMessage | undefined
   >();
   const [banner, setBanner] = useState<LineageBannerState | undefined>();
+  const [card, setCard] = useState<LineageCard | undefined>();
+  // A graph drawn earlier stays mounted under the card; while the card covers
+  // it, keyboard focus and screen readers skip it.
+  const graphLayer = useCallback(
+    (el: HTMLDivElement | null) => {
+      el?.toggleAttribute("inert", card !== undefined);
+    },
+    [card],
+  );
 
   useEffect(() => {
     if (!isComponentsApiInitialized) {
@@ -95,10 +106,12 @@ const LineageView = (): JSX.Element | null => {
       aiEnabled: boolean;
       missingLineageMessage?: MissingLineageMessage;
       lineageBanner?: LineageBannerState;
+      lineageCard?: LineageCard;
     } & StaticLineageProps,
   ) => {
     setMissingLineageMessage(data.missingLineageMessage);
     setBanner(data.lineageBanner);
+    setCard(data.lineageCard);
     const event = new CustomEvent("renderStartNode", {
       detail: {
         ...data,
@@ -165,28 +178,33 @@ const LineageView = (): JSX.Element | null => {
           missingLineageMessage={missingLineageMessage}
           aiEnabled={renderNode.aiEnabled}
           lineageType={lineageType}
+          showGraphTools={!card}
         />
         {/* Beside the toolbar, over the graph; the graph keeps the panel. */}
         {lineageType === "dynamic" && banner ? (
           <StaleGraphChip banner={banner} />
         ) : null}
-        {lineageType === "sql" ? null : (
+        {lineageType === "sql" || card ? null : (
           <div className="bottom-right-container">
             <DemoButton />
           </div>
         )}
         <div className={`${styles.lineageWrap} al-tw-scope`}>
-          <Lineage
-            theme={theme}
-            dynamicLineage={renderNode}
-            lineageType={lineageType}
-            sqlLineage={
-              lineageType === "sql"
-                ? (renderNode as StaticLineageProps)
-                : undefined
-            }
-            allowSyncColumnsWithDB
-          />
+          {card ? <LineageStateCard card={card} /> : null}
+          {/* No box of its own, so the graph's layout doesn't change. */}
+          <div ref={graphLayer} style={{ display: "contents" }}>
+            <Lineage
+              theme={theme}
+              dynamicLineage={renderNode}
+              lineageType={lineageType}
+              sqlLineage={
+                lineageType === "sql"
+                  ? (renderNode as StaticLineageProps)
+                  : undefined
+              }
+              allowSyncColumnsWithDB
+            />
+          </div>
         </div>
       </div>
     </TooltipProvider>

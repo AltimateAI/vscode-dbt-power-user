@@ -2,7 +2,6 @@ import type { CollectColumn, Details } from "@altimateai/ui-components/lineage";
 
 export interface MissingLineageMessage {
   message: string;
-  type: "warning" | "error";
 }
 
 export interface StaticLineageProps {
@@ -39,4 +38,26 @@ export interface LineageBanner {
   dbtMessage: string;
   // The first action is the primary button.
   actions: LineageBannerAction[];
+}
+
+// The card shown when an error stops the panel from drawing a graph. The
+// extension builds it (src/webview_provider/lineageStateCard.ts); the webview
+// lays it out and sends the chosen action back.
+export interface LineageCardAction {
+  id: string;
+  label: string;
+  args?: { path: string; line?: number; package?: string };
+}
+
+export interface LineageCard {
+  kind: string;
+  severity: "error" | "info";
+  title: string;
+  detail: string;
+  // dbt's own message, verbatim.
+  dbtMessage: string;
+  // The first action is the primary button.
+  actions: LineageCardAction[];
+  // A problem with the setup: the card links the Get Started page.
+  setup: boolean;
 }

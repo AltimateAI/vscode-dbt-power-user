@@ -14,12 +14,14 @@ import {
 } from "@altimateai/dbt-integration";
 import { existsSync, readdirSync, readFileSync, statSync } from "fs";
 import { inject } from "inversify";
+import { homedir } from "os";
 import * as path from "path";
 import {
   CancellationToken,
   CancellationTokenSource,
   ColorThemeKind,
   commands,
+  env,
   ProgressLocation,
   Range,
   TextDocument,
@@ -55,6 +57,15 @@ import {
   staleGraphBanner,
   StaleGraphInput,
 } from "./lineageStaleGraph";
+import {
+  ENV_VAR_DOCS_URL,
+  lineageCard,
+  LineageCard,
+  LineageCardActionId,
+  needsSetupToast,
+  resolveProfilesPath,
+  setupToastMessage,
+} from "./lineageStateCard";
 import { classifyLineageError, nodeCountBucket } from "./lineageTelemetry";
 
 // How long diagnostics changes must settle before the banner is rebuilt, and
@@ -65,6 +76,7 @@ const AGE_REFRESH_MS = 60 * 1000;
 // The banner's "Try again" runs this; the button is hidden while it isn't
 // registered.
 export const REPARSE_PROJECT_COMMAND = "dbtPowerUser.reparseProject";
+const SHOW_LINEAGE = "Show lineage";
 
 // A source table resolved to the dbt unique_id key the lineage should root at
 // (`source.<pkg>.<source>.<table>`).
@@ -126,6 +138,15 @@ export class NewLineagePanel
   private diagnosticsTimer: ReturnType<typeof setTimeout> | undefined;
   // While a banner shows, it's rebuilt every minute so its age stays current.
   private ageTimer: ReturnType<typeof setInterval> | undefined;
+  // The last render had no graph, and the error behind it, so the panel only
+  // renders again when that error changes.
+  private noGraphShown = false;
+  private renderedBlocking: string | undefined;
+  private rebuildInProgress = false;
+  // One lineageStateShown per card kind, and one setup toast, per window.
+  private reportedCardKinds = new Set<string>();
+  private setupToastShown = false;
+  private setupToastTimer: ReturnType<typeof setTimeout> | undefined;
 
   public constructor(
     protected dbtProjectContainer: DBTProjectContainer,
@@ -220,6 +241,7 @@ export class NewLineagePanel
     clearInterval(this.ageTimer);
     this.ageTimer = undefined;
     this.graphDrawn = false;
+    this.noGraphShown = false;
     this.drawnFrom = undefined;
     this.postedBanner = undefined;
   }
@@ -234,8 +256,10 @@ export class NewLineagePanel
   // it is (a render would rebuild it); only the banner is updated. Changes on
   // files outside the drawn project (another language's diagnostics as the
   // user types) are skipped, and a burst is handled once, after it settles.
+  // With no graph drawn, the card follows the error instead.
   public changedDiagnostics(uris?: readonly Uri[]) {
-    if (!this._panel || !this.graphDrawn) {
+    this.scheduleSetupToast();
+    if (!this._panel || !(this.graphDrawn || this.noGraphShown)) {
       return;
     }
     if (uris !== undefined && !this.touchesProject(uris)) {
@@ -244,12 +268,41 @@ export class NewLineagePanel
     clearTimeout(this.diagnosticsTimer);
     this.diagnosticsTimer = setTimeout(() => {
       this.diagnosticsTimer = undefined;
-      this.refreshBanner();
+      if (this.graphDrawn) {
+        this.refreshBanner();
+      } else {
+        this.refreshNoGraphState();
+      }
     }, DIAGNOSTICS_SETTLE_MS);
   }
 
+  public changedRebuildStatus(inProgress: boolean) {
+    this.rebuildInProgress = inProgress;
+    this.scheduleSetupToast();
+    this.refreshNoGraphState();
+  }
+
+  // A render with no graph logs and reports its error, so it only happens when
+  // the error changes. While a parse runs the error clears before the outcome
+  // is known; the card stays until the parse ends.
+  private refreshNoGraphState() {
+    if (!this._panel || !this.noGraphShown) {
+      return;
+    }
+    const blocking = this.findBlockingDiagnostic()?.message;
+    if (blocking === this.renderedBlocking) {
+      return;
+    }
+    if (blocking === undefined && this.rebuildInProgress) {
+      return;
+    }
+    this.renderStartingNode();
+  }
+
   private touchesProject(uris: readonly Uri[]): boolean {
-    const root = this.drawnFrom?.project.projectRoot.fsPath;
+    const root = (
+      this.drawnFrom?.project ?? this.queryManifestService.getProject()
+    )?.projectRoot.fsPath;
     if (root === undefined) {
       return false;
     }
@@ -285,6 +338,10 @@ export class NewLineagePanel
         if (available !== this.reparseAvailable) {
           this.reparseAvailable = available;
           this.refreshBanner();
+          // The first render came before this answer; add the card's Try again.
+          if (this.noGraphShown && this.renderedBlocking !== undefined) {
+            this.renderStartingNode();
+          }
         }
       },
       () => {},
@@ -332,6 +389,7 @@ export class NewLineagePanel
     }
     const startingNode = this.getStartingNode(resolvedSource);
     this.graphDrawn = startingNode?.node !== undefined;
+    this.noGraphShown = !this.graphDrawn;
     const project = this.queryManifestService.getProject();
     this.drawnFrom =
       this.graphDrawn && project
@@ -402,12 +460,17 @@ export class NewLineagePanel
     const { command, args = {}, syncRequestId } = message;
     const { id = syncRequestId, params } = args;
 
-    if (command === "openProblemsTab") {
-      commands.executeCommand("workbench.action.problems.focus");
+    if (command === "lineageBannerAction") {
+      await this.runLineageAction(args.action, args.params);
       return;
     }
-    if (command === "lineageBannerAction") {
-      await this.runBannerAction(args.action, args.params);
+    if (command === "lineageCardAction") {
+      this.telemetry.sendTelemetryEvent("lineageAction", {
+        kind: args.kind,
+        action: args.action,
+        from: "card",
+      });
+      await this.runLineageAction(args.action, args.params);
       return;
     }
     if (command === "upstreamTables") {
@@ -988,16 +1051,132 @@ export class NewLineagePanel
     return path.basename(fileName);
   }
 
-  private getMissingLineageMessage() {
-    const message =
-      "A valid dbt file (model, seed etc.) needs to be open and active in the editor area above to view lineage";
+  // What the panel shows when it can't draw a graph.
+  private getNoGraphState(): {
+    lineageCard?: LineageCard;
+    missingLineageMessage?: { message: string };
+  } {
     const blocking = this.findBlockingDiagnostic();
-    if (blocking) {
-      this.reportLineageError(blocking.message, blocking.category);
-      return { message: blocking.message, type: "error" };
+    this.renderedBlocking = blocking?.message;
+    if (!blocking) {
+      return {
+        missingLineageMessage: {
+          message:
+            "A valid dbt file (model, seed etc.) needs to be open and active in the editor area above to view lineage",
+        },
+      };
     }
+    this.reportLineageError(blocking.message, blocking.category);
+    const card = this.buildCard(
+      blocking,
+      this.queryManifestService.getProject(),
+    );
+    if (!this.reportedCardKinds.has(card.kind)) {
+      this.reportedCardKinds.add(card.kind);
+      this.telemetry.sendTelemetryEvent("lineageStateShown", {
+        kind: card.kind,
+      });
+    }
+    return { lineageCard: card };
+  }
 
-    return { message, type: "warning" };
+  private buildCard(
+    blocking: { message: string; category: string },
+    project?: DBTProject,
+  ): LineageCard {
+    return lineageCard({
+      message: blocking.message,
+      projectName: this.safely(() =>
+        this.rootProjectName(project, blocking.category),
+      ),
+      pythonPath: this.safely(() => project?.getPythonPath()),
+      profilesPath: this.safely(() => this.profilesPath(project)),
+      canReparse: this.reparseAvailable,
+    });
+  }
+
+  // A card still shows when a detail for its text can't be read: the interpreter
+  // lookup, for one, throws until the Python extension has answered.
+  private safely<T>(read: () => T): T | undefined {
+    try {
+      return read();
+    } catch (error) {
+      this.dbtTerminal.debug(
+        "Lineage:buildCard",
+        "Could not read a detail for the lineage card",
+        error,
+      );
+      return undefined;
+    }
+  }
+
+  private profilesPath(project?: DBTProject): string | undefined {
+    return project
+      ? resolveProfilesPath(
+          project.projectRoot.fsPath,
+          project.getProfilesDirEnv(),
+          homedir(),
+          existsSync,
+        )
+      : undefined;
+  }
+
+  // The first setup problem of the window gets one non-modal toast, whether or
+  // not the panel is open. A burst of changes is handled once, after it settles.
+  private scheduleSetupToast() {
+    if (this.setupToastShown) {
+      return;
+    }
+    clearTimeout(this.setupToastTimer);
+    this.setupToastTimer = setTimeout(() => {
+      this.setupToastTimer = undefined;
+      this.showSetupToast();
+    }, DIAGNOSTICS_SETTLE_MS);
+    this.setupToastTimer.unref?.();
+  }
+
+  private showSetupToast() {
+    if (this.setupToastShown) {
+      return;
+    }
+    const projects = this.dbtProjectContainer.getProjects();
+    for (const project of projects) {
+      const blocking = this.safely(() => project.getBlockingDiagnostic());
+      const card = blocking && this.buildCard(blocking, project);
+      if (card && needsSetupToast(card)) {
+        this.setupToastShown = true;
+        this.telemetry.sendTelemetryEvent("lineageSetupToastShown", {
+          kind: card.kind,
+        });
+        const first = card.actions[0];
+        window
+          .showWarningMessage(
+            setupToastMessage(
+              card,
+              projects.length > 1
+                ? path.basename(project.projectRoot.fsPath)
+                : undefined,
+            ),
+            SHOW_LINEAGE,
+            first.label,
+          )
+          .then((choice) => {
+            if (choice === undefined) {
+              return;
+            }
+            const action = choice === SHOW_LINEAGE ? "showLineage" : first.id;
+            this.telemetry.sendTelemetryEvent("lineageAction", {
+              kind: card.kind,
+              action,
+              from: "toast",
+            });
+            return choice === SHOW_LINEAGE
+              ? commands.executeCommand("dbtPowerUser.Lineage.focus")
+              : this.runLineageAction(first.id, first.args, project);
+          });
+        return;
+      }
+    }
   }
 
   private getStaleGraphBanner(): StaleGraphBanner | undefined {
@@ -1014,7 +1193,7 @@ export class NewLineagePanel
         graphDrawn: this.graphDrawn,
         blocking,
         manifest: this.getManifestInfo(),
-        projectName: this.rootProjectName(project),
+        projectName: this.rootProjectName(project, blocking.category),
         canReparse: this.reparseAvailable,
         now: Date.now(),
       });
@@ -1059,15 +1238,15 @@ export class NewLineagePanel
     };
   }
 
-  private async runBannerAction(
-    action: StaleGraphActionId,
+  // The buttons of the out-of-date popover, the card and the setup toast.
+  private async runLineageAction(
+    action: StaleGraphActionId | LineageCardActionId,
     params?: { path?: string; line?: number; package?: string },
+    project = this.drawnFrom?.project ?? this.queryManifestService.getProject(),
   ) {
     try {
       switch (action) {
         case "openFile": {
-          const project =
-            this.drawnFrom?.project ?? this.queryManifestService.getProject();
           const file = String(params?.path);
           const located = project
             ? locateErrorFile(
@@ -1097,9 +1276,53 @@ export class NewLineagePanel
         case "tryAgain":
           await commands.executeCommand(
             REPARSE_PROJECT_COMMAND,
-            (this.drawnFrom?.project ?? this.queryManifestService.getProject())
-              ?.projectRoot,
+            project?.projectRoot,
           );
+          return;
+        case "revealFile":
+          await commands.executeCommand(
+            "revealInExplorer",
+            project
+              ? Uri.joinPath(project.projectRoot, String(params?.path))
+              : Uri.file(String(params?.path)),
+          );
+          return;
+        case "selectInterpreter":
+          await commands.executeCommand("python.setInterpreter");
+          return;
+        case "installDbt":
+          await commands.executeCommand("dbtPowerUser.installDbt");
+          return;
+        case "runDeps":
+          // Not dbtPowerUser.installDeps: it uses the project picked in the
+          // setup walkthrough, and a project opened without it has none.
+          if (project === undefined) {
+            throw new Error("There's no dbt project to run dbt deps in");
+          }
+          await window.withProgress(
+            {
+              location: ProgressLocation.Notification,
+              title: `Running dbt deps in ${path.basename(project.projectRoot.fsPath)}`,
+            },
+            () => project.installDeps(),
+          );
+          return;
+        case "showOutput":
+          await this.terminal.show(true);
+          return;
+        case "openProfiles": {
+          const profiles = this.profilesPath(project);
+          if (profiles === undefined || !this.fileExists(profiles)) {
+            throw new Error(`${profiles ?? "profiles.yml"} wasn't found`);
+          }
+          await window.showTextDocument(Uri.file(profiles));
+          return;
+        }
+        case "openEnvVarDocs":
+          await env.openExternal(Uri.parse(ENV_VAR_DOCS_URL));
+          return;
+        case "getStarted":
+          await commands.executeCommand("dbtPowerUser.openOnboarding");
           return;
       }
     } catch (error) {
@@ -1145,14 +1368,27 @@ export class NewLineagePanel
     }
   }
 
-  // The project's name in dbt_project.yml. The integration only learns it once
-  // the project initializes, which a project that fails at startup never does.
-  private rootProjectName(project?: DBTProject): string | undefined {
-    return (
-      project &&
-      (this.readProjectName(project.projectRoot.fsPath) ??
-        project.getProjectName())
-    );
+  // The root project's name as the blocking error uses it. A config-check
+  // error comes from dbt_project.yml as it is now. Any other error comes from
+  // the config the integration last loaded, whose name it keeps while dbt
+  // rejects later changes; before that first load it has only an "unknown_"
+  // placeholder. With no name from either, files count as the root project's.
+  private rootProjectName(
+    project: DBTProject | undefined,
+    category: string | undefined,
+  ): string | undefined {
+    if (!project) {
+      return undefined;
+    }
+    const name: unknown = project.getProjectName();
+    const loaded =
+      typeof name === "string" && !name.startsWith("unknown_")
+        ? name
+        : undefined;
+    if (loaded !== undefined && category !== "project-config") {
+      return loaded;
+    }
+    return this.readProjectName(project.projectRoot.fsPath) ?? loaded;
   }
 
   private findBlockingDiagnostic():
@@ -1197,7 +1433,8 @@ export class NewLineagePanel
     | {
         node?: Table;
         aiEnabled: boolean;
-        missingLineageMessage?: { message: string; type: string };
+        missingLineageMessage?: { message: string };
+        lineageCard?: LineageCard;
       }
     | undefined {
     // Stricter than `altimate.enabled()` (which only checks key + instance
@@ -1210,7 +1447,7 @@ export class NewLineagePanel
       this.dbtTerminal.info("Lineage:getStartingNode", "No event found");
       return {
         aiEnabled,
-        missingLineageMessage: this.getMissingLineageMessage(),
+        ...this.getNoGraphState(),
       };
     }
     const { nodeMetaMap, functionMetaMap } = event.event;
@@ -1219,7 +1456,7 @@ export class NewLineagePanel
     if (!editor || !tableName) {
       return {
         aiEnabled,
-        missingLineageMessage: this.getMissingLineageMessage(),
+        ...this.getNoGraphState(),
       };
     }
     const url = editor.document.uri.path;
@@ -1291,7 +1528,7 @@ export class NewLineagePanel
     );
     return {
       aiEnabled,
-      missingLineageMessage: this.getMissingLineageMessage(),
+      ...this.getNoGraphState(),
     };
   }
 

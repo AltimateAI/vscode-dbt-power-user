@@ -124,6 +124,12 @@ export class TextEdit {
   }
 }
 
+export enum ConfigurationTarget {
+  Global = 1,
+  Workspace = 2,
+  WorkspaceFolder = 3,
+}
+
 // Mock VSCode API
 export const extensions = {
   getExtension: jest.fn(),
@@ -150,12 +156,7 @@ export const env = {
   uiKind: UIKind.Desktop,
   // A desktop editor resolves its own URI unchanged.
   asExternalUri: jest.fn(async (uri: unknown) => uriParts(String(uri))),
-};
-
-export const ConfigurationTarget = {
-  Global: 1,
-  Workspace: 2,
-  WorkspaceFolder: 3,
+  openExternal: jest.fn(async () => true),
 };
 
 export const commands = {
@@ -203,7 +204,11 @@ export const workspace = {
   }),
   workspaceFolders: [],
   textDocuments: [] as any[],
+  notebookDocuments: [] as any[],
   onDidChangeTextDocument: jest.fn().mockReturnValue({ dispose: jest.fn() }),
+  onDidChangeNotebookDocument: jest
+    .fn()
+    .mockReturnValue({ dispose: jest.fn() }),
   getWorkspaceFolder: jest.fn((uri: typeof Uri) => {
     if (workspace.workspaceFolders && workspace.workspaceFolders.length > 0) {
       return workspace.workspaceFolders[0];

@@ -46,7 +46,7 @@ import {
 import * as LibNamespace from "@lib";
 import { NotebookKernelClient } from "@lib";
 import { Container, interfaces } from "inversify";
-import { Event, EventEmitter, Uri, workspace, WorkspaceFolder } from "vscode";
+import { Event, EventEmitter, Uri, WorkspaceFolder } from "vscode";
 import { AltimateRequest } from "./altimate";
 import { DBTProject } from "./dbt_client/dbtProject";
 import { ProjectRegisteredUnregisteredEvent } from "./dbt_client/dbtProjectContainer";
@@ -61,6 +61,7 @@ import {
 } from "./dbt_client/runtimePythonEnvironmentProvider";
 import { VSCodeDBTConfiguration } from "./dbt_client/vscodeConfiguration";
 import { VSCodeDBTTerminal } from "./dbt_client/vscodeTerminal";
+import { PythonGatedClientMapper } from "./pythonGatedClientMapper";
 import { AltimateAuthService } from "./services/altimateAuthService";
 import { AltimateCodeChatService } from "./services/altimateCodeChatService";
 import { AltimateConnectService } from "./services/altimateConnectService";
@@ -130,6 +131,8 @@ import { ContentProviders } from "./content_provider";
 import { SqlPreviewContentProvider } from "./content_provider/sqlPreviewContentProvider";
 import { CteProfilerDecorationProvider } from "./cte_profiler/cteProfilerDecorationProvider";
 import { CteProfilerService } from "./cte_profiler/cteProfilerService";
+import { getDbtIntegrationMode } from "./dbt_client/integrationMode";
+import { IntegrationModeService } from "./dbt_client/integrationModeService";
 import { DBTPowerUserExtension } from "./dbtPowerUserExtension";
 import { DocumentFormattingEditProviders } from "./document_formatting_edit_provider";
 import { DbtDocumentFormattingEditProvider } from "./document_formatting_edit_provider/dbtDocumentFormattingEditProvider";
@@ -490,9 +493,7 @@ container
   .toFactory<DBTDetection, []>((context: interfaces.Context) => {
     return () => {
       const { container } = context;
-      const dbtIntegrationMode = workspace
-        .getConfiguration("dbt")
-        .get<string>("dbtIntegration", "core");
+      const dbtIntegrationMode = getDbtIntegrationMode();
 
       switch (dbtIntegrationMode) {
         case "cloud":
@@ -510,9 +511,7 @@ container
   .toFactory<DBTProjectDetection, []>((context: interfaces.Context) => {
     return () => {
       const { container } = context;
-      const dbtIntegrationMode = workspace
-        .getConfiguration("dbt")
-        .get<string>("dbtIntegration", "core");
+      const dbtIntegrationMode = getDbtIntegrationMode();
 
       switch (dbtIntegrationMode) {
         case "cloud":
@@ -1020,6 +1019,17 @@ container
   })
   .inSingletonScope();
 
+container
+  .bind(IntegrationModeService)
+  .toDynamicValue((context) => {
+    return new IntegrationModeService(
+      context.container.get(PythonEnvironment),
+      context.container.get(TelemetryService),
+      context.container.get("DBTTerminal"),
+    );
+  })
+  .inSingletonScope();
+
 // Bind dbt client
 container
   .bind(DBTClient)
@@ -1147,7 +1157,6 @@ container
     return new VirtualSqlCodeLensProvider(
       context.container.get(DBTProjectContainer),
       context.container.get(QueryManifestService),
-      context.container.get("NotebookService"),
     );
   })
   .inSingletonScope();
@@ -1311,10 +1320,12 @@ container
 container
   .bind<any>("ClientMapper")
   .toDynamicValue((context) => {
-    return new LibNamespace.ClientMapper(
+    return new PythonGatedClientMapper(
       context.container.get(DBTCommandExecutionInfrastructure),
       context.container.get("NotebookDependencies"),
       context.container.get("DBTTerminal"),
+      context.container.get(PythonEnvironment),
+      context.container.get(TelemetryService),
     );
   })
   .inSingletonScope();
@@ -1938,6 +1949,7 @@ container
       context.container.get(AltimateAuthService),
       context.container.get(WhatsNewPanel),
       context.container.get(AltimateConnectService),
+      context.container.get(IntegrationModeService),
     );
   })
   .inSingletonScope();

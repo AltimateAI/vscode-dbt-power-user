@@ -12,6 +12,7 @@ import {
   DBTCommandExecutionInfrastructure,
   DBTCommandFactory,
   DBTDiagnosticData,
+  DBTFusionCommandProjectIntegration,
   DBTNode,
   DBTProjectIntegration,
   DBTProjectIntegrationAdapter,
@@ -20,6 +21,7 @@ import {
   DeferConfig,
   extractOutputColumns,
   HealthcheckArgs,
+  isInlinePreviewError,
   isResourceHasDbColumns,
   isResourceNode,
   MANIFEST_FILE,
@@ -55,14 +57,17 @@ import {
   RelativePattern,
   Uri,
   ViewColumn,
+  Webview,
   window,
   workspace,
 } from "vscode";
+import { awaitingPythonExtension } from ".";
 import { AltimateRequest, ModelNode } from "../altimate";
 import { AltimateAuthService } from "../services/altimateAuthService";
 import { RunHistoryService } from "../services/runHistoryService";
 import { SharedStateService } from "../services/sharedStateService";
 import { TelemetryService } from "../telemetry";
+import { dbtEnvironmentProperties } from "../telemetry/dbtEnvironment";
 import { TelemetryEvents } from "../telemetry/events";
 import {
   extendErrorWithSupportLinks,
@@ -80,10 +85,35 @@ import {
 } from "./event/manifestCacheChangedEvent";
 import { ProjectConfigChangedEvent } from "./event/projectConfigChangedEvent";
 import { RunResultsEvent } from "./event/runResultsEvent";
+import { getDbtIntegrationMode } from "./integrationMode";
 import { PythonEnvironment } from "./pythonEnvironment";
 
 interface FileNameTemplateMap {
   [key: string]: string;
+}
+
+/**
+ * How a preview should reach dbt.
+ *
+ * `as-model` runs the saved node so its identity resolves; `inline` sends the
+ * editor contents as an anonymous query; `inline-then-offer` does the same but
+ * raises the saved-node alternative if the run fails for lack of identity.
+ */
+export type PreviewMode = "inline" | "as-model" | "inline-then-offer";
+
+/**
+ * A run of the saved node behind a previewed file: which node to select, the
+ * SQL that node was built from, and the file it came from so the prompt can
+ * save it.
+ */
+interface NodeRunRequest {
+  modelName: string;
+  limit: number;
+  nodeSelector: string;
+  modelSql: string;
+  uri?: Uri;
+  /** See `executeSQLWithLimitOnQueryPanel`'s `tab`. */
+  tab?: Webview;
 }
 
 interface JsonObj {
@@ -120,6 +150,10 @@ export class DBTProject implements Disposable {
   private readonly manifestRebuildStartTimes: number[] = [];
   readonly projectRoot: Uri;
   private dbtProjectIntegration: DBTProjectIntegrationAdapter;
+  // The mode this project was created in. Read once: the window's mode can be
+  // switched at runtime without the setting changing, and the integration this
+  // project holds is the one created for that mode.
+  private readonly dbtIntegrationMode: string;
 
   private _onProjectConfigChanged =
     new EventEmitter<ProjectConfigChangedEvent>();
@@ -195,9 +229,8 @@ export class DBTProject implements Disposable {
     this.dbtProjectLog = this.dbtProjectLogFactory(this.onProjectConfigChanged);
 
     // Check if dbt loom is installed for telemetry (only for core integration)
-    const dbtIntegrationMode = workspace
-      .getConfiguration("dbt")
-      .get<string>("dbtIntegration", "core");
+    const dbtIntegrationMode = getDbtIntegrationMode();
+    this.dbtIntegrationMode = dbtIntegrationMode;
 
     if (dbtIntegrationMode === "core") {
       this.isDbtLoomInstalled()
@@ -250,6 +283,7 @@ export class DBTProject implements Disposable {
         );
         const event = new ProjectConfigChangedEvent(this);
         this.stampCloudVariantOnTelemetry();
+        this.stampDbtEnvironmentOnTelemetry();
         this._onProjectConfigChanged.fire(event);
       },
     );
@@ -300,6 +334,7 @@ export class DBTProject implements Disposable {
         };
         this._manifestCacheEvent = manifestCacheEvent;
         this.stampManifestFreshness();
+        this.stampDbtEnvironmentOnTelemetry();
         this._onManifestChanged.fire({ added: [manifestCacheEvent] });
       },
     );
@@ -422,6 +457,36 @@ export class DBTProject implements Disposable {
     );
   }
 
+  /**
+   * Stamps the detected dbt version, its `major.minor`, the adapter and, in
+   * fusion mode, the Fusion version on every later event. Runs when the
+   * project config is read and after each parse, when the integration has
+   * read the version. Never throws: a value it cannot read is `unknown`.
+   */
+  private stampDbtEnvironmentOnTelemetry(): void {
+    try {
+      const mode = getDbtIntegrationMode();
+      const properties = dbtEnvironmentProperties(
+        mode,
+        () => this.getDBTVersion(),
+        () => this.dbtProjectIntegration.getAdapterType(),
+      );
+      for (const [key, value] of Object.entries(properties)) {
+        if (value === undefined) {
+          this.telemetry.deleteTelemetryCustomAttribute(key);
+        } else {
+          this.telemetry.setTelemetryCustomAttribute(key, value);
+        }
+      }
+    } catch (error) {
+      this.terminal.debug(
+        "dbtProject:stampDbtEnvironmentOnTelemetry",
+        "Could not stamp the dbt setup on telemetry",
+        error,
+      );
+    }
+  }
+
   private invalidateCacheUsingUniqueIds(uniqueIds: string[]) {
     for (const uniqueId of uniqueIds) {
       if (uniqueId in this.dbSchemaCache) {
@@ -501,11 +566,70 @@ export class DBTProject implements Disposable {
     return this.dbtProjectIntegration.getPythonBridgeStatus();
   }
 
+  // Whether dbt Fusion runs this project, read from the integration the
+  // adapter created rather than from the setting, which a runtime mode switch
+  // does not write.
+  isFusionIntegration(): boolean {
+    return (
+      this.getCurrentProjectIntegration() instanceof
+      DBTFusionCommandProjectIntegration
+    );
+  }
+
   // Whether the integration finished initializing its execution state (for
   // dbt-core: the Python-side `project` binding exists on the current
   // bridge). Non-core integrations report ready.
   isBridgeInitialized(): boolean {
     return this.dbtProjectIntegration.isInitialized();
+  }
+
+  /** The error diagnostics the latest manifest rebuild left. */
+  rebuildManifestErrorCount(): number {
+    return this.getCurrentProjectIntegration()
+      .getDiagnostics()
+      .rebuildManifestDiagnostics.filter(({ severity }) => severity === "error")
+      .length;
+  }
+
+  /**
+   * The first error that kept this project from loading: the Python bridge,
+   * the project configuration check, or the latest manifest rebuild. An error
+   * without a message still counts; Problems has its details.
+   */
+  private getLoadError(): string | undefined {
+    const diagnostics = this.getCurrentProjectIntegration().getDiagnostics();
+    const error = [
+      ...diagnostics.pythonBridgeDiagnostics,
+      ...diagnostics.projectConfigDiagnostics,
+      ...diagnostics.rebuildManifestDiagnostics,
+    ].find(({ severity }) => severity === "error");
+    if (!error) {
+      return undefined;
+    }
+    return error.message.trim() || "see Problems for the error";
+  }
+
+  /** Says why Generate model can't run, with Show problems and Re-parse. */
+  private showGenerateModelLoadError(loadError: string): void {
+    const showProblems = "Show problems";
+    const reparse = "Re-parse";
+    window
+      .showErrorMessage(
+        `Can't generate the model: the dbt project didn't load: ${loadError}`,
+        showProblems,
+        reparse,
+      )
+      .then((choice) => {
+        if (choice === showProblems) {
+          return commands.executeCommand("workbench.actions.view.problems");
+        }
+        if (choice === reparse) {
+          return commands.executeCommand(
+            "dbtPowerUser.reparseProject",
+            this.projectRoot,
+          );
+        }
+      });
   }
 
   getAllDiagnostic(): Diagnostic[] {
@@ -584,8 +708,8 @@ export class DBTProject implements Disposable {
       new Range(
         data.range?.startLine || 0,
         data.range?.startColumn || 0,
-        data.range?.endLine || 999,
-        data.range?.endColumn || 999,
+        data.range?.endLine ?? 999,
+        data.range?.endColumn ?? 999,
       ),
       data.message,
       this.mapSeverityToVSCode(data.severity),
@@ -598,6 +722,18 @@ export class DBTProject implements Disposable {
       ),
     };
     return diagnostic;
+  }
+
+  /**
+   * The file a diagnostic names, resolved against the project root, or
+   * dbt_project.yml when it names none or the file doesn't exist.
+   */
+  private diagnosticFileUri(data: DBTDiagnosticData, projectURI: Uri): Uri {
+    if (!data.filePath) {
+      return projectURI;
+    }
+    const filePath = path.resolve(this.projectRoot.fsPath, data.filePath);
+    return existsSync(filePath) ? Uri.file(filePath) : projectURI;
   }
 
   updateDiagnosticsInProblemsPanel(): void {
@@ -615,12 +751,16 @@ export class DBTProject implements Disposable {
       ),
     );
 
-    this.rebuildManifestDiagnostics.set(
-      projectURI,
-      integrationDiagnostics.rebuildManifestDiagnostics.map((data) =>
-        this.convertDiagnosticDataToVSCode(data),
-      ),
-    );
+    // dbt Fusion reports the file and line of each parse error and warning.
+    const rebuildDiagnosticsByFile = new Map<string, [Uri, Diagnostic[]]>();
+    for (const data of integrationDiagnostics.rebuildManifestDiagnostics) {
+      const uri = this.diagnosticFileUri(data, projectURI);
+      const entry = rebuildDiagnosticsByFile.get(uri.fsPath) ?? [uri, []];
+      entry[1].push(this.convertDiagnosticDataToVSCode(data));
+      rebuildDiagnosticsByFile.set(uri.fsPath, entry);
+    }
+    this.rebuildManifestDiagnostics.clear();
+    this.rebuildManifestDiagnostics.set([...rebuildDiagnosticsByFile.values()]);
 
     this.projectConfigDiagnostics.set(
       projectURI,
@@ -695,6 +835,34 @@ export class DBTProject implements Disposable {
     // Create command queue for this project
     this.createQueue("all");
 
+    await this.initializeIntegration();
+
+    // ensure all watchers are cleaned up
+    if (this.dbtProjectLog) {
+      this.disposables.push(this.dbtProjectLog);
+    }
+
+    this.terminal.debug(
+      "DbtProject",
+      `Initialized dbt project ${this.getProjectName()} at ${this.projectRoot}`,
+    );
+  }
+
+  private async initializeIntegration(): Promise<void> {
+    const dbtIntegrationMode = getDbtIntegrationMode();
+    // A project can be registered while the Python extension is still
+    // activating; the check below reads the interpreter, which is not known
+    // until then. `initialize` is idempotent.
+    await this.PythonEnvironment.initialize();
+    // The installation check is prompting for the Python extension; starting
+    // the integration now only fails on the missing interpreter.
+    if (awaitingPythonExtension(dbtIntegrationMode, this.PythonEnvironment)) {
+      this.terminal.debug(
+        "DbtProject",
+        `Not initializing the ${dbtIntegrationMode} integration of the dbt project at ${this.projectRoot} until the Python extension is installed`,
+      );
+      return;
+    }
     try {
       await this.dbtProjectIntegration.initialize();
     } catch (error) {
@@ -716,16 +884,6 @@ export class DBTProject implements Disposable {
         );
       }
     }
-
-    // ensure all watchers are cleaned up
-    if (this.dbtProjectLog) {
-      this.disposables.push(this.dbtProjectLog);
-    }
-
-    this.terminal.debug(
-      "DbtProject",
-      `Initialized dbt project ${this.getProjectName()} at ${this.projectRoot}`,
-    );
   }
 
   async rebuildManifest(): Promise<void> {
@@ -921,9 +1079,7 @@ export class DBTProject implements Disposable {
 
   private validateIntegrationPrerequisites(): boolean {
     // Validate different prerequisites based on integration type
-    const dbtIntegrationMode = workspace
-      .getConfiguration("dbt")
-      .get<string>("dbtIntegration", "core");
+    const dbtIntegrationMode = getDbtIntegrationMode();
 
     switch (dbtIntegrationMode) {
       case "cloud":
@@ -959,10 +1115,8 @@ export class DBTProject implements Disposable {
   }
 
   private requiresAuthentication(): boolean {
-    const dbtIntegrationMode = workspace
-      .getConfiguration("dbt")
-      .get<string>("dbtIntegration", "core");
-    return dbtIntegrationMode === "cloud";
+    // The mode this project was created in (see `dbtIntegrationMode`).
+    return this.dbtIntegrationMode === "cloud";
   }
 
   throwIfNotAuthenticated() {
@@ -1015,16 +1169,14 @@ export class DBTProject implements Disposable {
     } catch (error) {
       // The caller doesn't await this, so a rejection here would never be shown.
       const message = error instanceof Error ? error.message : String(error);
-      const dbtIntegrationMode = workspace
-        .getConfiguration("dbt")
-        .get<string>("dbtIntegration", "core");
+      const dbtIntegrationMode = getDbtIntegrationMode();
       if (dbtIntegrationMode === "fusion") {
-        // The dbt Fusion integration rejects docs generation unconditionally:
-        // this is a known limitation, not a failure.
+        // The dbt Fusion integration rejects docs generation on binaries
+        // older than dbt Fusion 2.0.9: a known limitation, not a failure.
         window.showErrorMessage(
           "Could not generate docs: " +
             message +
-            ". To generate docs, set dbt.dbtIntegration to core or cloud.",
+            ". To generate docs, update dbt Fusion to 2.0.9 or newer, or set dbt.dbtIntegration to core or cloud.",
         );
         this.telemetry.sendTelemetryEvent("generateDocsUnsupported");
         return;
@@ -1117,6 +1269,11 @@ export class DBTProject implements Disposable {
     const { sql, dialect, models } = request;
     this.throwDiagnosticsErrorIfAvailable();
     this.throwIfNotAuthenticated();
+    if (this.dbtIntegrationMode === "fusion") {
+      // altimate-core validates without Python, and a dbt Fusion setup may
+      // have no Python with dbt at all: no bridge to start.
+      return await validateSQL(sql, dialect, models);
+    }
     const sqlValidationThread = this.executionInfrastructure.createPythonBridge(
       this.projectRoot.fsPath,
     );
@@ -1509,6 +1666,14 @@ export class DBTProject implements Disposable {
     tableName: string,
     sourcePath: string,
   ) {
+    const loadError = this.getLoadError();
+    if (loadError) {
+      this.telemetry.sendTelemetryEvent("generateModelProjectNotLoaded", {
+        adapter: this.getAdapterType(),
+      });
+      this.showGenerateModelLoadError(loadError);
+      return;
+    }
     await window.withProgress(
       {
         location: ProgressLocation.Notification,
@@ -1584,6 +1749,17 @@ export class DBTProject implements Disposable {
             );
           }
         } catch (exc: any) {
+          if (exc instanceof NoCredentialsError) {
+            this.altimateAuthService.handlePreviewFeatures();
+            return;
+          }
+          // The traceback goes to the log; the toast carries the message.
+          this.terminal.error(
+            "dbtProject:generateModel",
+            "Could not generate the model",
+            exc,
+            false,
+          );
           if (exc instanceof PythonException) {
             this.telemetry.sendTelemetryError("generateModelPythonError", exc, {
               adapter: this.getAdapterType(),
@@ -1592,6 +1768,7 @@ export class DBTProject implements Disposable {
               "An error occured while trying to generate the model " +
                 exc.exception.message,
             );
+            return;
           }
           // Unknown error
           this.telemetry.sendTelemetryError("generateModelUnknownError", exc, {
@@ -1609,36 +1786,288 @@ export class DBTProject implements Disposable {
     );
   }
 
-  async executeSQLOnQueryPanel(query: string, modelName: string) {
+  async executeSQLOnQueryPanel(
+    query: string,
+    modelName: string,
+    previewMode: PreviewMode = "inline",
+    uri?: Uri,
+    tab?: Webview,
+  ) {
     const limit = workspace
       .getConfiguration("dbt")
       .get<number>("queryLimit", 500);
-    return this.executeSQLWithLimitOnQueryPanel(query, modelName, limit);
+    return this.executeSQLWithLimitOnQueryPanel(
+      query,
+      modelName,
+      limit,
+      previewMode,
+      uri,
+      tab,
+    );
   }
 
+  /**
+   * @param tab The webview of a Query Results tab opened for this run, which
+   * shows the run instead of the bottom view.
+   */
   async executeSQLWithLimitOnQueryPanel(
     query: string,
     modelName: string,
     limit: number,
+    previewMode: PreviewMode = "inline",
+    uri?: Uri,
+    tab?: Webview,
   ) {
     if (limit <= 0) {
       window.showErrorMessage("Please enter a positive number for query limit");
       return;
     }
+
+    // A saved, unedited model file can run as the node it actually is. The SQL
+    // is identical to the buffer, so this only changes whether `model.name`,
+    // `this` and `model.config` resolve. A plain inline preview never needs
+    // the node, so it skips the manifest lookup.
+    const nodeSelector =
+      previewMode === "inline" ? undefined : this.nodeRunSelector(uri?.fsPath);
+    if (previewMode === "as-model" && nodeSelector !== undefined) {
+      return this.executeSqlWithNodeContextWithLimitOnQueryPanel({
+        modelName,
+        limit,
+        nodeSelector,
+        modelSql: query,
+        uri,
+        tab,
+      });
+    }
+
     this.terminal.info("executeSQL", "Executed query: " + query, true, {
       adapter: this.getAdapterType(),
       limit: limit.toString(),
     });
+    const execution = this.dbtProjectIntegration.executeSQLWithLimit(
+      query,
+      modelName,
+      limit,
+    );
     this.eventEmitterService.fire({
       command: "executeQuery",
       payload: {
         query,
+        fn:
+          previewMode === "inline-then-offer" && nodeSelector !== undefined
+            ? this.offerModelRunOnIdentityFailure(execution, {
+                modelName,
+                limit,
+                nodeSelector,
+                modelSql: query,
+                uri,
+              })
+            : execution,
+        projectName: this.getProjectName(),
+        tab,
+      },
+    });
+  }
+
+  /**
+   * What selects only the node this file is, or undefined when this preview
+   * cannot run as a node at all.
+   *
+   * The file's own path decides which node it is — a base name does not, as the
+   * preview routing already found (#2114): a package model and the root
+   * project's can share one.
+   *
+   * The selector then has to name that node and nothing else. Measured on
+   * `test-fixtures/preview-node-base-name-collisions` with dbt-core 1.11.15 and
+   * dbt Fusion 2.0.9 / 2.0.11: a bare `orders` previews the root model, a
+   * package's model, an analysis and the models under `models/orders/` on
+   * dbt-core (it matches the fqn without the package, as a path prefix), and
+   * nothing on Fusion; a model named after its project selects every model in
+   * it. `package:<package>,resource_type:model,path:<file>,<name>[.v<version>]`
+   * previews exactly one node on both: `package:` separates a package's model
+   * from the root project's, `resource_type:model` drops an analysis or
+   * snapshot of the same name, `path:` keeps a folder or project of the same
+   * name out, and the name carries the version because dbt composes a node's
+   * id as `<resource type>.<package>.<name>` with `.v<version>` appended. The
+   * commas are dbt's intersection operator. A package's node gets no `path:`
+   * term (see `nodeFilePathForSelection`): `package:` and the name identify it.
+   *
+   * Ask the integration whether it can supply node context rather than testing
+   * the configured mode — which modes qualify is the library's concern.
+   */
+  private nodeRunSelector(filePath: string | undefined): string | undefined {
+    if (
+      filePath === undefined ||
+      !this.dbtProjectIntegration.canInjectNodeContextInSqlSnippetExecution()
+    ) {
+      return undefined;
+    }
+    const node = this.findNodeForFile(filePath);
+    if (node === undefined) {
+      return undefined;
+    }
+    const idPrefix = `${RESOURCE_TYPE_MODEL}.${node.package_name}.`;
+    if (!node.unique_id.startsWith(idPrefix)) {
+      // An analysis, a seed, a snapshot: `dbt show --select` will not run it as
+      // a model, so the editor text is the only preview there is.
+      return undefined;
+    }
+    const nameWithVersion = node.unique_id.slice(idPrefix.length);
+    // dbt-core matches a bare name against the fqn without the package too,
+    // as a path prefix: `orders` also selects the models in a `models/orders/`
+    // folder, and a model named after its project selects every model in it.
+    // The node's own file path narrows the intersection to the one node.
+    const pathTerm = this.nodeFilePathForSelection(node);
+    return [
+      `package:${node.package_name}`,
+      `resource_type:${RESOURCE_TYPE_MODEL}`,
+      ...(pathTerm ? [`path:${pathTerm}`] : []),
+      nameWithVersion,
+    ].join(",");
+  }
+
+  /**
+   * The `path:` term for a node of the root project: its file relative to the
+   * project root, with forward slashes. Undefined for a package's node: dbt-core
+   * globs `path:` from the root project and compares the result with the node's
+   * package-relative `original_file_path`, so no form of the path selects a
+   * package node unless the root project happens to have a file at the same
+   * relative path (`test-fixtures/preview-node-base-name-collisions`, dbt-core
+   * 1.11.15; Fusion 2.0.9 and 2.0.11 take the root-relative form, but one
+   * selector serves both engines). Inside a package, `package:` and the name
+   * are left to identify the node.
+   */
+  private nodeFilePathForSelection(node: NodeMetaData): string | undefined {
+    if (!node.path) {
+      return undefined;
+    }
+    const under = (base: string) => {
+      const relative = path.relative(base, node.path!);
+      return relative &&
+        !relative.startsWith("..") &&
+        !path.isAbsolute(relative)
+        ? relative
+        : undefined;
+    };
+    const packagesInstallPath = this.getPackageInstallPath();
+    if (packagesInstallPath && under(packagesInstallPath)) {
+      return undefined;
+    }
+    const fromRoot = under(this.projectRoot.fsPath);
+    return fromRoot?.split(path.sep).join("/");
+  }
+
+  /**
+   * With unsaved edits we run what is on screen, because that is nearly always
+   * what was meant. Only when the run fails for lack of node identity is the
+   * alternative worth raising — that failure is the one reliable signal that
+   * running the saved node would have behaved differently.
+   */
+  private async offerModelRunOnIdentityFailure(
+    execution: Promise<QueryExecution>,
+    nodeRun: NodeRunRequest,
+  ): Promise<QueryExecution> {
+    const queryExecution = await execution;
+    return new QueryExecution(
+      () => queryExecution.cancel(),
+      async () => {
+        try {
+          return await queryExecution.executeQuery();
+        } catch (error) {
+          if (isInlinePreviewError(error)) {
+            // Not awaited: the inline failure is reported below either way.
+            this.promptToRunAsModel(nodeRun).catch((promptError: unknown) => {
+              window.showErrorMessage(
+                `Could not run ${nodeRun.modelName} as a model: ${
+                  promptError instanceof Error
+                    ? promptError.message
+                    : String(promptError)
+                }`,
+              );
+            });
+          }
+          throw error;
+        }
+      },
+    );
+  }
+
+  private async promptToRunAsModel(nodeRun: NodeRunRequest) {
+    const { modelName, uri } = nodeRun;
+    const runAsModel = "Save and run as model";
+    // Offer the alternative; do not diagnose the failure. The marker says the
+    // failed run was an inline preview, not why it failed, so a preview that
+    // died on an unreachable warehouse reaches here too.
+    const choice = await window.showWarningMessage(
+      `Previewing '${modelName}' failed. Unsaved SQL is previewed as an anonymous query, so model.name, this and model.config do not resolve — saving lets it run as the real model.`,
+      runAsModel,
+    );
+    if (choice !== runAsModel) {
+      return;
+    }
+    if (uri) {
+      const document = workspace.textDocuments.find(
+        (candidate) => candidate.uri.toString() === uri.toString(),
+      );
+      // The warning is not modal: the editor can be closed, its edits
+      // discarded, before the choice is made. Running the saved file then
+      // would run SQL the user never saw saved.
+      if (!document) {
+        window.showErrorMessage(
+          `${modelName} is no longer open, so nothing was saved or run. Open it, save, and run it again.`,
+        );
+        return;
+      }
+      if (!(await document.save())) {
+        window.showErrorMessage(`Could not save ${modelName}.`);
+        return;
+      }
+      // The buffer may have changed again while the offer was pending; what
+      // was just saved is what the node runs, so that is the SQL to show.
+      nodeRun = { ...nodeRun, modelSql: document.getText() };
+    }
+    await this.executeSqlWithNodeContextWithLimitOnQueryPanel(nodeRun);
+  }
+
+  /**
+   * Run the saved node and show its result.
+   *
+   * `modelSql` is not what dbt runs — it reads the node from disk — but it is
+   * the SQL the node was built from, so the library reports it as the run's SQL
+   * and the panel has something to show when the CLI logs no compiled SQL, or
+   * when the run fails.
+   */
+  async executeSqlWithNodeContextWithLimitOnQueryPanel(
+    nodeRun: NodeRunRequest,
+  ) {
+    const { modelName, limit, nodeSelector, modelSql } = nodeRun;
+    if (limit <= 0) {
+      window.showErrorMessage("Please enter a positive number for query limit");
+      return;
+    }
+    this.terminal.info(
+      "executeSqlWithNodeContext",
+      `Executed model: ${modelName} as ${nodeSelector} (limit ${limit})`,
+      true,
+      { adapter: this.getAdapterType(), limit: limit.toString() },
+    );
+    this.eventEmitterService.fire({
+      command: "executeQuery",
+      payload: {
+        // The panel stores this as the history entry's SQL and replays it
+        // inline; the model's SQL is what a replay, and the entry, should show.
+        query: modelSql,
         fn: this.dbtProjectIntegration.executeSQLWithLimit(
-          query,
+          modelSql,
           modelName,
           limit,
+          {
+            useNodeContext: true,
+            nodeSelector,
+          },
         ),
         projectName: this.getProjectName(),
+        tab: nodeRun.tab,
       },
     });
   }
@@ -2005,6 +2434,18 @@ export class DBTProject implements Disposable {
     if (diagnostic) {
       throw new Error(diagnostic.message);
     }
+  }
+
+  /** The interpreter dbt runs in, when the Python extension has one. */
+  getPythonPath(): string | undefined {
+    return this.PythonEnvironment.pythonPath;
+  }
+
+  /** DBT_PROFILES_DIR as dbt's Python process for this project sees it. */
+  getProfilesDirEnv(): string | undefined {
+    return this.PythonEnvironment.getEnvironmentVariables(
+      workspace.getWorkspaceFolder(this.projectRoot),
+    ).DBT_PROFILES_DIR;
   }
 
   /**

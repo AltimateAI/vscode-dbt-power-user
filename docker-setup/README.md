@@ -163,7 +163,7 @@ mcp__playwright__browser_take_screenshot
 | `cd` into `node_modules/` for symlink ops     | Subsequent commands run from wrong dir   | Use absolute paths or don't cd                                                                                                                                                                                          |
 | Multiple worktrees on same Docker setup       | Port conflict / container name collision | Use `docker compose -p <project-name>` and different ports in `docker-compose.override.yml`                                                                                                                             |
 | Quick Open (`Ctrl+P`) doesn't open file       | File stays on previous tab               | Use `evaluate()` to click tree items directly: `document.querySelectorAll('[role="treeitem"]')` find + click. More reliable than Quick Open in Playwright.                                                              |
-| `.sql` files open as "MS SQL" not "Jinja SQL" | No dbt-specific syntax highlighting      | Expected until `jinjahtml` activates. Extension activation order varies — `jinjahtml` maps `.sql` → `jinja-sql` but may not be ready when the file first opens. Reload or reopen the file.                              |
+| `.sql` files open as "MS SQL" not "Jinja SQL" | No dbt-specific syntax highlighting      | No `files.associations` entry maps `*.sql` to `jinja-sql`. Run the setup wizard, or add `"*.sql": "jinja-sql"` to `files.associations`.                                                                                 |
 
 ## Troubleshooting
 

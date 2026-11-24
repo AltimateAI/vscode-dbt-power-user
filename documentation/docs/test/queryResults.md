@@ -73,3 +73,10 @@ Now, you can compare previous results with new results easily as below:
 
 You can run ad hoc SQL queries or dbt Models in the "Query Results" tab
 ![New Query](images/newQuery.gif)
+
+## Watch the Video
+
+<figure class="video-clip">
+<div class="video-clip__frame"><iframe src="https://www.youtube.com/embed/uMptd4t_mGI?rel=0" title="dbt SQL Review in One Click: Profile Query | dbt Power User Spotlight 1" loading="lazy" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
+<figcaption>Video (3:46): dbt SQL Review in One Click: Profile Query | dbt Power User Spotlight 1. <a href="https://www.youtube.com/watch?v=uMptd4t_mGI" target="_blank" rel="noopener">Watch on YouTube</a>.</figcaption>
+</figure>

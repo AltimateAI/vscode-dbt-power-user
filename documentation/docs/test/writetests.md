@@ -59,3 +59,10 @@ As shown in the image above, there is a button to quickly get distinct values fo
 You can save the changes in the existing or a new YAML file with save button at the bottom of the panel.
 If you see any issues with the content that's saved in the YAML file, please check the [optional config section](../setup/optConfig.md/#column-name-setup-for-yaml-file-updates).
 ///
+
+## Watch the Video
+
+<figure class="video-clip">
+<div class="video-clip__frame"><iframe src="https://www.youtube.com/embed/NrEYqEUcpHY?rel=0" title="dbt Docs, Data Tests and Unit Tests in One Editor | dbt Power User Spotlight 3" loading="lazy" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
+<figcaption>Video (6:20): dbt Docs, Data Tests and Unit Tests in One Editor | dbt Power User Spotlight 3. <a href="https://www.youtube.com/watch?v=NrEYqEUcpHY" target="_blank" rel="noopener">Watch on YouTube</a>.</figcaption>
+</figure>

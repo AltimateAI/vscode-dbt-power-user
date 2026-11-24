@@ -10,7 +10,7 @@ import {
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
-import { commands, Uri, window, workspace } from "vscode";
+import { commands, env, Uri, window, workspace } from "vscode";
 import {
   NewLineagePanel,
   REPARSE_PROJECT_COMMAND,
@@ -751,9 +751,8 @@ describe("NewLineagePanel — source YAML rooting", () => {
     const result = (panel as any).getStartingNode();
 
     expect(result.node).toBeUndefined();
-    expect(result.missingLineageMessage).toEqual(
-      expect.objectContaining({ type: "warning" }),
-    );
+    expect(result.missingLineageMessage?.message).toContain("A valid dbt file");
+    expect(result.lineageCard).toBeUndefined();
     expect((panel as any).dbtLineageService.createTable).not.toHaveBeenCalled();
   });
 });
@@ -803,6 +802,9 @@ describe("NewLineagePanel — lineage telemetry", () => {
     panel = Object.create(NewLineagePanel.prototype);
     // The constructor's field initializers, which Object.create skips.
     Object.assign(panel as any, {
+      reportedCardKinds: new Set<string>(),
+      setupToastShown: false,
+      dbtProjectContainer: { getProjects: () => [] },
       reportedErrorKinds: new Set<string>(),
       firstErrorAt: undefined,
       renderReported: false,
@@ -1036,6 +1038,9 @@ describe("NewLineagePanel — stale-graph banner", () => {
     postMessage = jest.fn();
     panel = Object.create(NewLineagePanel.prototype);
     Object.assign(panel as any, {
+      reportedCardKinds: new Set<string>(),
+      setupToastShown: false,
+      dbtProjectContainer: { getProjects: () => [] },
       reportedErrorKinds: new Set<string>(),
       renderReported: false,
       graphDrawn: false,
@@ -1376,9 +1381,10 @@ describe("NewLineagePanel — stale-graph banner", () => {
     delete (window as any).showTextDocument;
   });
 
-  describe("a project that failed at startup", () => {
-    const message = (node: string) =>
-      `dbt configuration is invalid : Compilation Error\n  Model '${node}' (models/orders.sql) depends on a node named 'x' which was not found`;
+  describe("the root project's name", () => {
+    // dbt's error naming a node, from the config check or from a rebuild.
+    const message = (category: string, node: string) =>
+      `${category === "project-config" ? "dbt configuration is invalid :" : "There is a problem in your dbt project. Compilation failed:"} Compilation Error\n  Model '${node}' (models/orders.sql) depends on a node named 'x' which was not found`;
     let root: string;
 
     const openAction = () =>
@@ -1386,19 +1392,33 @@ describe("NewLineagePanel — stale-graph banner", () => {
         (action: { id: string }) => action.id === "openFile",
       );
 
-    beforeEach(() => {
-      root = fs.mkdtempSync(path.join(os.tmpdir(), "stale-graph-"));
+    // The name in dbt_project.yml (undefined: no `name:` line) and the name
+    // the integration reports.
+    const useProject = (
+      fileName: string | undefined,
+      integrationName: unknown,
+    ) => {
       fs.writeFileSync(
         path.join(root, "dbt_project.yml"),
-        "name: 'jaffle_shop'\n",
+        fileName === undefined ? "version: '1.0'\n" : `name: '${fileName}'\n`,
       );
       (panel as any).queryManifestService.getProject = jest.fn(() => ({
         projectRoot: { fsPath: root },
-        // The integration's placeholder until the project initializes.
-        getProjectName: () => "unknown_1234",
+        getProjectName: () => integrationName,
         getBlockingDiagnostic: () => blocking,
         getManifestPath: () => path.join(root, "target", "manifest.json"),
       }));
+    };
+
+    const failWith = (category: string, node: string) => {
+      blocking = { message: message(category, node), category };
+      panel.eventMapChanged(new Map());
+    };
+
+    const rootFile = { path: "models/orders.sql", line: undefined };
+
+    beforeEach(() => {
+      root = fs.mkdtempSync(path.join(os.tmpdir(), "stale-graph-"));
       event = graphEvent();
     });
 
@@ -1406,27 +1426,70 @@ describe("NewLineagePanel — stale-graph banner", () => {
       fs.rmSync(root, { recursive: true, force: true });
     });
 
-    it("takes a file of the root project as the root project's", () => {
-      blocking = {
-        message: message("model.jaffle_shop.orders"),
-        category: "project-config",
-      };
-      panel.eventMapChanged(new Map());
+    describe("a project that failed at startup", () => {
+      // The integration's placeholder until the project initializes.
+      beforeEach(() => useProject("jaffle_shop", "unknown_1234"));
 
-      expect(openAction().args).toEqual({
-        path: "models/orders.sql",
-        line: undefined,
+      it("takes a file of the root project as the root project's", () => {
+        failWith("project-config", "model.jaffle_shop.orders");
+
+        expect(openAction().args).toEqual(rootFile);
+      });
+
+      it("still names the package for a file of a package", () => {
+        failWith("project-config", "model.dbt_utils.orders");
+
+        expect(openAction().args.package).toBe("dbt_utils");
       });
     });
 
-    it("still names the package for a file of a package", () => {
-      blocking = {
-        message: message("model.dbt_utils.orders"),
-        category: "project-config",
-      };
-      panel.eventMapChanged(new Map());
+    describe("a project renamed in a config dbt rejected", () => {
+      // dbt keeps the old name, and the last rebuild's error uses it.
+      beforeEach(() => useProject("renamed_shop", "jaffle_shop"));
 
-      expect(openAction().args.package).toBe("dbt_utils");
+      it("takes a file under the old name as the root project's", () => {
+        failWith("manifest-rebuild", "model.jaffle_shop.orders");
+
+        expect(openAction().args).toEqual(rootFile);
+      });
+
+      it("still names the package for a file of a package", () => {
+        failWith("manifest-rebuild", "model.dbt_utils.orders");
+
+        expect(openAction().args.package).toBe("dbt_utils");
+      });
+
+      it("doesn't read dbt_project.yml for the name", () => {
+        const read = jest.spyOn(panel as any, "readProjectName");
+        failWith("manifest-rebuild", "model.jaffle_shop.orders");
+
+        expect(openAction()).toBeDefined();
+        expect(read).not.toHaveBeenCalled();
+      });
+
+      it("takes the new name when the config check fails on the renamed project", () => {
+        // The check read the new name, then failed on a node of the project.
+        failWith("project-config", "model.renamed_shop.orders");
+
+        expect(openAction().args).toEqual(rootFile);
+      });
+    });
+
+    describe("with no name to compare", () => {
+      it("still shows the banner when the integration has no name", () => {
+        // Fusion reads the name from dbt_project.yml, which may have none.
+        useProject(undefined, undefined);
+        failWith("manifest-rebuild", "model.jaffle_shop.orders");
+
+        expect(openAction().args).toEqual(rootFile);
+      });
+
+      it("takes a file as the root project's before the first load", () => {
+        useProject(undefined, "unknown_1234");
+        failWith("project-config", "model.dbt_utils.orders");
+
+        expect(openAction().args).toEqual(rootFile);
+      });
     });
   });
 
@@ -1473,5 +1536,464 @@ describe("NewLineagePanel — stale-graph banner", () => {
     );
     delete (window as any).showTextDocument;
     delete (window as any).showErrorMessage;
+  });
+});
+
+describe("NewLineagePanel — state card", () => {
+  let panel: NewLineagePanel;
+  let blocking: { message: string; category: string } | undefined;
+  let postMessage: jest.Mock;
+  let sendTelemetryEvent: jest.Mock;
+  let project: any;
+
+  const PROFILE = "Runtime Error\n  Could not find profile named 'jaffle_shop'";
+  // Native: on Windows the lookup resolves it to the current drive.
+  const PROFILES_FILE = path.resolve("/ws/conf", "profiles.yml");
+  const MISSING_REF =
+    "Compilation Error in model orders (models/orders.sql)\n  depends on a node named 'stg_orderz' which was not found";
+
+  const renders = () =>
+    (postMessage.mock.calls as [{ command: string; args: any }][])
+      .map((call) => call[0])
+      .filter((message) => message.command === "render");
+  const events = (name: string) =>
+    sendTelemetryEvent.mock.calls.filter((call) => call[0] === name);
+  const settle = () => jest.advanceTimersByTime(300);
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.clearAllMocks();
+    blocking = undefined;
+    postMessage = jest.fn();
+    sendTelemetryEvent = jest.fn();
+    project = {
+      projectRoot: { fsPath: "/ws" },
+      getBlockingDiagnostic: () => blocking,
+      getProjectName: () => "jaffle_shop",
+      getPythonPath: () => "/ws/.venv/bin/python",
+      getProfilesDirEnv: () => "/ws/conf",
+      getManifestPath: () => "/ws/target/manifest.json",
+    };
+    panel = Object.create(NewLineagePanel.prototype);
+    Object.assign(panel as any, {
+      reportedCardKinds: new Set<string>(),
+      reportedErrorKinds: new Set<string>(),
+      setupToastShown: false,
+      rebuildInProgress: false,
+      renderReported: false,
+      graphDrawn: false,
+      noGraphShown: false,
+      postedBanner: undefined,
+      reparseAvailable: true,
+    });
+    (panel as any)._panel = { visible: true, webview: { postMessage } };
+    (panel as any).telemetry = {
+      sendTelemetryEvent,
+      sendTelemetryError: jest.fn(),
+    };
+    (panel as any).queryManifestService = {
+      getEventByCurrentProject: jest.fn(() => undefined),
+      getProject: jest.fn(() => project),
+    };
+    (panel as any).dbtProjectContainer = { getProjects: () => [project] };
+    (panel as any).validationProvider = {
+      isAuthenticated: jest.fn().mockReturnValue(false),
+    };
+    (panel as any).dbtTerminal = {
+      info: jest.fn(),
+      debug: jest.fn(),
+      error: jest.fn(),
+    };
+    (panel as any).terminal = { debug: jest.fn(), show: jest.fn() };
+    (window as any).activeTextEditor = undefined;
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it("sends a card in place of the yellow note when an error blocks the graph", () => {
+    blocking = { message: PROFILE, category: "project-config" };
+    (panel as any).renderStartingNode();
+
+    const { args } = renders()[0];
+    expect(args.missingLineageMessage).toBeUndefined();
+    expect(args.lineageCard).toMatchObject({
+      kind: "profile-not-found",
+      title: "dbt can't find the profile 'jaffle_shop'",
+      detail: `dbt_project.yml uses the profile 'jaffle_shop', but it isn't in ${PROFILES_FILE}.`,
+    });
+  });
+
+  it("keeps the yellow note when no error stands", () => {
+    (panel as any).renderStartingNode();
+
+    const { args } = renders()[0];
+    expect(args.lineageCard).toBeUndefined();
+    expect(args.missingLineageMessage.message).toContain("A valid dbt file");
+  });
+
+  it("shows the card when the interpreter can't be read", () => {
+    project.getPythonPath = () => {
+      throw new TypeError("no execution details yet");
+    };
+    blocking = { message: "No module named 'dbt'", category: "project-config" };
+    (panel as any).renderStartingNode();
+
+    expect(renders()[0].args.lineageCard.detail).toContain(
+      "the selected Python environment",
+    );
+  });
+
+  describe("the file a project error names", () => {
+    const message = (node: string) =>
+      `Compilation Error\n  Model '${node}' (models/orders.sql) depends on a node named 'x' which was not found`;
+    let root: string;
+
+    beforeEach(() => {
+      root = fs.mkdtempSync(path.join(os.tmpdir(), "lineage-card-"));
+      fs.writeFileSync(
+        path.join(root, "dbt_project.yml"),
+        "name: 'jaffle_shop'\n",
+      );
+      project.projectRoot = { fsPath: root };
+      // A project that failed at startup never learned its name.
+      project.getProjectName = () => "unknown_1234";
+    });
+
+    afterEach(() => {
+      fs.rmSync(root, { recursive: true, force: true });
+    });
+
+    it("is the root project's when dbt names the root project", () => {
+      blocking = {
+        message: message("model.jaffle_shop.orders"),
+        category: "manifest-rebuild",
+      };
+      (panel as any).renderStartingNode();
+
+      expect(renders()[0].args.lineageCard.actions[0].args).toEqual({
+        path: "models/orders.sql",
+        line: undefined,
+      });
+    });
+
+    it("is the package's when dbt names a package", () => {
+      blocking = {
+        message: message("model.dbt_utils.orders"),
+        category: "manifest-rebuild",
+      };
+      (panel as any).renderStartingNode();
+
+      expect(renders()[0].args.lineageCard.actions[0].args.package).toBe(
+        "dbt_utils",
+      );
+    });
+
+    it("is the root project's when the config check names a project renamed since the last load", () => {
+      fs.writeFileSync(
+        path.join(root, "dbt_project.yml"),
+        "name: 'renamed_shop'\n",
+      );
+      // dbt keeps the name from the config it last loaded.
+      project.getProjectName = () => "jaffle_shop";
+      blocking = {
+        message: `dbt configuration is invalid : ${message("model.renamed_shop.orders")}`,
+        category: "project-config",
+      };
+      (panel as any).renderStartingNode();
+
+      expect(renders()[0].args.lineageCard.actions[0].args).toEqual({
+        path: "models/orders.sql",
+        line: undefined,
+      });
+    });
+  });
+
+  it("adds Try again to the card once the re-parse command turns out to exist", async () => {
+    jest.useRealTimers();
+    (panel as any).reparseAvailable = false;
+    (commands as any).getCommands = jest.fn(async () => [
+      "dbtPowerUser.reparseProject",
+    ]);
+    blocking = { message: PROFILE, category: "project-config" };
+    (panel as any).renderStartingNode();
+    const ids = (index: number) =>
+      renders()[index].args.lineageCard.actions.map((a: any) => a.id);
+    expect(ids(0)).toEqual(["openProfiles"]);
+
+    (panel as any).checkReparseAvailable();
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(ids(1)).toEqual(["openProfiles", "tryAgain"]);
+  });
+
+  it("reports each kind once per session", () => {
+    blocking = { message: PROFILE, category: "project-config" };
+    (panel as any).renderStartingNode();
+    (panel as any).renderStartingNode();
+    blocking = { message: MISSING_REF, category: "manifest-rebuild" };
+    (panel as any).renderStartingNode();
+
+    expect(events("lineageStateShown").map((call) => call[1])).toEqual([
+      { kind: "profile-not-found" },
+      { kind: "project-error" },
+    ]);
+  });
+
+  it("renders again only when the error changes", () => {
+    blocking = { message: PROFILE, category: "project-config" };
+    (panel as any).renderStartingNode();
+
+    panel.changedDiagnostics();
+    settle();
+    expect(renders()).toHaveLength(1);
+
+    blocking = { message: MISSING_REF, category: "manifest-rebuild" };
+    panel.changedDiagnostics();
+    settle();
+    expect(renders()).toHaveLength(2);
+    expect(renders()[1].args.lineageCard.kind).toBe("project-error");
+
+    blocking = undefined;
+    panel.changedDiagnostics();
+    settle();
+    expect(renders()).toHaveLength(3);
+    expect(renders()[2].args.lineageCard).toBeUndefined();
+  });
+
+  it("follows an error that changes without a diagnostics event when a parse ends", () => {
+    blocking = { message: PROFILE, category: "project-config" };
+    (panel as any).renderStartingNode();
+
+    blocking = { message: MISSING_REF, category: "manifest-rebuild" };
+    panel.changedRebuildStatus(false);
+
+    expect(renders()).toHaveLength(2);
+  });
+
+  it("keeps the card while a parse runs, until it ends", () => {
+    blocking = { message: PROFILE, category: "project-config" };
+    (panel as any).renderStartingNode();
+
+    panel.changedRebuildStatus(true);
+    blocking = undefined;
+    panel.changedDiagnostics();
+    settle();
+    expect(renders()).toHaveLength(1);
+
+    panel.changedRebuildStatus(false);
+    expect(renders()).toHaveLength(2);
+    expect(renders()[1].args.lineageCard).toBeUndefined();
+  });
+
+  it("ignores diagnostics on files outside the project", () => {
+    blocking = { message: PROFILE, category: "project-config" };
+    (panel as any).renderStartingNode();
+
+    blocking = { message: MISSING_REF, category: "manifest-rebuild" };
+    panel.changedDiagnostics([Uri.file("/elsewhere/a.ts")] as any);
+    settle();
+
+    expect(renders()).toHaveLength(1);
+  });
+
+  it("posts nothing to a view that has been disposed", () => {
+    blocking = { message: PROFILE, category: "project-config" };
+    (panel as any).renderStartingNode();
+    (panel as any).forgetDrawnGraph();
+
+    blocking = { message: MISSING_REF, category: "manifest-rebuild" };
+    panel.changedDiagnostics();
+    settle();
+    panel.changedRebuildStatus(false);
+
+    expect(renders()).toHaveLength(1);
+  });
+
+  describe("the setup toast", () => {
+    const toast = () => window.showWarningMessage as jest.Mock;
+
+    it("shows once per window, with the panel closed", () => {
+      (panel as any)._panel = undefined;
+      blocking = { message: PROFILE, category: "project-config" };
+
+      panel.changedDiagnostics();
+      settle();
+      panel.changedRebuildStatus(false);
+      settle();
+
+      expect(toast()).toHaveBeenCalledTimes(1);
+      expect(toast()).toHaveBeenCalledWith(
+        "dbt Power User: dbt can't find the profile 'jaffle_shop', so lineage and other features can't load.",
+        "Show lineage",
+        "Open profiles.yml",
+      );
+      expect(events("lineageSetupToastShown")[0][1]).toEqual({
+        kind: "profile-not-found",
+      });
+    });
+
+    it("waits for a burst of changes to settle", () => {
+      blocking = { message: PROFILE, category: "project-config" };
+      panel.changedDiagnostics();
+      panel.changedDiagnostics();
+      expect(toast()).not.toHaveBeenCalled();
+      settle();
+      expect(toast()).toHaveBeenCalledTimes(1);
+    });
+
+    it("leaves dbt not found to its own toast", () => {
+      blocking = {
+        message: "No module named 'dbt'",
+        category: "project-config",
+      };
+      panel.changedDiagnostics();
+      settle();
+      expect(toast()).not.toHaveBeenCalled();
+    });
+
+    it("doesn't show for a project error, and can still show for a later setup problem", () => {
+      blocking = { message: MISSING_REF, category: "manifest-rebuild" };
+      panel.changedDiagnostics();
+      settle();
+      expect(toast()).not.toHaveBeenCalled();
+
+      blocking = { message: PROFILE, category: "project-config" };
+      panel.changedDiagnostics();
+      settle();
+      expect(toast()).toHaveBeenCalledTimes(1);
+    });
+
+    it("finds the setup problem in any project of the window", () => {
+      const healthy = { ...project, getBlockingDiagnostic: () => undefined };
+      (panel as any).dbtProjectContainer = {
+        getProjects: () => [healthy, project],
+      };
+      blocking = { message: PROFILE, category: "project-config" };
+      panel.changedDiagnostics();
+      settle();
+      expect(toast()).toHaveBeenCalledTimes(1);
+      expect(toast().mock.calls[0][0]).toContain("dbt Power User (ws):");
+    });
+
+    it("focuses the panel on Show lineage", async () => {
+      toast().mockReturnValueOnce(Promise.resolve("Show lineage"));
+      blocking = { message: PROFILE, category: "project-config" };
+      panel.changedDiagnostics();
+      settle();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(commands.executeCommand).toHaveBeenCalledWith(
+        "dbtPowerUser.Lineage.focus",
+      );
+      expect(events("lineageAction")[0][1]).toEqual({
+        kind: "profile-not-found",
+        action: "showLineage",
+        from: "toast",
+      });
+    });
+
+    it("runs the card's first action on the project that has the problem", async () => {
+      toast().mockReturnValueOnce(Promise.resolve("Select Python interpreter"));
+      blocking = {
+        message: "Could not find adapter type duckdb!",
+        category: "project-config",
+      };
+      panel.changedDiagnostics();
+      settle();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(commands.executeCommand).toHaveBeenCalledWith(
+        "python.setInterpreter",
+      );
+      expect(events("lineageAction")[0][1]).toEqual({
+        kind: "dbt-broken",
+        action: "selectInterpreter",
+        from: "toast",
+      });
+    });
+  });
+
+  describe("the card's buttons", () => {
+    const press = (action: string, params?: unknown) =>
+      (panel as any).handleCommand({
+        command: "lineageCardAction",
+        args: { kind: "packages", action, params },
+      });
+
+    it.each([
+      ["selectInterpreter", "python.setInterpreter"],
+      ["installDbt", "dbtPowerUser.installDbt"],
+      ["showProblems", "workbench.action.problems.focus"],
+      ["getStarted", "dbtPowerUser.openOnboarding"],
+    ])("%s runs %s", async (action, command) => {
+      await press(action);
+      expect(commands.executeCommand).toHaveBeenCalledWith(command);
+      expect(events("lineageAction")[0][1]).toEqual({
+        kind: "packages",
+        action,
+        from: "card",
+      });
+    });
+
+    it("runs dbt deps in the card's project, whatever the walkthrough picked", async () => {
+      (window as any).withProgress = jest.fn((_options: any, task: any) =>
+        task(),
+      );
+      project.installDeps = jest.fn();
+      await press("runDeps");
+      expect(project.installDeps).toHaveBeenCalledTimes(1);
+      expect(commands.executeCommand).not.toHaveBeenCalled();
+    });
+
+    it("re-parses the card's project on Try again", async () => {
+      await press("tryAgain");
+      expect(commands.executeCommand).toHaveBeenCalledWith(
+        "dbtPowerUser.reparseProject",
+        project.projectRoot,
+      );
+    });
+
+    it("shows the dbt output channel", async () => {
+      await press("showOutput");
+      expect((panel as any).terminal.show).toHaveBeenCalledWith(true);
+    });
+
+    it("opens the env var docs", async () => {
+      await press("openEnvVarDocs");
+      expect(env.openExternal).toHaveBeenCalledTimes(1);
+    });
+
+    it("reveals the file with a space in its name", async () => {
+      (Uri as any).joinPath = (base: { fsPath: string }, rel: string) => ({
+        fsPath: path.join(base.fsPath, rel),
+      });
+      await press("revealFile", { path: "models/a copy.sql" });
+      expect(commands.executeCommand).toHaveBeenCalledWith("revealInExplorer", {
+        fsPath: path.join("/ws", "models/a copy.sql"),
+      });
+    });
+
+    it("opens the profiles.yml dbt reads", async () => {
+      (window as any).showTextDocument = jest.fn();
+      (panel as any).fileExists = () => true;
+      await press("openProfiles");
+      const opened = (window.showTextDocument as jest.Mock).mock.calls[0][0];
+      expect((opened as Uri).fsPath).toBe(PROFILES_FILE);
+    });
+
+    it("says where it looked when that file doesn't exist", async () => {
+      (window as any).showTextDocument = jest.fn();
+      (window as any).showErrorMessage = jest.fn();
+      (panel as any).fileExists = () => false;
+      await press("openProfiles");
+      expect(window.showTextDocument).not.toHaveBeenCalled();
+      expect(window.showErrorMessage).toHaveBeenCalledWith(
+        expect.stringContaining(`${PROFILES_FILE} wasn't found`),
+      );
+    });
   });
 });

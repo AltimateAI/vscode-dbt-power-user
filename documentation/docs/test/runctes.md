@@ -22,3 +22,10 @@ You can preview the results of individual CTEs within your dbt model:
 1. **Open your dbt model** in the editor
 2. **Locate the CTE** you want to preview
 3. **Click on Execute CTE** right above the CTE
+
+## Watch the Video
+
+<figure class="video-clip">
+<div class="video-clip__frame"><iframe src="https://www.youtube.com/embed/MDN2PSgVAmA?rel=0" title="Debug dbt Models and Profile CTEs in One Click | dbt Power User Spotlight 4" loading="lazy" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
+<figcaption>Video (8:17): Debug dbt Models and Profile CTEs in One Click | dbt Power User Spotlight 4. <a href="https://www.youtube.com/watch?v=MDN2PSgVAmA" target="_blank" rel="noopener">Watch on YouTube</a>.</figcaption>
+</figure>

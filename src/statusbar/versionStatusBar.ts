@@ -4,11 +4,11 @@ import {
   StatusBarAlignment,
   StatusBarItem,
   window,
-  workspace,
 } from "vscode";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { DBTInstallationVerificationEvent } from "../dbt_client/dbtVersionEvent";
 import { RebuildManifestCombinedStatusChange } from "../dbt_client/event/manifestCacheChangedEvent";
+import { getDbtIntegrationMode } from "../dbt_client/integrationMode";
 
 export class VersionStatusBar implements Disposable {
   readonly statusBar: StatusBarItem = window.createStatusBarItem(
@@ -40,9 +40,7 @@ export class VersionStatusBar implements Disposable {
   }
 
   private getDbtText() {
-    const dbtIntegrationMode = workspace
-      .getConfiguration("dbt")
-      .get<string>("dbtIntegration", "core");
+    const dbtIntegrationMode = getDbtIntegrationMode();
     switch (dbtIntegrationMode) {
       case "fusion":
         return "dbt fusion";
