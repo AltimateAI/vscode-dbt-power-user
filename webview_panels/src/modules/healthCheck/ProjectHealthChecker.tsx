@@ -1,4 +1,5 @@
 import {
+  Alert,
   Card,
   CardTitle,
   CardBody,
@@ -374,26 +375,43 @@ const ProjectHealthcheckInput = ({
   );
 };
 
+// Why the healthcheck did not run (no Python interpreter, dbt Fusion).
+interface HealthcheckNotice {
+  message: string;
+}
+
 const ProjectHealthChecker = (): JSX.Element => {
   const [projectHealthcheck, setProjectHealthcheck] =
     useState<ProjectHealthcheck | null>(null);
+  const [notice, setNotice] = useState<HealthcheckNotice | null>(null);
   const handleHealthCheck = async (args: AltimateConfigProps) => {
+    setNotice(null);
     const result = (await executeRequestInSync(
       "altimateScan",
       args as unknown as Record<string, unknown>,
     )) as {
-      projectHealthcheck: ProjectHealthcheck;
+      projectHealthcheck?: ProjectHealthcheck;
+      notice?: HealthcheckNotice;
     };
     panelLogger.log("projectHealthcheck:", result.projectHealthcheck);
-    setProjectHealthcheck(result.projectHealthcheck);
+    setNotice(result.notice ?? null);
+    setProjectHealthcheck(result.projectHealthcheck ?? null);
   };
   return (
     <>
       <Stack direction="column">
         <ProjectHealthcheckInput
           handleHealthCheck={handleHealthCheck}
-          handleClearProblems={() => setProjectHealthcheck(null)}
+          handleClearProblems={() => {
+            setProjectHealthcheck(null);
+            setNotice(null);
+          }}
         />
+        {notice && (
+          <Alert color="warning" className="p-2 mb-0">
+            {notice.message}
+          </Alert>
+        )}
         {projectHealthcheck && (
           <IssueList projectHealthcheck={projectHealthcheck} />
         )}

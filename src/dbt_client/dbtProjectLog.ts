@@ -1,5 +1,6 @@
-import { closeSync, existsSync, openSync, readSync } from "fs";
+import { promises as fs } from "fs";
 import * as path from "path";
+import { StringDecoder } from "string_decoder";
 import {
   Disposable,
   Event,
@@ -15,9 +16,21 @@ import { ProjectConfigChangedEvent } from "./event/projectConfigChangedEvent";
 export class DBTProjectLog implements Disposable {
   private outputChannel?: OutputChannel;
   private logFileWatcher?: FileSystemWatcher;
+  private logPath?: string;
   private logPosition: number = 0;
+  private logFileId?: number;
+  private decoder = new StringDecoder("utf8");
+  // The start of an ANSI escape sequence cut off at the end of the last read.
+  private pendingEscape = "";
+  private readChain: Promise<void> = Promise.resolve();
+  private readQueued = false;
   private static LOG_PATH = "logs";
   private static LOG_FILE = "dbt.log";
+  // Most unread output shown at once; anything older is skipped with a notice.
+  private static MAX_UNREAD_BYTES = 2 * 1024 * 1024;
+  private static CHUNK_BYTES = 256 * 1024;
+  // An escape sequence that may still be incomplete at the end of the text.
+  private static PARTIAL_ESCAPE = /[\u001b\u009b][[()#;?0-9]{0,32}$/;
   private currentProjectName?: string;
   private disposables: Disposable[] = [];
 
@@ -34,7 +47,8 @@ export class DBTProjectLog implements Disposable {
       this.outputChannel = window.createOutputChannel(
         `${projectName} dbt logs`,
       );
-      this.readLogFileFromLastPosition(event);
+      this.logPath = this.logPathOf(event);
+      this.scheduleRead();
 
       this.logFileWatcher = workspace.createFileSystemWatcher(
         new RelativePattern(
@@ -42,9 +56,7 @@ export class DBTProjectLog implements Disposable {
           `${DBTProjectLog.LOG_PATH}/${DBTProjectLog.LOG_FILE}`,
         ),
       );
-      setupWatcherHandler(this.logFileWatcher, () =>
-        this.readLogFileFromLastPosition(event),
-      );
+      setupWatcherHandler(this.logFileWatcher, () => this.scheduleRead());
       this.currentProjectName = projectName;
     }
     if (this.currentProjectName !== projectName) {
@@ -52,57 +64,174 @@ export class DBTProjectLog implements Disposable {
       this.outputChannel = window.createOutputChannel(
         `${projectName} dbt logs`,
       );
-      this.logPosition = 0;
-      this.readLogFileFromLastPosition(event);
+      this.logPath = this.logPathOf(event);
+      this.restartFrom(0);
+      this.scheduleRead();
       this.currentProjectName = projectName;
     }
   }
 
-  private readLogFileFromLastPosition(event: ProjectConfigChangedEvent): void {
-    const {
-      project: { projectRoot },
-    } = event;
-    const logPath = path.join(
-      projectRoot.fsPath,
+  private logPathOf(event: ProjectConfigChangedEvent): string {
+    return path.join(
+      event.project.projectRoot.fsPath,
       DBTProjectLog.LOG_PATH,
       DBTProjectLog.LOG_FILE,
     );
-    if (this.outputChannel && existsSync(logPath)) {
-      let fileHandle;
-      try {
-        fileHandle = openSync(logPath, "r");
-        const chunkSize = 1024 * 1024;
-        const buffer = Buffer.alloc(chunkSize);
-        while (true) {
-          const bytesRead = readSync(
-            fileHandle,
-            buffer,
-            0,
-            buffer.length,
-            this.logPosition,
-          );
-          if (!bytesRead) {
-            break;
-          }
-          this.logPosition += bytesRead;
-          this.outputChannel.appendLine(
-            stripANSI(buffer.toString("utf8", 0, bytesRead)),
-          );
-        }
-      } catch (error) {
-        console.log("Could not read log file", error);
-      } finally {
-        if (fileHandle) {
-          closeSync(fileHandle);
-        }
-      }
+  }
+
+  private restartFrom(position: number) {
+    this.logPosition = position;
+    this.decoder = new StringDecoder("utf8");
+    this.pendingEscape = "";
+  }
+
+  /**
+   * Queues one read of the log's unread bytes behind any read in progress. Requests made while a
+   * read is already queued share it, so a burst of watcher events costs at most one extra read.
+   */
+  private scheduleRead(): Promise<void> {
+    if (!this.readQueued) {
+      this.readQueued = true;
+      this.readChain = this.readChain.then(() => {
+        this.readQueued = false;
+        return this.readUnreadOutput();
+      });
     }
+    return this.readChain;
+  }
+
+  /**
+   * Appends the bytes written since the last read, in bounded async chunks. When more than
+   * MAX_UNREAD_BYTES are unread (a large log on open, or a burst of output), only the last
+   * MAX_UNREAD_BYTES are shown, starting at a line boundary. A log that shrank or was replaced
+   * (rotation, truncation) is read from its start.
+   */
+  private async readUnreadOutput(): Promise<void> {
+    const channel = this.outputChannel;
+    const logPath = this.logPath;
+    if (channel === undefined || logPath === undefined) {
+      return;
+    }
+    let handle: fs.FileHandle | undefined;
+    try {
+      handle = await DBTProjectLog.openIfExists(logPath);
+      if (handle === undefined) {
+        return;
+      }
+      const { size, ino } = await handle.stat();
+      if (channel !== this.outputChannel) {
+        return;
+      }
+      // Where skipped output began, until the first shown line is found.
+      let skippedFrom = this.seekToUnread(size, ino);
+      let position = this.logPosition;
+      const buffer = Buffer.alloc(
+        Math.min(DBTProjectLog.CHUNK_BYTES, size - position),
+      );
+      while (position < size) {
+        const { bytesRead } = await handle.read(
+          buffer,
+          0,
+          Math.min(buffer.length, size - position),
+          position,
+        );
+        if (channel !== this.outputChannel || bytesRead === 0) {
+          return;
+        }
+        const chunkStart = position;
+        position += bytesRead;
+        this.logPosition = position;
+        let from = 0;
+        if (skippedFrom !== undefined) {
+          // A newline byte never occurs inside a multi-byte UTF-8 character.
+          from = buffer.subarray(0, bytesRead).indexOf(0x0a) + 1;
+          if (from === 0) {
+            continue;
+          }
+          channel.appendLine(
+            DBTProjectLog.skipNotice(chunkStart + from - skippedFrom, logPath),
+          );
+          skippedFrom = undefined;
+        }
+        this.appendText(
+          channel,
+          this.decoder.write(buffer.subarray(from, bytesRead)),
+        );
+      }
+    } catch (error) {
+      console.log("Could not read log file", error);
+    } finally {
+      await handle?.close().catch(() => undefined);
+    }
+  }
+
+  /**
+   * Appends decoded log text without its ANSI codes. A read can end inside an escape sequence, so
+   * a trailing sequence that may be incomplete is held back and stripped with the next read.
+   */
+  private appendText(channel: OutputChannel, decoded: string) {
+    const text = this.pendingEscape + decoded;
+    const partial = DBTProjectLog.PARTIAL_ESCAPE.exec(text);
+    const end = partial ? partial.index : text.length;
+    this.pendingEscape = text.slice(end);
+    if (end > 0) {
+      channel.append(stripANSI(text.slice(0, end)));
+    }
+  }
+
+  private static async openIfExists(
+    logPath: string,
+  ): Promise<fs.FileHandle | undefined> {
+    try {
+      return await fs.open(logPath, "r");
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        return undefined;
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Moves the read position to the first byte to read from a log of `size` bytes. When more than
+   * MAX_UNREAD_BYTES are unread, returns the position older output is skipped from and moves to
+   * one byte before the last MAX_UNREAD_BYTES; the caller then shows output from the first
+   * newline on, so it starts on a whole line.
+   */
+  private seekToUnread(size: number, ino: number): number | undefined {
+    if (size < this.logPosition || ino !== this.logFileId) {
+      this.restartFrom(0);
+    }
+    this.logFileId = ino;
+    const skippedFrom = this.logPosition;
+    if (size - skippedFrom <= DBTProjectLog.MAX_UNREAD_BYTES) {
+      return undefined;
+    }
+    this.restartFrom(size - DBTProjectLog.MAX_UNREAD_BYTES - 1);
+    return skippedFrom;
+  }
+
+  private static skipNotice(skippedBytes: number, logPath: string): string {
+    return `Skipped ${DBTProjectLog.formatSize(skippedBytes)} of earlier output, showing the most recent part. The full log is at ${logPath}`;
+  }
+
+  private static formatSize(bytes: number): string {
+    if (bytes >= 1024 * 1024) {
+      return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    }
+    if (bytes >= 1024) {
+      return `${(bytes / 1024).toFixed(1)} KB`;
+    }
+    return `${bytes} bytes`;
   }
 
   public dispose() {
     if (this.outputChannel !== undefined) {
       this.outputChannel.dispose();
+      this.outputChannel = undefined;
     }
+    this.logFileWatcher?.dispose();
+    this.logFileWatcher = undefined;
     while (this.disposables.length) {
       const x = this.disposables.pop();
       if (x) {

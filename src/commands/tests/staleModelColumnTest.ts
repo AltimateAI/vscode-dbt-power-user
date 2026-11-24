@@ -86,11 +86,15 @@ export class StaleModelColumnTest implements AltimateScanStep {
         const allDBColumns = modelDict.map(({ column_name }) =>
           getColumnNameByCase(column_name, project.getAdapterType()),
         );
+        // The package install path is unknown for a project whose
+        // packages-install-path never resolved (deps not installed, or an
+        // unreadable custom path). Only a model that lives in another package
+        // needs it to locate its schema file; the project's own models resolve
+        // through the project root. Throwing here used to end the whole
+        // project's online checks.
         const packagePath = project.getPackageInstallPath();
-        if (packagePath === undefined) {
-          throw new Error(
-            "packagePath is not defined in " + project.projectRoot.fsPath,
-          );
+        if (packagePath === undefined && value.package_name !== projectName) {
+          continue;
         }
         for (const existingCol of Object.keys(value.columns)) {
           if (
@@ -108,7 +112,9 @@ export class StaleModelColumnTest implements AltimateScanStep {
                 projectName,
                 projectRootUri.fsPath,
                 value.package_name,
-                packagePath,
+                // Unused for the project's own models; other packages were
+                // skipped above when the install path is unknown.
+                packagePath ?? projectRootUri.fsPath,
                 removeProtocol(value.patch_path),
               ) ||
               Uri.joinPath(

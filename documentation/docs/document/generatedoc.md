@@ -115,3 +115,8 @@ Here's a demo of generating model and column descriptions:
           allowfullscreen>
   </iframe>
 </div>
+
+<figure class="video-clip">
+<div class="video-clip__frame"><iframe src="https://www.youtube.com/embed/NrEYqEUcpHY?rel=0" title="dbt Docs, Data Tests and Unit Tests in One Editor | dbt Power User Spotlight 3" loading="lazy" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
+<figcaption>Video (6:20): dbt Docs, Data Tests and Unit Tests in One Editor | dbt Power User Spotlight 3. <a href="https://www.youtube.com/watch?v=NrEYqEUcpHY" target="_blank" rel="noopener">Watch on YouTube</a>.</figcaption>
+</figure>

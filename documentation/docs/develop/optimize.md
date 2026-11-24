@@ -49,3 +49,10 @@ Altimate Code opens in a side panel and returns a rewritten query alongside an e
 /// admonition | This feature requires an API key. You can get it by signing up for free at [www.altimate.ai](https://www.altimate.ai?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link)
     type: info
 ///
+
+## Watch the Video
+
+<figure class="video-clip">
+<div class="video-clip__frame"><iframe src="https://www.youtube.com/embed/MDN2PSgVAmA?rel=0" title="Debug dbt Models and Profile CTEs in One Click | dbt Power User Spotlight 4" loading="lazy" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
+<figcaption>Video (8:17): Debug dbt Models and Profile CTEs in One Click | dbt Power User Spotlight 4. <a href="https://www.youtube.com/watch?v=MDN2PSgVAmA" target="_blank" rel="noopener">Watch on YouTube</a>.</figcaption>
+</figure>

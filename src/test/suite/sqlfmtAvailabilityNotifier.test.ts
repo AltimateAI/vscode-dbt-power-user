@@ -103,7 +103,13 @@ describe("SqlFmtAvailabilityNotifier", () => {
       .workspaceFolders;
   });
 
-  const construct = (): SqlFmtAvailabilityNotifier => {
+  const construct = (
+    pythonEnvironment: PythonEnvironment = {
+      pythonPath: "/usr/bin/python3",
+      pythonVersion: "3.11.4",
+      getEnvironmentVariables: jest.fn().mockReturnValue({}),
+    } as unknown as PythonEnvironment,
+  ): SqlFmtAvailabilityNotifier => {
     const container = {
       getProjects,
       getFromGlobalState,
@@ -114,11 +120,6 @@ describe("SqlFmtAvailabilityNotifier", () => {
       resolveSqlFmtPath,
       invalidateSqlFmtPathCache,
     } as unknown as DbtDocumentFormattingEditProvider;
-    const pythonEnvironment = {
-      pythonPath: "/usr/bin/python3",
-      pythonVersion: "3.11.4",
-      getEnvironmentVariables: jest.fn().mockReturnValue({}),
-    } as unknown as PythonEnvironment;
     const commandProcessExecutionFactory = {
       createCommandProcessExecution,
     } as unknown as CommandProcessExecutionFactory;
@@ -344,6 +345,68 @@ describe("SqlFmtAvailabilityNotifier", () => {
       expect(showErrorMessage).toHaveBeenCalledWith(
         expect.stringContaining("ENOENT"),
       );
+    });
+  });
+
+  // dbt Fusion runs without the Python extension, so there may be no
+  // interpreter: pip can't run, and spawning "" failed with "The argument
+  // 'file' cannot be empty".
+  describe("install action without a Python interpreter", () => {
+    const noInterpreter = (pythonExtensionAvailable: boolean) => {
+      const env = new PythonEnvironment({
+        debug: jest.fn(),
+        warn: jest.fn(),
+      } as any);
+      (env as any)._pythonExtensionAvailable = pythonExtensionAvailable;
+      (env as any).executionDetails = {
+        getPythonPath: () => "",
+        getEnvVars: () => ({ vars: {}, sources: {} }),
+        onDidChangeExecutionDetails: jest.fn(),
+      };
+      return env;
+    };
+
+    beforeEach(() => {
+      resolveSqlFmtPath.mockResolvedValue(undefined);
+      showInformationMessage.mockResolvedValueOnce("Install sqlfmt");
+    });
+
+    it("offers the Python extension when it is missing, and does not spawn", async () => {
+      showErrorMessage.mockResolvedValue("Install Python extension");
+      construct(noInterpreter(false));
+      await fireEditorChange("jinja-sql");
+
+      expect(createCommandProcessExecution).not.toHaveBeenCalled();
+      expect(showErrorMessage).toHaveBeenCalledTimes(1);
+      expect(showErrorMessage).toHaveBeenCalledWith(
+        expect.stringContaining("Installing sqlfmt needs a Python interpreter"),
+        "Install Python extension",
+        "Open setting",
+      );
+      expect(vscode.commands.executeCommand).toHaveBeenCalledWith(
+        "workbench.extensions.installExtension",
+        "ms-python.python",
+      );
+      expect(vscode.commands.executeCommand).not.toHaveBeenCalledWith(
+        "python.setInterpreter",
+      );
+    });
+
+    it("offers the interpreter picker when the Python extension is present, and does not spawn", async () => {
+      showErrorMessage.mockResolvedValue("Select Python interpreter");
+      construct(noInterpreter(true));
+      await fireEditorChange("jinja-sql");
+
+      expect(createCommandProcessExecution).not.toHaveBeenCalled();
+      expect(showErrorMessage).toHaveBeenCalledWith(
+        expect.stringContaining("Installing sqlfmt needs a Python interpreter"),
+        "Select Python interpreter",
+        "Detect from terminal",
+      );
+      expect(vscode.commands.executeCommand).toHaveBeenCalledWith(
+        "python.setInterpreter",
+      );
+      expect(sendTelemetryError).not.toHaveBeenCalled();
     });
   });
 

@@ -6,6 +6,7 @@ import {
 import { DatapilotNotebookController, OpenNotebookRequest } from "@lib";
 import { existsSync, readFileSync } from "fs";
 import { inject } from "inversify";
+import { basename } from "path";
 import {
   CancellationTokenSource,
   CodeLens,
@@ -42,7 +43,14 @@ import { CteProfilerService } from "../cte_profiler/cteProfilerService";
 import { DBTClient } from "../dbt_client";
 import { DBTProject } from "../dbt_client/dbtProject";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import { getDbtIntegrationMode } from "../dbt_client/integrationMode";
 import { PythonEnvironment } from "../dbt_client/pythonEnvironment";
+import { NOTEBOOK_NEEDS } from "../pythonGatedClientMapper";
+import {
+  findMissingPython,
+  promptForPython,
+  stampBlocked,
+} from "../pythonRequiredFeature";
 import { NotebookQuickPick } from "../quickpick/notebookQuickPick";
 import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
 import { AltimateCodeChatService } from "../services/altimateCodeChatService";
@@ -75,6 +83,7 @@ import { SQLLineagePanel } from "../webview_provider/sqlLineagePanel";
 import { WhatsNewPanel } from "../webview_provider/whatsNewPanel";
 import { AltimateScan } from "./altimateScan";
 import { BigQueryCostEstimate } from "./bigQueryCostEstimate";
+import { dbtSetupDiagnostics } from "./diagnosticsSetup";
 import { RunModel } from "./runModel";
 import { RunTest } from "./runTest";
 import { SqlToModel } from "./sqlToModel";
@@ -198,7 +207,8 @@ export class VSCodeCommands implements Disposable {
                 cl.command?.command === "dbtPowerUser.profileCtes",
             );
             ctes = profileLens?.command?.arguments?.[1] as
-              CteInfo[] | undefined;
+              | CteInfo[]
+              | undefined;
 
             if (!ctes || ctes.length === 0) {
               window.showInformationMessage(
@@ -381,6 +391,13 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.copyModelName", (model) =>
         env.clipboard.writeText(model.label.toString()),
       ),
+      commands.registerCommand(
+        "dbtPowerUser.copyNotebookCellResult",
+        async (resultVariable: string) => {
+          await env.clipboard.writeText(resultVariable);
+          window.setStatusBarMessage(`Copied ${resultVariable}`, 3000);
+        },
+      ),
       commands.registerCommand("dbtPowerUser.showRunSQL", () =>
         this.runModel.showRunSQLOnActiveWindow(),
       ),
@@ -445,6 +462,35 @@ export class VSCodeCommands implements Disposable {
 
         dbtProject.buildProject();
       }),
+      // Takes the project's root when the caller knows it (a lineage card's
+      // "Try again"); otherwise the active editor's project, or asks.
+      commands.registerCommand(
+        "dbtPowerUser.reparseProject",
+        async (projectRoot?: Uri) => {
+          const project = projectRoot
+            ? this.dbtProjectContainer.findDBTProject(projectRoot)
+            : await this.queryManifestService.getOrPickProjectFromWorkspace();
+          if (!project) {
+            this.dbtTerminal.debug(
+              "reparseProject",
+              "No dbt project to re-parse",
+              projectRoot?.fsPath,
+            );
+            return;
+          }
+          this.dbtTerminal.debug(
+            "reparseProject",
+            `Re-parsing the project at ${project.projectRoot.fsPath}`,
+          );
+          await window.withProgress(
+            {
+              location: ProgressLocation.Notification,
+              title: `Re-parsing ${basename(project.projectRoot.fsPath)}`,
+            },
+            () => project.reparseProject(),
+          );
+        },
+      ),
       commands.registerCommand("dbtPowerUser.cleanCurrentProject", () => {
         if (!window.activeTextEditor) {
           return;
@@ -524,7 +570,10 @@ export class VSCodeCommands implements Disposable {
         async () => {
           this.eventEmitterService.eventEmitter.fire({
             command: "onboarding:render",
-            payload: { initialStep: "prerequisites" },
+            payload: {
+              initialStep: "prerequisites",
+              source: "setupWalkthrough",
+            },
           });
         },
       ),
@@ -533,7 +582,7 @@ export class VSCodeCommands implements Disposable {
         async () => {
           this.eventEmitterService.eventEmitter.fire({
             command: "onboarding:render",
-            payload: { initialStep: "finish" },
+            payload: { initialStep: "finish", source: "tutorials" },
           });
         },
       ),
@@ -737,7 +786,9 @@ export class VSCodeCommands implements Disposable {
               "Printing all python paths...",
               "* Please remove any sensitive information before sending it to us",
             ],
-            this.pythonEnvironment.allPythonPaths.map(({ path }) => path),
+            this.pythonEnvironment.pythonExtensionAvailable
+              ? this.pythonEnvironment.allPythonPaths.map(({ path }) => path)
+              : ["The Python extension is not installed"],
           );
           this.diagnosticsOutputChannel.logNewLine();
 
@@ -777,15 +828,13 @@ export class VSCodeCommands implements Disposable {
           this.diagnosticsOutputChannel.logNewLine();
 
           // Printing extension and setup info
-          const dbtIntegrationMode = workspace
-            .getConfiguration("dbt")
-            .get<string>("dbtIntegration", "core");
+          const dbtIntegrationMode = getDbtIntegrationMode();
           const allowListFolders = workspace
             .getConfiguration("dbt")
             .get<string[]>("allowListFolders", []);
           const apiConnectivity = await this.altimate.checkApiConnectivity();
           this.diagnosticsOutputChannel.logBlock([
-            `Python Path=${this.pythonEnvironment.pythonPath}`,
+            `Python Path=${this.pythonEnvironment.pythonPath || "none"}`,
             `VSCode version=${version}`,
             `Extension version=${
               extensions.getExtension("innoverio.vscode-dbt-power-user")
@@ -801,22 +850,22 @@ export class VSCodeCommands implements Disposable {
           ]);
           this.diagnosticsOutputChannel.logNewLine();
 
-          if (!this.dbtClient.pythonInstalled) {
-            this.diagnosticsOutputChannel.logLine("Python is not installed");
-            this.diagnosticsOutputChannel.logLine(
-              "Can't proceed further without fixing python installation",
-            );
+          const setup = await dbtSetupDiagnostics({
+            dbtIntegrationMode,
+            pythonPath: this.pythonEnvironment.pythonPath,
+            pythonExtensionAvailable:
+              this.pythonEnvironment.pythonExtensionAvailable,
+            pythonInstalled: this.dbtClient.pythonInstalled,
+            dbtInstalled: this.dbtClient.dbtInstalled,
+            env: this.pythonEnvironment.getEnvironmentVariables(),
+            cwd: getFirstWorkspacePath(),
+          });
+          setup.lines.forEach((line) =>
+            this.diagnosticsOutputChannel.logLine(line),
+          );
+          if (!setup.proceed) {
             return;
           }
-          this.diagnosticsOutputChannel.logLine("Python is installed");
-          if (!this.dbtClient.dbtInstalled) {
-            this.diagnosticsOutputChannel.logLine("DBT is not installed");
-            this.diagnosticsOutputChannel.logLine(
-              "Can't proceed further without fixing dbt installation",
-            );
-            return;
-          }
-          this.diagnosticsOutputChannel.logLine("DBT is installed");
           const dbtWorkspaces = this.dbtProjectContainer.dbtWorkspaceFolders;
           this.diagnosticsOutputChannel.logLine(
             `Number of workspaces=${dbtWorkspaces.length}`,
@@ -890,9 +939,8 @@ export class VSCodeCommands implements Disposable {
       }),
       commands.registerCommand(
         "dbtPowerUser.createAltimateNotebook",
-        async (args: OpenNotebookRequest | undefined) => {
-          this.notebookController.createNotebook(args);
-        },
+        (args: OpenNotebookRequest | undefined) =>
+          this.createAltimateNotebook(args),
       ),
       commands.registerCommand(
         "dbtPowerUser.openTargetSelector",
@@ -1425,7 +1473,12 @@ export class VSCodeCommands implements Disposable {
       );
     }
 
-    if (!project.getPythonBridgeStatus()) {
+    const dbtIntegrationMode = getDbtIntegrationMode();
+    if (dbtIntegrationMode === "fusion") {
+      this.diagnosticsOutputChannel.logLine(
+        "Python bridge is not used in fusion mode",
+      );
+    } else if (!project.getPythonBridgeStatus()) {
       this.diagnosticsOutputChannel.logLine("Python bridge is not connected");
     } else {
       this.diagnosticsOutputChannel.logLine("Python bridge is connected");
@@ -1696,6 +1749,20 @@ export class VSCodeCommands implements Disposable {
       hash = hash & hash; // Convert to 32-bit integer
     }
     return Math.abs(hash).toString(36).substring(0, 6);
+  }
+
+  // Every notebook entry point (commands, quick pick, editor menus, the
+  // Actions and query panels) runs this command. Without Python it asks for
+  // an interpreter before creating a notebook that could not run. Notebooks
+  // opened another way are gated in `PythonGatedClientMapper`.
+  async createAltimateNotebook(args: OpenNotebookRequest | undefined) {
+    const missing = findMissingPython(this.pythonEnvironment);
+    if (missing) {
+      stampBlocked(this.telemetry, TelemetryEvents["Notebook/Launch"], missing);
+      await promptForPython(NOTEBOOK_NEEDS, missing);
+      return;
+    }
+    this.notebookController.createNotebook(args);
   }
 
   dispose() {

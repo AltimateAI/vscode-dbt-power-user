@@ -10,3 +10,98 @@
 .rotate {
   animation: rotateAnimation 5s linear infinite;
 }
+
+/* Orbit loader: Altimate mark inside a spinning orange ring */
+.orbit-loader {
+  --orbit-size: 96px;
+  --orbit-thickness: max(2px, calc(var(--orbit-size) * 0.03));
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--orbit-size);
+  aspect-ratio: 1;
+  flex: none;
+}
+
+.orbit-loader > svg {
+  width: 44%;
+  height: auto;
+  animation: orbit-breathe 2.4s ease-in-out infinite;
+}
+
+.orbit-loader-spin {
+  position: absolute;
+  inset: 0;
+  animation: orbit-spin 1.2s linear infinite;
+}
+
+.orbit-loader-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    rgba(240, 112, 48, 0) 0deg,
+    rgba(240, 112, 48, 0) 120deg,
+    #f07030 360deg
+  );
+  -webkit-mask: radial-gradient(
+    farthest-side,
+    transparent calc(100% - var(--orbit-thickness)),
+    #000 calc(100% - var(--orbit-thickness) + 0.5px)
+  );
+  mask: radial-gradient(
+    farthest-side,
+    transparent calc(100% - var(--orbit-thickness)),
+    #000 calc(100% - var(--orbit-thickness) + 0.5px)
+  );
+}
+
+.orbit-loader-dot {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--orbit-thickness) / 2);
+  width: calc(var(--orbit-thickness) * 1.5);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #f07030;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 calc(var(--orbit-thickness) * 3) rgba(240, 112, 48, 0.7);
+}
+
+@keyframes orbit-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes orbit-breathe {
+  0%,
+  100% {
+    transform: scale(0.93);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes orbit-soft {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orbit-loader * {
+    animation: none !important;
+  }
+  .orbit-loader {
+    animation: orbit-soft 2s ease-in-out infinite;
+  }
+}

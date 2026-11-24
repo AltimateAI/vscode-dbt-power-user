@@ -1,0 +1,23 @@
+dbt Fusion projects now run without the Python extension, and with `dbt.dbtIntegration` unset a dbt 2.x project opens in Fusion mode by itself, while a dbt Core user who also has dbt Fusion is told once and can switch with one click. When the selected Python interpreter has been deleted or moved, Power User finds one that can import dbt and uses it for the window; Execute SQL on a saved model runs it as that model, so `this` and `model.config` resolve; Power User contributes its own Jinja languages and no longer installs Better Jinja; and each platform's download is about half the size. Query Results shows a new window's first preview on the first try, keeps updating after an Open in Tab result is closed early, and shows each query's measured time. Includes `@altimateai/dbt-integration` 0.3.20: in dbt Fusion mode on dbt Fusion 2.0.9 or newer, docs generation and docs sharing work, and a deleted interpreter is no longer run during dbt detection.
+
+## Known issues
+- In dbt Fusion mode, defer to production through the DataPilot dbt integration warns once per project and runs without deferral. Defer to a local state path works.
+- If Better Jinja (`samuelcolvin.jinjahtml`) is still installed, Toggle Line Comment in dbt SQL and YAML files inserts `{# #}` instead of `--` or `#`. Uninstalling Better Jinja restores them; Power User no longer needs it.
+
+## What's Changed
+* feat: run dbt Fusion without the Python extension by @ralphstodomingo in https://github.com/AltimateAI/vscode-dbt-power-user/pull/2124
+* feat: contribute the Jinja languages and drop the jinjahtml dependency by @ralphstodomingo in https://github.com/AltimateAI/vscode-dbt-power-user/pull/2146
+* fix: fail the build when zeromq can't be copied, and stop copying its `.bin` symlink by @saravmajestic in https://github.com/AltimateAI/vscode-dbt-power-user/pull/2144
+* perf: ship only each target's zeromq addon and leave README GIFs out of the VSIX by @ralphstodomingo in https://github.com/AltimateAI/vscode-dbt-power-user/pull/2145
+* feat: run a saved model as its real node when previewing (#2028) by @ralphstodomingo in https://github.com/AltimateAI/vscode-dbt-power-user/pull/2055
+* feat: open dbt 2.x projects in Fusion mode automatically by @ralphstodomingo in https://github.com/AltimateAI/vscode-dbt-power-user/pull/2125
+* fix: use a working Python interpreter when the selected one was deleted by @ralphstodomingo in https://github.com/AltimateAI/vscode-dbt-power-user/pull/2148
+* fix: hold the Fusion switch when the dbt-core probe is slow, and read dbt-loom from nested projects by @ralphstodomingo in https://github.com/AltimateAI/vscode-dbt-power-user/pull/2149
+* ci: check that Power User installs in Cursor by @ralphstodomingo in https://github.com/AltimateAI/vscode-dbt-power-user/pull/2147
+* fix: name the dbt Fusion version that runs docs generation in the hint by @ralphstodomingo in https://github.com/AltimateAI/vscode-dbt-power-user/pull/2142
+* fix: show the first query preview's result when Query Results opens during the query by @ralphstodomingo in https://github.com/AltimateAI/vscode-dbt-power-user/pull/2150
+* fix: keep Query Results updating after a tab closes early, and show the first preview's time by @ralphstodomingo in https://github.com/AltimateAI/vscode-dbt-power-user/pull/2151
+* bump: 0.70.0 (rolling release) by @ralphstodomingo in https://github.com/AltimateAI/vscode-dbt-power-user/pull/2143
+
+
+**Full Changelog**: https://github.com/AltimateAI/vscode-dbt-power-user/compare/0.69.0...0.70.0

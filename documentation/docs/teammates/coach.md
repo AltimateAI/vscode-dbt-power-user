@@ -14,7 +14,7 @@ type: warning
 
 ## Documentation Writer
 
-Documentation writer AI teammate is available via the documentation editor panel in the Power User VSCode extension.
+Documentation writer AI teammate is available via the documentation editor panel in the Power User for dbt extension.
 Here are more details on how to [generate documentation](../document/generatedoc.md)
 
 ### Trigger coaching

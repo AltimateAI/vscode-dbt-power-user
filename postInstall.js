@@ -1,6 +1,5 @@
 // Copied from https://github.com/microsoft/vscode-jupyter/blob/main/build/ci/postInstall.js
 const fs = require("fs");
-const { downloadZMQ } = require("@vscode/zeromq");
 const path = require("path");
 
 /**
@@ -48,14 +47,6 @@ function createJupyterKernelWithoutSerialization() {
   var destPath = path.join(path.dirname(filePath), "nonSerializingKernel.js");
   fs.writeFileSync(destPath, replacedContents);
   console.log(destPath + " file generated (by Jupyter VSC)");
-}
-
-async function downloadZmqBinaries() {
-  //   if (common.getBundleConfiguration() === common.bundleConfiguration.web) {
-  //     // No need to download zmq binaries for web.
-  //     return;
-  //   }
-  await downloadZMQ();
 }
 
 /**
@@ -175,85 +166,9 @@ async function installAltimateCoreAllPlatforms() {
   }
 }
 
-/**
- * Map VSCE_TARGET to the zeromq prebuild folder names to keep.
- * Returns empty array when no target is set (keep all).
- * Mirrors getZeroMQPreBuildsFoldersToKeep() in prepareBuild.js.
- */
-function getZeroMQPreBuildsFoldersToKeep(vsceTarget) {
-  if (!vsceTarget) {
-    return [];
-  } else if (vsceTarget.includes("win32")) {
-    if (vsceTarget.includes("x64")) {
-      return ["win32-x64"];
-    } else if (vsceTarget.includes("arm64")) {
-      return ["win32-arm64"];
-    } else {
-      return ["win32-x64", "win32-arm64"];
-    }
-  } else if (vsceTarget.includes("linux") || vsceTarget.includes("alpine")) {
-    if (vsceTarget.includes("arm64")) {
-      return ["linux-arm64"];
-    } else if (vsceTarget.includes("x64")) {
-      return ["linux-x64"];
-    } else if (vsceTarget.includes("armhf") || vsceTarget.includes("arm")) {
-      return ["linux-arm"];
-    } else {
-      return ["linux-arm64", "linux-x64", "linux-arm"];
-    }
-  } else if (vsceTarget.includes("darwin")) {
-    if (vsceTarget.includes("arm64")) {
-      return ["darwin-arm64"];
-    } else if (vsceTarget.includes("x64")) {
-      return ["darwin-x64"];
-    } else {
-      return ["darwin-x64", "darwin-arm64"];
-    }
-  } else {
-    console.warn(
-      `Unknown VSCE_TARGET "${vsceTarget}", keeping all zeromq prebuilds`,
-    );
-    return [];
-  }
-}
-
-/**
- * Prune zeromq prebuilds for non-target platforms right after download.
- * This avoids webpack copying ~13MB of unused prebuilds into dist/.
- * prepareBuild.js still acts as a safety net for dist/.
- */
-function pruneZeromqPrebuilds() {
-  const vsceTarget = process.env.VSCE_TARGET;
-  if (!vsceTarget) {
-    return;
-  }
-
-  const keepFolders = getZeroMQPreBuildsFoldersToKeep(vsceTarget);
-  if (keepFolders.length === 0) {
-    return;
-  }
-
-  const prebuildsDir = path.join("node_modules", "zeromq", "prebuilds");
-  if (!fs.existsSync(prebuildsDir)) {
-    return;
-  }
-
-  const entries = fs.readdirSync(prebuildsDir);
-  for (const entry of entries) {
-    if (!keepFolders.includes(entry)) {
-      fs.rmSync(path.join(prebuildsDir, entry), { recursive: true });
-      console.log(`Pruned zeromq prebuild: ${entry}`);
-    }
-  }
-  console.log(
-    `Kept zeromq prebuilds for VSCE_TARGET=${vsceTarget}: ${keepFolders.join(", ")}`,
-  );
-}
-
 createJupyterKernelWithoutSerialization();
-Promise.all([downloadZmqBinaries(), installAltimateCoreAllPlatforms()])
+installAltimateCoreAllPlatforms()
   .then(() => {
-    pruneZeromqPrebuilds();
     process.exit(0);
   })
   .catch((ex) => {

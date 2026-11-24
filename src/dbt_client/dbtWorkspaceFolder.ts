@@ -32,11 +32,20 @@ import {
   readAndParseProjectConfig,
   resolvePackagesInstallPath,
 } from "@altimateai/dbt-integration";
+import { getDbtIntegrationMode } from "./integrationMode";
 
 // Sentinel for the empty-after-retries case in `retryWithBackoff`. Lets the
 // caller distinguish "this folder has no dbt project" (silent, expected for
 // multi-root workspaces) from a real `findFiles` failure (telemetry-worthy).
 class NoProjectsFound extends Error {}
+
+/**
+ * Where dbt projects are not looked for: installed packages and Python
+ * site-packages hold `dbt_project.yml` files that are not the user's projects.
+ * Shared with the integration-mode decision, which lists projects the same way.
+ */
+export const PROJECT_EXCLUDE_PATTERN =
+  "**/{dbt_packages,site-packages,dbt_internal_packages}";
 
 export class DBTWorkspaceFolder implements Disposable {
   private watcher: FileSystemWatcher;
@@ -127,9 +136,7 @@ export class DBTWorkspaceFolder implements Disposable {
   }
 
   async discoverProjects() {
-    // Ignore dbt_packages and venv/site-packages/dbt project folders
-    const excludePattern =
-      "**/{dbt_packages,site-packages,dbt_internal_packages}";
+    const excludePattern = PROJECT_EXCLUDE_PATTERN;
     // Multi-root workspaces activate the extension when any folder contains
     // `dbt_project.yml`, but discoverProjects runs on every folder. A folder
     // that genuinely has no dbt project must resolve to an empty result
@@ -196,9 +203,7 @@ export class DBTWorkspaceFolder implements Disposable {
       { numProjects: projectDirectories.length },
     );
 
-    const dbtIntegrationMode = workspace
-      .getConfiguration("dbt")
-      .get<string>("dbtIntegration", "core");
+    const dbtIntegrationMode = getDbtIntegrationMode();
 
     const filteredProjects =
       await this.dbtProjectDetectionFactory().discoverProjects(
@@ -207,7 +212,7 @@ export class DBTWorkspaceFolder implements Disposable {
 
     if (filteredProjects.length > 20) {
       window.showWarningMessage(
-        `dbt Power User detected ${filteredProjects.length} projects in your workspace, this will negatively affect performance.`,
+        `Power User for dbt detected ${filteredProjects.length} projects in your workspace, this will negatively affect performance.`,
       );
     }
 
@@ -297,7 +302,7 @@ export class DBTWorkspaceFolder implements Disposable {
           new Range(0, 0, 999, 999),
           error.message,
         );
-        yamlDiagnostic.source = "dbt Power User";
+        yamlDiagnostic.source = "Power User for dbt";
         yamlDiagnostic.code = {
           value: "Fix with Altimate Code",
           target: Uri.parse(

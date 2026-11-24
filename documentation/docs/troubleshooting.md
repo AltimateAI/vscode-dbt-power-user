@@ -15,7 +15,7 @@ Open it from the command palette:
 
 - macOS: `Cmd + Shift + P`
 - Windows / Linux: `Ctrl + Shift + P`
-- Type `Get Started with Power User for dbt` and run it.
+- Type `Power User for dbt: Get Started` and run it.
 
 You can also launch it from the **Project Actions ✨** view in the Power User for dbt side panel, or by clicking the **dbt** status item in the bottom status bar and choosing "Setup Extension".
 
@@ -41,6 +41,29 @@ The extension reads the active Python path directly from the shell and switches 
 
 The command needs VS Code's terminal shell integration to read the Python path from your shell. If no terminal is open or shell integration is not active, the extension will prompt you to open one.
 ///
+
+### Selected Python interpreter was deleted or moved
+
+In dbt Core mode (`core` or `corecommand`), the interpreter selected in the Python extension can stop existing, for example after a virtual environment was removed or a dev container was rebuilt. When that happens and `dbt.dbtPythonPathOverride` doesn't name an interpreter that exists, Power User for dbt looks for another interpreter that can import dbt. It tries, in this order:
+
+1. the Python extension's `python.defaultInterpreterPath`;
+2. a `.venv`, `venv` or `env` folder, in that order, in each folder that holds a `dbt_project.yml`;
+3. a `.venv`, `venv` or `env` folder, in that order, at each workspace folder root;
+4. environments the Python extension knows inside the workspace;
+5. `python3`, then `python`, on your `PATH`.
+
+Interpreters inside the workspace are used only when the workspace is trusted. If one works, Power User uses it for this window and tells you once per window, for example:
+
+> The selected Python interpreter /home/you/project/old-venv/bin/python was not found. dbt is using /home/you/project/.venv/bin/python (dbt 1.10.0) in this window.
+
+- **Keep using it** makes it the interpreter selected in the Python extension.
+- **Select another** opens the Python extension's interpreter picker.
+
+Until you choose one of them, the Python extension's selection doesn't change, and the next window looks for an interpreter again. If none can import dbt, Power User shows this once per window instead:
+
+> The selected Python interpreter /home/you/project/old-venv/bin/python was not found. It may have been moved or deleted. Select another interpreter to use dbt.
+
+with **Select Python interpreter** and **Detect from terminal**.
 
 ### Problems Panel
 
@@ -78,13 +101,21 @@ The deep-link uses `vscode.env.uriScheme` to pick the host editor's scheme autom
 
 ### Diagnostics command
 
-The diagnostics command in the VSCode Power User extension provides a comprehensive report that covers various aspects of the system and DBT project environment. Here is a summary of the diagnostics it generates:
+The diagnostics command in the Power User for dbt extension provides a comprehensive report that covers various aspects of the system and DBT project environment. Here is a summary of the diagnostics it generates:
 
 - **Environment Variables**: Lists all the environment variables which can help in understanding the system configuration and paths that might affect the DBT operations.
 
 - **Extension Settings**: Details the settings related to the VSCode extension, including preferences like AI keys, instance names, and various enabled or disabled features that influence how the extension behaves.
 
-- **Python and DBT Installations**: Confirms the installation of Python and DBT, along with their paths, ensuring that these essential tools are available and correctly set up.
+- **Python and DBT Installations**: Confirms the installation of Python and DBT, along with their paths, ensuring that these essential tools are available and correctly set up. In dbt Fusion mode the report doesn't check Python; it shows where dbt Fusion was found instead:
+
+  ```
+  dbt Fusion binary=/home/you/.local/bin/dbt
+  dbt Fusion version=2.0.9
+  Python is not needed in fusion mode
+  ```
+
+  If dbt Fusion isn't found, the first line reads `dbt Fusion binary=not found (looked next to the Python interpreter, in ~/.local/bin and on PATH)`. In dbt Core or dbt Cloud mode without the Python extension, the report says `The Python extension is not installed` and stops there.
 
 - **Workspace and Project Details**: Provides information about the active workspace and DBT projects, such as the version of DBT, project directory, and the first workspace path.
 
@@ -101,6 +132,10 @@ Running the command
 - type diagnostics and pick the option listed under the Power User for dbt extension name and press enter
   ![Diagnostics](images/diagnostics.png)
 - this should start a terminal window and print the diagnostic information
+
+### Toggle Line Comment inserts `{# #}`
+
+If Better Jinja (`samuelcolvin.jinjahtml`) is still installed, Toggle Line Comment in dbt SQL and YAML files inserts `{# #}` instead of `--` (SQL) or `#` (YAML). Both extensions define the `jinja-sql`, `jinja-yaml` and `jinja-md` languages, and Better Jinja's comment settings take precedence. Power User for dbt no longer needs Better Jinja, so uninstall it to get `--` and `#` back.
 
 ### Check Extension Logs
 
