@@ -259,19 +259,38 @@ export function debuggerSwitchRefusal(output) {
     ?.trim();
 }
 
-// Starts a Linux Cursor build with --remote-debugging-port and no display, so it exits at once:
-// with the refusal above, or with an X11 error from a build that accepts the switch.
+// What one start of a Linux Cursor build with a debugger switch and no display printed: the
+// refusal, or Chromium's X11 error, which only a build that got past its switch checks reaches.
+// Anything else (a missing library, a crash) says nothing about the switch.
+const NO_DISPLAY = /Missing X server or \$DISPLAY|The platform failed to initialize/;
+export function debuggerSwitchVerdict(output) {
+  const refusal = debuggerSwitchRefusal(output);
+  if (refusal) return { refusal };
+  if (NO_DISPLAY.test(output)) return { accepted: true };
+  const line = output.split(/\r?\n/).find((l) => l.trim());
+  return { unknown: line ? line.trim() : "no output" };
+}
+
+// Starts a Linux Cursor build once with each switch Playwright's Electron launch passes, with no
+// display, so each start exits at once. Returns { accepted: true } only when both got past the
+// switch checks, { refusal } for the first refused switch, or { unknown }.
 export function probeDebuggerSwitches(exe) {
   const env = { ...process.env };
   for (const key of ["ELECTRON_RUN_AS_NODE", "DISPLAY", "WAYLAND_DISPLAY"])
     delete env[key];
-  const run = spawnSync(exe, ["--remote-debugging-port=0", "--version"], {
-    encoding: "utf8",
-    timeout: 30000,
-    env,
-  });
-  if (run.error) return { error: run.error.message };
-  return { refusal: debuggerSwitchRefusal(`${run.stdout}\n${run.stderr}`) };
+  for (const flag of ["--inspect=0", "--remote-debugging-port=0"]) {
+    const run = spawnSync(exe, [flag, "--version"], {
+      encoding: "utf8",
+      timeout: 30000,
+      killSignal: "SIGKILL",
+      env,
+    });
+    if (run.error) return { unknown: `${flag}: ${run.error.message}` };
+    const verdict = debuggerSwitchVerdict(`${run.stdout}\n${run.stderr}`);
+    if (verdict.unknown) return { unknown: `${flag}: ${verdict.unknown}` };
+    if (verdict.refusal) return verdict;
+  }
+  return { accepted: true };
 }
 
 export function readIfExists(file) {

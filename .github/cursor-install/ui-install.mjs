@@ -540,9 +540,12 @@ let win;
 // Playwright 1.48 waits for Electron's inspector line and its DevTools line at the same time. When
 // Cursor exits before printing them, the launch rejects (handled below) and so does the second
 // wait, which nothing awaits: without this, Node would end the run before the result is written.
+// Only that rejection, and only from a launch that hasn't succeeded: once Cursor is up, or for
+// anything else, an unhandled rejection still ends the run.
+let launching = false;
 process.on("unhandledRejection", (error) => {
   const message = String(error?.message ?? error);
-  if (message.startsWith("Process failed to launch!")) return;
+  if (launching && message.startsWith("Process failed to launch!")) return;
   throw error;
 });
 // Last resort: never let a stuck Cursor hold the job until its timeout.
@@ -587,12 +590,14 @@ try {
   delete env.ELECTRON_RUN_AS_NODE;
   note(`launching ${cursor.exe}`);
   try {
+    launching = true;
     app = await _electron.launch({
       executablePath: cursor.exe,
       args: [...launchArgs, dirs.workspace],
       env,
       timeout: 180000,
     });
+    launching = false;
     win = await findWorkbenchWindow(app, 180000);
   } catch (error) {
     // A release build that refuses debugger switches exits before Playwright can attach.

@@ -2,8 +2,9 @@
 //
 //   node debugger-switches.mjs --cursor <dir>/cursor.json --pinned <version>
 //
-// Informational and always exits 0: a notice while the build still refuses them, a warning once it
-// accepts them, so the Linux ui rows can move from the pinned Cursor back to the latest.
+// Informational and always exits 0: a notice while the build still refuses them (or when the
+// check can't tell), a warning once it accepts both, so the Linux ui rows can move from the
+// pinned Cursor back to the latest.
 import {
   annotate,
   parseArgs,
@@ -14,13 +15,13 @@ import {
 const args = parseArgs(process.argv.slice(2));
 const cursor = readJson(args.cursor);
 const title = `Cursor ${cursor.version} debugger switches`;
-const { refusal, error } = probeDebuggerSwitches(cursor.exe);
-if (error) annotate("notice", title, `could not run it to check: ${error}`);
-else if (refusal) annotate("notice", title, `still refused: ${refusal}`);
-else
+const { refusal, accepted, unknown } = probeDebuggerSwitches(cursor.exe);
+if (accepted)
   annotate(
     "warning",
     title,
     `accepted: the Linux ui rows can move from Cursor ${args.pinned} to the latest ` +
       "(drop LINUX_UI_CURSOR_VERSION in .github/workflows/cursor-install.yml).",
   );
+else if (refusal) annotate("notice", title, `still refused: ${refusal}`);
+else annotate("notice", title, `couldn't tell: ${unknown}`);

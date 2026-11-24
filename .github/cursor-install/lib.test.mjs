@@ -4,6 +4,7 @@ import {
   activationState,
   annotate,
   debuggerSwitchRefusal,
+  debuggerSwitchVerdict,
   escapeData,
   escapeProperty,
   isInstallErrorLine,
@@ -142,4 +143,18 @@ test("a build that accepts debugger switches has no refusal", () => {
     "[31863:1124/222326.809655:ERROR:ui/aura/env.cc:246] The platform failed to initialize.  Exiting.",
   ].join("\n");
   assert.equal(debuggerSwitchRefusal(output), undefined);
+  assert.deepEqual(debuggerSwitchVerdict(output), { accepted: true });
+});
+
+test("a refused switch is a refusal, whatever else is printed", () => {
+  const line =
+    "--inspect is not supported in this build. Debugger switches work only in development builds.";
+  assert.deepEqual(debuggerSwitchVerdict(line), { refusal: line });
+});
+
+test("output with neither the refusal nor the display error proves nothing", () => {
+  const output =
+    "cursor: error while loading shared libraries: libnss3.so: cannot open shared object file";
+  assert.deepEqual(debuggerSwitchVerdict(output), { unknown: output });
+  assert.deepEqual(debuggerSwitchVerdict(""), { unknown: "no output" });
 });
