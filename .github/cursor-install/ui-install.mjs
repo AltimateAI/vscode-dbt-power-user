@@ -34,6 +34,7 @@ import {
   mb,
   newestLogDir,
   parseArgs,
+  probeDebuggerSwitches,
   PU_ID,
   readIfExists,
   readJson,
@@ -536,6 +537,14 @@ function watchQueries(page) {
 
 let app;
 let win;
+// Playwright 1.48 waits for Electron's inspector line and its DevTools line at the same time. When
+// Cursor exits before printing them, the launch rejects (handled below) and so does the second
+// wait, which nothing awaits: without this, Node would end the run before the result is written.
+process.on("unhandledRejection", (error) => {
+  const message = String(error?.message ?? error);
+  if (message.startsWith("Process failed to launch!")) return;
+  throw error;
+});
 // Last resort: never let a stuck Cursor hold the job until its timeout.
 const watchdog = setTimeout(
   () => {
@@ -586,9 +595,16 @@ try {
     });
     win = await findWorkbenchWindow(app, 180000);
   } catch (error) {
+    // A release build that refuses debugger switches exits before Playwright can attach.
+    const refusal =
+      process.platform === "linux"
+        ? probeDebuggerSwitches(cursor.exe).refusal
+        : undefined;
     throw harness(
       "launch",
-      `Cursor did not start: ${error.message.split("\n")[0]}`,
+      `Cursor did not start: ${error.message.split("\n")[0]}${
+        refusal ? ` (this build refuses debugger switches: "${refusal}")` : ""
+      }`,
     );
   }
   if (!win) {

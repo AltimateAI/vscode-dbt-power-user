@@ -1,4 +1,5 @@
 // Shared helpers for the Cursor install checks (.github/workflows/cursor-install.yml).
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -246,6 +247,31 @@ export function newestLogDir(userDataDir) {
   if (!fs.existsSync(root)) return undefined;
   const dirs = fs.readdirSync(root).sort();
   return dirs.length ? path.join(root, dirs[dirs.length - 1]) : undefined;
+}
+
+// The line a Cursor release build prints when it refuses debugger switches, and then exits:
+// "--remote-debugging-port is not supported in this build. Debugger switches work only in
+// development builds." Playwright's Electron launch passes --inspect and --remote-debugging-port.
+export function debuggerSwitchRefusal(output) {
+  return output
+    .split(/\r?\n/)
+    .find((line) => line.includes("is not supported in this build"))
+    ?.trim();
+}
+
+// Starts a Linux Cursor build with --remote-debugging-port and no display, so it exits at once:
+// with the refusal above, or with an X11 error from a build that accepts the switch.
+export function probeDebuggerSwitches(exe) {
+  const env = { ...process.env };
+  for (const key of ["ELECTRON_RUN_AS_NODE", "DISPLAY", "WAYLAND_DISPLAY"])
+    delete env[key];
+  const run = spawnSync(exe, ["--remote-debugging-port=0", "--version"], {
+    encoding: "utf8",
+    timeout: 30000,
+    env,
+  });
+  if (run.error) return { error: run.error.message };
+  return { refusal: debuggerSwitchRefusal(`${run.stdout}\n${run.stderr}`) };
 }
 
 export function readIfExists(file) {
