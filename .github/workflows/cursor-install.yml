@@ -6,7 +6,7 @@ name: Cursor install
 #
 # - cli: `cursor --install-extension` on Linux, macOS and Windows, for the latest Cursor and an older 2.x.
 # - ui: clicks Install in Cursor's Extensions view (Playwright + Electron) and waits for activation.
-#   On Linux it runs a pinned Cursor, because the latest Linux build refuses debugger switches (see env).
+#   It runs a pinned Cursor, because the latest Cursor refuses debugger switches (see env).
 # - trust-walk: replays the dependency walk Cursor before 3.11 runs before installing, for this
 #   checkout's package.json; fails when it would loop.
 # - mirror-lag: what Cursor's gallery serves per target, against Open VSX.
@@ -44,14 +44,14 @@ env:
   # downloads.cursor.com/production/<id>/... installer URLs.
   OLD_CURSOR_VERSION: "2.6.20"
   OLD_CURSOR_COMMIT: "b29eb4ee5f9f6d1cb2afbc09070198d3ea6ad76f"
-  # Pinned 2026-11-24: the Linux ui rows run this Cursor ("Cursor pinned") instead of the latest.
-  # Cursor 3.32.4's Linux build refuses debugger switches ("--remote-debugging-port is not supported
-  # in this build. Debugger switches work only in development builds."), and Playwright's Electron
-  # launch needs --inspect and --remote-debugging-port. Its macOS and Windows builds still accept
-  # them, so those rows stay on the latest. The pinned rows also check the latest Linux build and
-  # warn once it accepts the switches again: then drop the pin.
-  LINUX_UI_CURSOR_VERSION: "3.31.15"
-  LINUX_UI_CURSOR_COMMIT: "3eb8c13390837371c7c2f2013dc57fdbc802c753"
+  # Pinned 2026-11-24: the ui rows that ran the latest Cursor run this one ("Cursor pinned").
+  # Cursor 3.32.4 refuses debugger switches on Linux, macOS and Windows ("--remote-debugging-port is
+  # not supported in this build. Debugger switches work only in development builds."), and
+  # Playwright's Electron launch needs --inspect and --remote-debugging-port. The pinned Linux row
+  # also checks the latest Linux build and warns once it accepts the switches again: then drop the
+  # pin. The cli rows stay on the latest; --install-extension needs no debugger.
+  UI_CURSOR_VERSION: "3.31.15"
+  UI_CURSOR_COMMIT: "3eb8c13390837371c7c2f2013dc57fdbc802c753"
   PLAYWRIGHT_CORE_VERSION: "1.48.2"
 
 jobs:
@@ -89,8 +89,8 @@ jobs:
             for (const os of oses) {
               cli.push({ os, cursor: "latest", source: "gallery" });
               cli.push({ os, cursor: "old", source: "gallery" });
-              // Linux ui rows: LINUX_UI_CURSOR_VERSION (see env).
-              ui.push({ os, cursor: os === "ubuntu-latest" ? "pinned" : "latest", source: "gallery" });
+              // UI_CURSOR_VERSION instead of the latest (see env).
+              ui.push({ os, cursor: "pinned", source: "gallery" });
             }
             ui.push({ os: "ubuntu-latest", cursor: "old", source: "gallery" });
           }
@@ -216,18 +216,18 @@ jobs:
           if [ "${{ matrix.cursor }}" = "old" ]; then
             node .github/cursor-install/fetch-cursor.mjs --version "$OLD_CURSOR_VERSION" --commit "$OLD_CURSOR_COMMIT" --out "$RUNNER_TEMP/cursor"
           elif [ "${{ matrix.cursor }}" = "pinned" ]; then
-            node .github/cursor-install/fetch-cursor.mjs --version "$LINUX_UI_CURSOR_VERSION" --commit "$LINUX_UI_CURSOR_COMMIT" --out "$RUNNER_TEMP/cursor"
+            node .github/cursor-install/fetch-cursor.mjs --version "$UI_CURSOR_VERSION" --commit "$UI_CURSOR_COMMIT" --out "$RUNNER_TEMP/cursor"
           else
             node .github/cursor-install/fetch-cursor.mjs --version latest --out "$RUNNER_TEMP/cursor"
           fi
       # Informational: whether the latest Linux build accepts debugger switches again (see env).
-      - if: matrix.cursor == 'pinned'
+      - if: matrix.cursor == 'pinned' && runner.os == 'Linux'
         name: Check whether Cursor latest allows debugger switches
         shell: bash
         run: |
           node .github/cursor-install/fetch-cursor.mjs --version latest --out "$RUNNER_TEMP/cursor-latest" ||
             { echo "::warning title=Cursor latest::could not download it to check debugger switches"; exit 0; }
-          node .github/cursor-install/debugger-switches.mjs --cursor "$RUNNER_TEMP/cursor-latest/cursor.json" --pinned "$LINUX_UI_CURSOR_VERSION"
+          node .github/cursor-install/debugger-switches.mjs --cursor "$RUNNER_TEMP/cursor-latest/cursor.json" --pinned "$UI_CURSOR_VERSION"
       - name: Install Power User from Cursor's Extensions view
         shell: bash
         env:
