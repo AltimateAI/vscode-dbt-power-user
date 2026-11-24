@@ -1,5 +1,6 @@
 import {
   DBTTerminal,
+  PythonException,
   Table,
   TestMetaData,
   TestMetadataAcceptedValues,
@@ -7,7 +8,6 @@ import {
 } from "@altimateai/dbt-integration";
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import { inject } from "inversify";
-import { PythonException } from "python-bridge";
 import { gte } from "semver";
 import {
   CancellationToken,

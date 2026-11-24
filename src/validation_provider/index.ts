@@ -4,6 +4,7 @@ import {
 } from "@altimateai/dbt-integration";
 import { commands, Disposable, window, workspace } from "vscode";
 import { AltimateRequest } from "../altimate";
+import { getDbtIntegrationMode } from "../dbt_client/integrationMode";
 import { AltimateAuthService } from "../services/altimateAuthService";
 
 const validTenantRegex = new RegExp(/^[a-z_][a-z0-9_-]*$/);
@@ -49,9 +50,7 @@ export class ValidationProvider implements Disposable {
   }
 
   setDBTContext() {
-    let dbtIntegration = workspace
-      .getConfiguration("dbt")
-      .get<string>("dbtIntegration", "core");
+    let dbtIntegration = getDbtIntegrationMode();
 
     if (!["core", "cloud"].includes(dbtIntegration)) {
       dbtIntegration = "core";

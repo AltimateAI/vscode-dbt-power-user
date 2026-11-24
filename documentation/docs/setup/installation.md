@@ -1,4 +1,9 @@
-/// admonition | We've released our [Datamates Extension](https://marketplace.visualstudio.com/items?itemName=altimateai.vscode-altimate-mcp-server) - to give you the power to use AI TeamMates! [Click here](https://datamates-docs.myaltimate.com/) to learn more.
+---
+title: Install Power User for dbt — VS Code Extension
+description: "Install Power User for dbt from the VS Code Marketplace or via the Altimate Workspaces extension. Step-by-step guide."
+---
+
+/// admonition | The [Altimate Workspaces extension](https://marketplace.visualstudio.com/items?itemName=altimateai.vscode-altimate-mcp-server) brings your workspace's integrations, knowledge, memory and skills to your editor's AI agent. [Learn more](https://help.altimate.ai/workspaces/).
 ///
 
 There are a few different ways in which extension can be installed.
@@ -10,10 +15,10 @@ You can install the extension from VSCode directly or from the [VSCode Marketpla
 
 You can install the extension from Cursor or any other VSCode compatible editors directly or from the [Open VSX Registry](https://open-vsx.org/extension/innoverio/vscode-dbt-power-user)
 
-/// admonition | Cursor IDE users: Installation may freeze
+/// admonition | Cursor IDE users: Installation may spin without progress
     type: warning
 
-Some Cursor users experience the extension installation freezing for several minutes and showing a "Failed to fetch" error. This is a known Cursor issue. If you encounter this, please follow the [Cursor installation workaround](cursor_installation_workaround.md) to resolve it.
+In Cursor versions before 3.11.13, installing a release before 0.70.0 from the Extensions view can spin with no progress or end with a "Failed to fetch" error. Update Cursor to 3.11.13 or later, install Power User 0.70.0 or later, or see [Cursor installation troubleshooting](cursor_installation_workaround.md) for other fixes.
 ///
 
 
@@ -25,7 +30,7 @@ Some Cursor users experience the extension installation freezing for several min
 
 ///
 
-/// admonition | Need to setup environment variables? Refer to this [section](https://docs.myaltimate.com/setup/optConfig/#environment-variables-setup)
+/// admonition | Need to setup environment variables? Refer to this [section](/setup/optConfig/#environment-variables-setup)
     type: warning
 ///
 
@@ -63,3 +68,10 @@ Please add the following configuration in to your devcontainer.json file:
 /// admonition | Please do NOT forget to do required configuration based on your dbt setup: [dbt Core](reqdConfig.md), [dbt Cloud](reqdConfigCloud.md), or [dbt Fusion](reqdConfigFusion.md), and [optional configuration](optConfig.md)!!
     type: warning
 ///
+
+## Watch the Video
+
+<figure class="video-clip">
+<div class="video-clip__frame"><iframe src="https://www.youtube.com/embed/1yWejM5YW1o?rel=0&amp;start=38" title="Power User multiple features demo" loading="lazy" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
+<figcaption>Video (44:55): Power User multiple features demo. It starts at 0:38, where this page's feature begins. <a href="https://www.youtube.com/watch?v=1yWejM5YW1o&amp;t=38s" target="_blank" rel="noopener">Watch on YouTube</a>.</figcaption>
+</figure>

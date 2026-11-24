@@ -1,4 +1,3 @@
-import { AddIcon } from "@assets/icons";
 import { executeRequestInAsync } from "@modules/app/requestExecutor";
 import { Button } from "@uicore";
 
@@ -11,9 +10,9 @@ const RunAdhocQueryButton = (): JSX.Element => {
       aria-label="open-adhoc-query"
       outline
       onClick={handleClick}
-      icon={<AddIcon />}
+      title="New query"
     >
-      New query
+      +Q
     </Button>
   );
 };

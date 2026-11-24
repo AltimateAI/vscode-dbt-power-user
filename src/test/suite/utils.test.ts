@@ -181,7 +181,7 @@ describe("utils tests", () => {
     it("appends the support link to a string message", () => {
       const msg = extendErrorWithSupportLinks("problem");
       expect(msg).toBe(
-        "problem If the issue persists, please [contact us](https://www.altimate.ai/support) via chat or Slack",
+        "problem If the issue persists, please [contact us](https://www.altimate.ai/support?utm_source=dbt-power-user&utm_medium=extension) via chat or Slack",
       );
     });
 
@@ -197,7 +197,7 @@ describe("utils tests", () => {
         () => (msg = extendErrorWithSupportLinks(undefined)),
       ).not.toThrow();
       expect(msg).toBe(
-        "If the issue persists, please [contact us](https://www.altimate.ai/support) via chat or Slack",
+        "If the issue persists, please [contact us](https://www.altimate.ai/support?utm_source=dbt-power-user&utm_medium=extension) via chat or Slack",
       );
     });
 
@@ -205,7 +205,7 @@ describe("utils tests", () => {
       let msg = "";
       expect(() => (msg = extendErrorWithSupportLinks(null))).not.toThrow();
       expect(msg).toBe(
-        "If the issue persists, please [contact us](https://www.altimate.ai/support) via chat or Slack",
+        "If the issue persists, please [contact us](https://www.altimate.ai/support?utm_source=dbt-power-user&utm_medium=extension) via chat or Slack",
       );
     });
 

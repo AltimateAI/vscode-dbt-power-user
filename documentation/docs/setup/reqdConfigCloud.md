@@ -1,16 +1,21 @@
+---
+title: dbt Cloud Configuration — Power User for dbt
+description: "Configure Power User for dbt to connect to dbt Cloud with your service token and account details."
+---
+
 /// admonition | Only use the following steps for "dbt Cloud" environments. If you have a dbt Core environment, use the [required config instructions for "dbt Core" environments](./reqdConfig.md). If you have a dbt Fusion environment, use the [required config instructions for "dbt Fusion" environments](./reqdConfigFusion.md).
-    type: warning
+type: warning
 ///
 
 /// admonition | dbt Cloud integration is available as beta functionality
-    type: tip
+type: tip
 ///
 
 ## Enable dbt Cloud Integration by adding an API key
 
-dbt Cloud integration in Power User VSCode extension requires an API key. There are also multiple preview features in the extension including [generate dbt documentation](../document/generatedoc.md), [column lineage](../test/lineage.md), [query explanation](../develop/explanation.md), [generate dbt model from SQL](../develop/genmodelSQL.md) that are also enabled with an API key.
+dbt Cloud integration in the Power User for dbt extension requires an API key. There are also multiple preview features in the extension including [generate dbt documentation](../document/generatedoc.md), [column lineage](../test/lineage.md), [query explanation](../develop/explanation.md), [generate dbt model from SQL](../develop/genmodelSQL.md) that are also enabled with an API key.
 
-/// details | You can get an API key for free by signing up at [www.altimate.ai](https://www.altimate.ai)
+/// details | You can get an API key for free by signing up at [www.altimate.ai](https://www.altimate.ai?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link)
 
 <interactive demo to get an API key>
 
@@ -31,8 +36,8 @@ Go to the VSCode extension settings, and then add an API key and instance name.
 
 ## Use the setup wizard for configuration (recommended)
 
-/// admonition | Need to setup environment variables? Refer to this [section](https://docs.myaltimate.com/setup/optConfig/#environment-variables-setup)
-    type: warning
+/// admonition | Need to setup environment variables? Refer to this [section](/setup/optConfig/#environment-variables-setup)
+type: warning
 ///
 
 This method will save a bunch of time for you, and you can also validate your configuration. Setup wizard will help you in associating sql files with jinja-sql, selecting the right Python interpreter, make sure dbt dependencies are correctly installed etc. In the end, it will also validate your configuration.
@@ -40,16 +45,26 @@ This method will save a bunch of time for you, and you can also validate your co
 You can start the setup wizard by clicking on dbt status icon in bottom status bar, and performing following necessary steps as shown in the recorded demo below:
 
 <div style="position: relative; box-sizing: content-box; max-height: 80vh; max-height: 80svh; width: 100%; aspect-ratio: 1.50; padding: 40px 0 40px 0;">
-  <iframe src="https://app.supademo.com/embed/cmnt0ivy300g4w80j5zufa5p7?embed_v=2&utm_source=embed" loading="lazy" title="dbt Power User Setup guide-Cloud" allow="clipboard-write" frameborder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
+  <iframe src="https://app.supademo.com/embed/cmnt0ivy300g4w80j5zufa5p7?embed_v=2&utm_source=embed" loading="lazy" title="Power User for dbt Setup guide-Cloud" allow="clipboard-write" frameborder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
 
 **Here are the steps covered in the setup wizard**
+
+/// admonition | The dbt Cloud CLI needs the Python extension
+    type: info
+
+Installing Power User for dbt doesn't install the Python extension (`ms-python.python`). Without it, Power User shows:
+
+> The dbt Cloud CLI runs through the Python extension, which is not installed. Install it, or switch dbt.dbtIntegration to fusion to use dbt Fusion without Python.
+
+Install the Python extension: **Install Python extension** installs it and then offers **Reload window**, and in the Get Started panel the Python interpreter check offers **Install Python Extension**. If your project runs on dbt Fusion, set `dbt.dbtIntegration` to `fusion` instead. The prompt also doesn't appear when `dbt.dbtPythonPathOverride` names an interpreter that exists, but avoid that setting unless you use Meltano; see [the warning about Python path overrides](reqdConfig.md#associate-python-interpreter-with-dbt-installation).
+///
 
 **Select Python Interpreter**
 
 Click on the action button - "Select Python Interpreter" and choose your preferred python interpreter. Usually, choosing interpreter that's recommended, or mapped to your virtual environment software (e.g. venv) as per the list is a good idea. If you know the path of your Python envionment, you can choose it from the list or if the path is not present there, you can enter it manually.
 
 /// admonition | If needed, please run 'where python' command on terminal to see if it shows path to Python interpreter that you are using.
-    type: tip
+type: tip
 ///
 
 **Install dbt**
@@ -62,7 +77,7 @@ Last step is clicking on button - "Validate Project" It will run a bunch of chec
 If there are some issues, it will tell you exactly what's wrong as well.
 
 /// admonition | If you still can't get the extension setup correctly, please check the [troubleshooting page](../troubleshooting.md)
-    type: tip
+type: tip
 ///
 
 ## Questions and Answers
@@ -83,7 +98,7 @@ A direct line of communication with our users is established with the authentica
 
 #### What if I don't want to use preview features or accidentally send data to Altimate?
 
-We understand the concern about using preview features and the risk of accidental data transmission. To address this, we have implemented stringent data security practices, which you can review in our [security FAQ](https://docs.myaltimate.com/arch/faq/). Our solutions have passed security reviews by several large organizations in the US, and we are open to undergoing similar reviews for your organization. Additionally, we are working on making some preview features available offline through our [open-source Python CLI package](https://github.com/AltimateAI/datapilot-cli).
+We understand the concern about using preview features and the risk of accidental data transmission. To address this, we have implemented stringent data security practices, which you can review in our [security FAQ](/arch/faq/). Our solutions have passed security reviews by several large organizations in the US, and we are open to undergoing similar reviews for your organization. Additionally, we are working on making some preview features available offline through our [open-source Python CLI package](https://github.com/AltimateAI/datapilot-cli).
 
 #### How are you addressing concerns about data transmission in preview features?
 

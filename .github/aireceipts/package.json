@@ -1,0 +1,8 @@
+{
+  "name": "aireceipts-ci",
+  "private": true,
+  "description": "Pinned dependency tree for the aireceipts PR check (.github/workflows/aireceipts.yml). Bump aireceipts-cli deliberately and regenerate package-lock.json.",
+  "dependencies": {
+    "aireceipts-cli": "0.11.0"
+  }
+}

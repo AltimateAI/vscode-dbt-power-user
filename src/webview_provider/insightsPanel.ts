@@ -21,6 +21,13 @@ import {
 } from "vscode";
 import { AltimateRequest, DBTCoreIntegration } from "../altimate";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
+import { getDbtIntegrationMode } from "../dbt_client/integrationMode";
+import {
+  findMissingPython,
+  missingPythonMessage,
+  promptForPython,
+  stampBlocked,
+} from "../pythonRequiredFeature";
 import { AltimateAuthService } from "../services/altimateAuthService";
 import { AltimateCodeChatService } from "../services/altimateCodeChatService";
 import { QueryManifestService } from "../services/queryManifestService";
@@ -53,6 +60,14 @@ type SelectFilesProps = {
 enum PromptAnswer {
   YES = "Install altimate datapilot cli",
 }
+
+// The healthcheck runs the Python datapilot package, in every dbt mode.
+const HEALTHCHECK_NEEDS = "The project healthcheck needs";
+
+// datapilot validates the manifest against the dbt 1.x schema, which rejects
+// the manifests dbt Fusion writes.
+export const HEALTHCHECK_FUSION_MESSAGE =
+  "The project healthcheck isn't available in dbt Fusion mode yet: altimate-datapilot-cli can't read the manifests dbt Fusion writes in the versions we've tested.";
 
 export class InsightsPanel extends AltimateWebviewProvider {
   public static readonly viewType = "dbtPowerUser.Insights";
@@ -98,9 +113,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
           if (this._panel) {
             const currentProject = await this.getCurrentProject();
 
-            const dbtIntegrationMode = workspace
-              .getConfiguration("dbt")
-              .get<string>("dbtIntegration", "core");
+            const dbtIntegrationMode = getDbtIntegrationMode();
 
             const projectPath = this.getCurrentProject();
             if (!projectPath) {
@@ -467,6 +480,17 @@ export class InsightsPanel extends AltimateWebviewProvider {
     });
   }
 
+  // Answers the panel with why the healthcheck did not run.
+  private postHealthcheckNotice(
+    syncRequestId: string | undefined,
+    message: string,
+  ) {
+    this._panel?.webview.postMessage({
+      command: "response",
+      args: { syncRequestId, body: { notice: { message } }, status: true },
+    });
+  }
+
   private emitError(syncRequestId: string | undefined, errorMsg: string) {
     window.showErrorMessage(errorMsg);
     this._panel!.webview.postMessage({
@@ -479,16 +503,54 @@ export class InsightsPanel extends AltimateWebviewProvider {
     syncRequestId: string | undefined,
     args: DataPilotHealtCheckParams,
   ) {
+    // dbt Fusion first: the healthcheck cannot run there even with Python.
+    if (
+      this.dbtProjectContainer
+        .getProjects()
+        .find((p) => p.projectRoot.fsPath === args.projectRoot)
+        ?.isFusionIntegration()
+    ) {
+      stampBlocked(
+        this.telemetry,
+        "performDatapilotHealthcheck",
+        "fusionManifest",
+      );
+      this.postHealthcheckNotice(syncRequestId, HEALTHCHECK_FUSION_MESSAGE);
+      return;
+    }
+    const missingPython = findMissingPython(
+      this.dbtProjectContainer.getPythonEnvironment(),
+    );
+    if (missingPython) {
+      stampBlocked(
+        this.telemetry,
+        "performDatapilotHealthcheck",
+        missingPython,
+      );
+      this.postHealthcheckNotice(
+        syncRequestId,
+        missingPythonMessage(HEALTHCHECK_NEEDS, missingPython),
+      );
+      void promptForPython(HEALTHCHECK_NEEDS, missingPython);
+      return;
+    }
     try {
       this.validationProvider.throwIfNotAuthenticated();
       await this.altimateRequest.logDBTHealthcheckStartScan();
     } catch (e) {
       this.emitError(syncRequestId, (e as Error).message);
+      this.dbtTerminal.error(
+        "atimateDatapilotStartScan",
+        "Error while starting project governance scan",
+        e,
+      );
       return;
     }
-    let isInstalled = false;
+    let datapilotStatus: Awaited<
+      ReturnType<DBTProjectContainer["checkIfAltimateDatapilotInstalled"]>
+    >;
     try {
-      isInstalled =
+      datapilotStatus =
         await this.dbtProjectContainer.checkIfAltimateDatapilotInstalled();
     } catch (e) {
       this.emitError(
@@ -504,11 +566,16 @@ export class InsightsPanel extends AltimateWebviewProvider {
       );
       return;
     }
-    if (!isInstalled) {
+    if (!datapilotStatus.isInstalled) {
       const answer = await window.showInformationMessage(
         "Altimate datapilot cli is not detected. Install it?",
         PromptAnswer.YES,
       );
+      this.telemetry.sendTelemetryEvent("atimateDatapilotInstallPrompt", {
+        installedVersion: datapilotStatus.installedVersion,
+        requiredVersion: datapilotStatus.requiredVersion ?? "",
+        accepted: String(answer === PromptAnswer.YES),
+      });
       if (answer !== PromptAnswer.YES) {
         this.emitError(
           syncRequestId,
@@ -557,6 +624,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
         await this.dbtProjectContainer.executeAltimateDatapilotHealthcheck(
           args,
         );
+      this.telemetry.sendTelemetryEvent("performDatapilotHealthcheckSuccess");
       if (this._panel?.visible) {
         window.showInformationMessage("Healthcheck completed successfully.");
         this._panel!.webview.postMessage({
@@ -696,9 +764,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
           projectRoot,
         );
 
-        const dbtIntegrationMode = workspace
-          .getConfiguration("dbt")
-          .get<string>("dbtIntegration", "core");
+        const dbtIntegrationMode = getDbtIntegrationMode();
 
         this.sendResponseToWebview({
           command: "response",

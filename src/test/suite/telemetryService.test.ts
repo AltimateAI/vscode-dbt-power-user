@@ -6,8 +6,10 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import { runInNewContext } from "vm";
 import * as vscode from "vscode";
 import { TelemetryService, __TELEMETRY_INTERNALS__ } from "../../telemetry";
+import { dbtVersionLabels } from "../../telemetry/dbtEnvironment";
 
 /**
  * 0.60.7 telemetry surfaced diagnosability gaps in `sendTelemetryError`:
@@ -80,6 +82,25 @@ describe("TelemetryService.sendTelemetryError forwards diagnostic fields", () =>
     ];
     return { properties, measurements: measurements ?? {} };
   };
+
+  it("forwards errorClass when the error object carries one", () => {
+    // The dbt-integration bridge sets `errorClass` on its PythonException so
+    // dbt refusing the user's project is told apart from a defect of ours.
+    const err = Object.assign(
+      new Error("Runtime Error\n  Could not find profile named 'default'"),
+      { errorClass: "dbt_project" },
+    );
+    telemetry.sendTelemetryError("pythonBridgeReinitError", err);
+    expect(captureCall().properties.errorClass).toBe("dbt_project");
+  });
+
+  it("emits no errorClass when the error object has none or it is not a string", () => {
+    telemetry.sendTelemetryError(
+      "pythonBridgeReinitError",
+      Object.assign(new Error("boom"), { errorClass: 42 }),
+    );
+    expect(captureCall().properties.errorClass).toBeUndefined();
+  });
 
   it("forwards error.name as a top-level property", () => {
     const err = new TypeError("Cannot destructure property 'returnResult'");
@@ -475,5 +496,173 @@ describe("sanitizeForTelemetry (slim safety net)", () => {
   it("returns empty string for empty / undefined input", () => {
     expect(sanitizeForTelemetry(undefined)).toBe("");
     expect(sanitizeForTelemetry("")).toBe("");
+  });
+});
+
+describe("TelemetryService stamps the dbt setup and Fusion failure classes", () => {
+  let telemetry: TelemetryService;
+  let reporterEventSpy: jest.Mock;
+  let reporterErrorSpy: jest.Mock;
+
+  beforeEach(() => {
+    setupVscodeEnv();
+    telemetry = new TelemetryService();
+    reporterEventSpy = jest.fn();
+    reporterErrorSpy = jest.fn();
+    (telemetry as unknown as { telemetryReporter: unknown }).telemetryReporter =
+      {
+        sendTelemetryEvent: reporterEventSpy,
+        sendTelemetryErrorEvent: reporterErrorSpy,
+        dispose: jest.fn(),
+      };
+  });
+
+  afterEach(() => {
+    telemetry.dispose();
+    delete (vscode as { env?: unknown }).env;
+  });
+
+  const propertiesOf = (spy: jest.Mock) => {
+    expect(spy).toHaveBeenCalledTimes(1);
+    return (spy.mock.calls[0] as [string, Record<string, string>])[1];
+  };
+
+  it("carries the stamped setup on routine and error events", () => {
+    telemetry.setTelemetryCustomAttribute("dbtVersion", "1.12.6");
+    telemetry.setTelemetryCustomAttribute("dbtVersionMinor", "1.12");
+    telemetry.setTelemetryCustomAttribute("dbtAdapter", "snowflake");
+
+    telemetry.sendTelemetryEvent("compileQuery");
+    telemetry.sendTelemetryError("compileQueryError", new Error("boom"));
+
+    for (const properties of [
+      propertiesOf(reporterEventSpy),
+      propertiesOf(reporterErrorSpy),
+    ]) {
+      expect(properties).toMatchObject({
+        dbtVersion: "1.12.6",
+        dbtVersionMinor: "1.12",
+        dbtAdapter: "snowflake",
+      });
+    }
+  });
+
+  it("drops a removed attribute from later events", () => {
+    telemetry.setTelemetryCustomAttribute("dbtFusionVersion", "2.0.9");
+    telemetry.deleteTelemetryCustomAttribute("dbtFusionVersion");
+
+    telemetry.sendTelemetryEvent("compileQuery");
+
+    expect(propertiesOf(reporterEventSpy)).not.toHaveProperty(
+      "dbtFusionVersion",
+    );
+  });
+
+  // How each known failure reaches the service: dbt-integration reports the
+  // first three through DBTTerminal.error (sendTelemetryError) and two through
+  // DBTTerminal.warn (sendTelemetryEvent); the extension sends the docs one.
+  const errorCases: [string, unknown, string][] = [
+    [
+      "dbtFusionCannotParseProjectCommandExecuteError",
+      new Error(
+        'Command not found: "dbt". The "dbt" executable is not installed or is not on your system PATH.',
+      ),
+      "binary_missing",
+    ],
+    [
+      "dbtFusionCannotParseProjectCommandExecuteError",
+      Object.assign(new Error("spawn dbt ENOENT"), { code: "ENOENT" }),
+      "binary_missing",
+    ],
+    [
+      "dbtFusionCannotParseProjectCommandExecuteError",
+      { code: "ENOENT", message: "spawn dbt ENOENT" },
+      "binary_missing",
+    ],
+    [
+      "dbtFusionCannotParseProjectCommandExecuteError",
+      { message: 'Command not found: "dbt".' },
+      "binary_missing",
+    ],
+    [
+      "dbtFusionCannotParseProjectCommandExecuteError",
+      runInNewContext(
+        'Object.assign(new Error("spawn dbt ENOENT"), { code: "ENOENT" })',
+      ),
+      "binary_missing",
+    ],
+    [
+      "dbtFusionCannotParseProjectCommandExecuteError",
+      new Error("Error occurred during process execution: EACCES"),
+      "parse_command_failed",
+    ],
+    [
+      "dbtFusionCannotParseProjectCommandExecuteError",
+      "Command not found",
+      "parse_command_failed",
+    ],
+    [
+      "dbtFusionParseProjectUserError",
+      new Error("dbt1005: Failed to parse model"),
+      "project_parse_error",
+    ],
+    [
+      "RebuildManifestErrorsAndWarningsJSONParsingError",
+      new SyntaxError("Unexpected token"),
+      "parse_output_unreadable",
+    ],
+  ];
+
+  it.each(errorCases)(
+    "labels the error event %s as its failure class",
+    (eventName, error, expected) => {
+      telemetry.sendTelemetryError(eventName, error);
+
+      expect(propertiesOf(reporterErrorSpy).fusionFailureClass).toBe(expected);
+    },
+  );
+
+  const eventCases: [string, string][] = [
+    ["DBTFusionCommandInitializeTargetError", "initialize_target_failed"],
+    ["DBTFusionProjectNameFromConfigExceptionError", "project_name_unreadable"],
+    ["generateDocsUnsupported", "docs_unsupported"],
+  ];
+
+  it.each(eventCases)(
+    "labels the event %s as its failure class",
+    (eventName, expected) => {
+      telemetry.sendTelemetryEvent(eventName, { level: "warn" });
+
+      expect(propertiesOf(reporterEventSpy).fusionFailureClass).toBe(expected);
+    },
+  );
+
+  it("leaves any other event without a failure class", () => {
+    telemetry.sendTelemetryError("compileQueryError", new Error("boom"));
+    telemetry.sendTelemetryEvent("toString");
+
+    expect(propertiesOf(reporterErrorSpy)).not.toHaveProperty(
+      "fusionFailureClass",
+    );
+    expect(propertiesOf(reporterEventSpy)).not.toHaveProperty(
+      "fusionFailureClass",
+    );
+  });
+});
+
+describe("dbtVersionLabels", () => {
+  it.each([
+    [[1, 12, 6], "1.12.6", "1.12"],
+    [[2, 0, 9], "2.0.9", "2.0"],
+    [[1, 8, 0, 1], "1.8.0", "1.8"],
+    [[0, 0, 0], "unknown", "unknown"],
+    [undefined, "unknown", "unknown"],
+    [[], "unknown", "unknown"],
+    [[1, 12], "unknown", "unknown"],
+    [[1, Number.NaN, 0], "unknown", "unknown"],
+    [[1, -1, 0], "unknown", "unknown"],
+    ["1.12.6", "unknown", "unknown"],
+  ])("reads %p as %s / %s", (version, full, minor) => {
+    expect(dbtVersionLabels(version)).toEqual({ full, minor });
   });
 });

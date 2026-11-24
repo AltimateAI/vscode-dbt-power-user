@@ -1,6 +1,8 @@
 import TelemetryReporter from "@vscode/extension-telemetry";
 import { createHash } from "crypto";
 import * as vscode from "vscode";
+import { getDbtIntegrationMode } from "../dbt_client/integrationMode";
+import { fusionFailureClassProperties } from "./dbtEnvironment";
 
 const POWER_USER_EXTENSION_MARKER = "innoverio.vscode-dbt-power-user";
 
@@ -17,6 +19,10 @@ export class TelemetryService implements vscode.Disposable {
 
   setTelemetryCustomAttribute(key: string, value: string) {
     this.customAttributes[key] = value;
+  }
+
+  deleteTelemetryCustomAttribute(key: string) {
+    delete this.customAttributes[key];
   }
 
   startTelemetryEvent(
@@ -71,14 +77,13 @@ export class TelemetryService implements vscode.Disposable {
         instanceName: vscode.workspace
           .getConfiguration("dbt")
           .get<string>("altimateInstanceName"),
-        dbtIntegrationMode: vscode.workspace
-          .getConfiguration("dbt")
-          .get<string>("dbtIntegration", "core"),
+        dbtIntegrationMode: getDbtIntegrationMode(),
         localMode: vscode.workspace
           .getConfiguration("dbt")
           .get<boolean>("isLocalMode", false)
           ? "true"
           : "false",
+        ...fusionFailureClassProperties(eventName),
         ...this.customAttributes,
       },
       measurements,
@@ -104,9 +109,7 @@ export class TelemetryService implements vscode.Disposable {
         instanceName: vscode.workspace
           .getConfiguration("dbt")
           .get<string>("altimateInstanceName"),
-        dbtIntegrationMode: vscode.workspace
-          .getConfiguration("dbt")
-          .get<string>("dbtIntegration", "core"),
+        dbtIntegrationMode: getDbtIntegrationMode(),
         localMode: vscode.workspace
           .getConfiguration("dbt")
           .get<boolean>("isLocalMode", false)
@@ -115,6 +118,7 @@ export class TelemetryService implements vscode.Disposable {
         stack: sanitizeForTelemetry(rawStack),
         ...this.extractErrorFields(error),
         ...structured.properties,
+        ...fusionFailureClassProperties(eventName, error),
         ...this.customAttributes,
       },
       {
@@ -139,6 +143,15 @@ export class TelemetryService implements vscode.Disposable {
     const code = (error as { code?: unknown }).code;
     if (typeof code === "string" || typeof code === "number") {
       fields.error_code = String(code);
+    }
+    // `errorClass` is the per-error verdict the throwing code assigned (the
+    // dbt-integration bridge marks dbt refusing the user's project as
+    // `dbt_project`, an interpreter that cannot import dbt as `python_env`,
+    // a warehouse refusal as `warehouse`). It tells triage whose failure this
+    // is without parsing a message the PII redactor may have masked.
+    const errorClass = (error as { errorClass?: unknown }).errorClass;
+    if (typeof errorClass === "string" && errorClass) {
+      fields.errorClass = errorClass;
     }
     return fields;
   }

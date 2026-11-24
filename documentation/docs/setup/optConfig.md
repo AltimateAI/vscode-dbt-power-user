@@ -1,10 +1,15 @@
+---
+title: Optional Configuration — Power User for dbt
+description: "Optional VS Code settings for Power User for dbt including formatting preferences, UI options, and advanced configuration."
+---
+
 ## Environment Variables Setup
 
 There are multiple sources from where the extension reads the environment variables.
 
 - [Using vscode Integrated terminal Profiles](#environment-variables-setup-using-the-integrated-terminal-profiles-vscodesettingsjson)
 - [Variables set outside of Visual Code in .zshrc or .bashrc](#environment-variables-set-outside-of-visual-code-zshrc-bashrc)
-- [dot env file (we get this from python extension)](#environment-variables-through-pythonenvfile)
+- [dot env file (we get this from python extension, when it is installed)](#environment-variables-through-pythonenvfile)
 
 /// admonition | Environment variable available in vscode terminal doesn't necessarily will be available to the extension. Extension can only read environment variables if available in the above sources
     type: warning
@@ -58,6 +63,10 @@ The official documentation can be found [here](https://code.visualstudio.com/doc
 
 The extension also loads an environment variable definitions file identified by the python.envFile setting. The default value of this setting is `${workspaceFolder}/.env`.
 
+/// admonition | The .env file is read through the Python extension (`ms-python.python`), so it is loaded only when the Python extension is installed. In dbt Fusion mode without the Python extension, set the variables in your shell profile or in the integrated terminal settings above.
+    type: info
+///
+
 This way supports all Visual Code variable substitution patterns but the environment variables will not be available to the vscode terminal. Read all about [environment variables](https://code.visualstudio.com/docs/python/environments#_environment-variables) supported by the Visual Code Python extension.
 
 /// admonition | Make sure the .env file is in the [right format](https://www.dotenv.org/docs/security/env) or else the extension won't be able to detected the variables.
@@ -69,7 +78,7 @@ This way supports all Visual Code variable substitution patterns but the environ
 We have a debugging utility available within the extension that lists down the environment variables available to the extension and the source from where it is read. Here is how you can trigger the debugging utility
 
 1. Cmd +Shift + P (Ctrl + Shift + P in case of windows) to start the VSCode command bar
-2. Select the option dbt Power User: Print environment variable
+2. Select the option Power User for dbt: Print environment variable
    ![Debug Command](images/debugCmd.png)
 3. It should print all the environment variables detected and the sources as well
    ![Sample Output](images/listEnvVariables.png)
@@ -196,7 +205,7 @@ You can configure the path to sqlfmt through `dbt.sqlFmtPath` and you can config
 
 ### Usage
 
-Please select "dbt Power User" (extension id:`innoverio.vscode-dbt-power-user`) as the default formatter. You can do this either by using the context menu (right click on a open dbt model in the editor) and select "Format Document With...", or you can add the following to your settings:
+Please select "Power User for dbt" (extension id:`innoverio.vscode-dbt-power-user`) as the default formatter. You can do this either by using the context menu (right click on a open dbt model in the editor) and select "Format Document With...", or you can add the following to your settings:
 
 ```json
   "[jinja-sql]": {

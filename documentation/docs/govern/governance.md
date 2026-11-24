@@ -1,3 +1,10 @@
+---
+title: dbt Governance & Best Practices — Power User for dbt
+description: "Prevent shipping issues by scanning dbt models against best practices and governance rules in Power User for dbt."
+video_id: 3nJ9otNNIwQ
+video_upload_date: "2026-06-11T00:00:00Z"
+---
+
 Prevent issues from getting shipped to production! Project governance functionality lets you swiftly scan all dbt projects in your workspace against dbt best practices and organizational guidelines to quickly bring issues to your attention.
 
 ## Available via Extension & Python Package
@@ -81,3 +88,8 @@ Checks between the Python package and Power User extension are the same. You can
 ## Recorded Demo
 
 <iframe width="800" height="600" src="https://www.youtube.com/embed/3nJ9otNNIwQ?si=2K-bzC0_q74o6VXZ" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+<figure class="video-clip">
+<div class="video-clip__frame"><iframe src="https://www.youtube.com/embed/1yWejM5YW1o?rel=0&amp;start=2106" title="Power User multiple features demo" loading="lazy" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
+<figcaption>Video (44:55): Power User multiple features demo. It starts at 35:06, where this page's feature begins. <a href="https://www.youtube.com/watch?v=1yWejM5YW1o&amp;t=2106s" target="_blank" rel="noopener">Watch on YouTube</a>.</figcaption>
+</figure>

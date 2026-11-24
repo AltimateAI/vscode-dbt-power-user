@@ -9,6 +9,7 @@ import {
 import * as fs from "fs";
 import { inject } from "inversify";
 import { basename } from "path";
+import { gte, valid } from "semver";
 import {
   commands,
   Disposable,
@@ -23,16 +24,29 @@ import { AltimateRequest } from "../altimate";
 import { DBTClient } from "../dbt_client";
 import { AltimateDatapilot } from "../dbt_client/datapilot";
 import { extractDbtSubcommand } from "../utils";
-import { DBTProject } from "./dbtProject";
+import { DBTProject, PreviewMode } from "./dbtProject";
 import { DBTWorkspaceFolder } from "./dbtWorkspaceFolder";
 import {
   ManifestCacheChangedEvent,
   RebuildManifestCombinedStatusChange,
+  RebuildManifestStatusChange,
 } from "./event/manifestCacheChangedEvent";
 
-enum PromptAnswer {
-  YES = "Yes",
-  IGNORE = "Ignore",
+/**
+ * Get Started progress for this workspace, kept so the page reopens where
+ * the user left it. Whether it opens on first run at all is the global
+ * `showSetupWalkthrough`.
+ */
+export const ONBOARDING_STATE_KEY = "onboarding.state";
+
+export interface OnboardingState {
+  screen?: string;
+  projectRoot?: string;
+  validation?: { models: number; seeds: number; tests: number } | null;
+  workspaceSkipped?: boolean;
+  /** Reopen the page on the next activation, after a window reload. */
+  resume?: boolean;
+  finished?: boolean;
 }
 
 export interface ProjectRegisteredUnregisteredEvent {
@@ -55,6 +69,8 @@ export class DBTProjectContainer implements Disposable {
   private _onProjectRegisteredUnregistered =
     new EventEmitter<ProjectRegisteredUnregisteredEvent>();
   public readonly onManifestChanged = this._onManifestChanged.event;
+  public readonly onProjectRegisteredUnregistered =
+    this._onProjectRegisteredUnregistered.event;
   private disposables: Disposable[] = [
     this._onManifestChanged,
     this._onProjectRegisteredUnregistered,
@@ -66,6 +82,11 @@ export class DBTProjectContainer implements Disposable {
   readonly onRebuildManifestStatusChange =
     this._onRebuildManifestStatusChange.event;
   private rebuildManifestStatusChangeMap = new Map<string, boolean>();
+  private _onProjectRebuildManifestStatusChange =
+    new EventEmitter<RebuildManifestStatusChange>();
+  /** Each project's manifest rebuild starting and ending. */
+  readonly onProjectRebuildManifestStatusChange =
+    this._onProjectRebuildManifestStatusChange.event;
 
   constructor(
     private dbtClient: DBTClient,
@@ -129,25 +150,23 @@ export class DBTProjectContainer implements Disposable {
     this._onDBTProjectsInitializationEvent.fire({});
   }
 
-  async showWalkthrough() {
-    const answer = await window.showInformationMessage(
-      `Thanks for installing dbt Power User. Do you need help setting up the extension?`,
-      PromptAnswer.YES,
-      PromptAnswer.IGNORE,
-    );
-    commands.executeCommand(
-      "setContext",
-      "dbtPowerUser.showSetupWalkthrough",
-      false,
-    );
-    if (answer === PromptAnswer.YES) {
-      commands.executeCommand("dbtPowerUser.openOnboarding");
-    }
-    this.setToGlobalState("showSetupWalkthrough", false);
-  }
-
   async initializeWalkthrough() {
-    // show setup walkthrough if needed
+    const onboarding = this.getFromWorkspaceState(ONBOARDING_STATE_KEY) as
+      | OnboardingState
+      | undefined;
+    // Changing the integration type reloads the window mid-flow.
+    if (onboarding?.resume) {
+      this.setToWorkspaceState(ONBOARDING_STATE_KEY, {
+        ...onboarding,
+        resume: false,
+      });
+      commands.executeCommand(
+        "dbtPowerUser.openOnboarding",
+        undefined,
+        "resume",
+      );
+      return;
+    }
     const isWalkthroughDisabledFromSettings = workspace
       .getConfiguration("dbt")
       .get("hideWalkthrough", false);
@@ -155,16 +174,36 @@ export class DBTProjectContainer implements Disposable {
       "showSetupWalkthrough",
     );
     if (
-      !isWalkthroughDisabledFromSettings &&
-      (showSetupWalkthrough === undefined || showSetupWalkthrough === true)
+      isWalkthroughDisabledFromSettings ||
+      showSetupWalkthrough === false ||
+      onboarding?.finished
     ) {
-      this.dbtTerminal.debug(
-        "dbtProjectContainer:setupWalkthroughDisplayed",
-        "showing SetupWalkthrough: value of showSetupWalkthrough is" +
-          showSetupWalkthrough,
-      );
-      this.showWalkthrough();
+      return;
     }
+    // First run opens Get Started once a workspace with a dbt project is open.
+    const projectFiles = await workspace.findFiles(
+      "**/dbt_project.yml",
+      "**/{node_modules,dbt_packages,dbt_modules}/**",
+      1,
+    );
+    if (projectFiles.length === 0) {
+      return;
+    }
+    this.dbtTerminal.debug(
+      "dbtProjectContainer:setupWalkthroughDisplayed",
+      "opening Get Started on first run",
+    );
+    commands.executeCommand(
+      "setContext",
+      "dbtPowerUser.showSetupWalkthrough",
+      false,
+    );
+    this.setToGlobalState("showSetupWalkthrough", false);
+    commands.executeCommand(
+      "dbtPowerUser.openOnboarding",
+      undefined,
+      "firstRun",
+    );
   }
 
   get extensionUri() {
@@ -239,7 +278,12 @@ export class DBTProjectContainer implements Disposable {
     this.getProjects().forEach((project) => project.initialize());
   }
 
-  executeSQL(uri: Uri, query: string, modelName: string): void {
+  executeSQL(
+    uri: Uri,
+    query: string,
+    modelName: string,
+    previewMode: PreviewMode = "inline",
+  ): void {
     if (uri.scheme === "untitled") {
       const selectedProject = this.getFromWorkspaceState(
         "dbtPowerUser.projectSelected",
@@ -248,7 +292,12 @@ export class DBTProjectContainer implements Disposable {
         uri = selectedProject.uri;
       }
     }
-    this.findDBTProject(uri)?.executeSQLOnQueryPanel(query, modelName);
+    this.findDBTProject(uri)?.executeSQLOnQueryPanel(
+      query,
+      modelName,
+      previewMode,
+      uri,
+    );
   }
 
   runModel(modelPath: Uri, type?: RunModelType) {
@@ -445,6 +494,7 @@ export class DBTProjectContainer implements Disposable {
     );
     this.disposables.push(
       dbtProjectWorkspaceFolder.onRebuildManifestStatusChange((e) => {
+        this._onProjectRebuildManifestStatusChange.fire(e);
         this.rebuildManifestStatusChangeMap.set(
           e.project.projectRoot.fsPath,
           e.inProgress,
@@ -488,12 +538,25 @@ export class DBTProjectContainer implements Disposable {
     return this.dbtWorkspaceFolders.find((folder) => folder.contains(uri));
   }
 
-  async checkIfAltimateDatapilotInstalled() {
-    const datapilotVersion =
+  async checkIfAltimateDatapilotInstalled(): Promise<{
+    isInstalled: boolean;
+    installedVersion: string;
+    requiredVersion?: string;
+  }> {
+    const installedVersion =
       await this.altimateDatapilot.checkIfAltimateDatapilotInstalled();
-    const { altimate_datapilot_version } =
+    if (!valid(installedVersion)) {
+      return { isInstalled: false, installedVersion };
+    }
+    const { altimate_datapilot_version: requiredVersion } =
       await this.altimate.getDatapilotVersion(this.extensionVersion);
-    return datapilotVersion === altimate_datapilot_version;
+    // Accept newer installs: pinning to the exact version downgrades users and can
+    // leave stale compiled deps (e.g. sqlglotc) behind that break datapilot imports
+    return {
+      isInstalled: gte(installedVersion, requiredVersion),
+      installedVersion,
+      requiredVersion,
+    };
   }
 
   async installAltimateDatapilot() {

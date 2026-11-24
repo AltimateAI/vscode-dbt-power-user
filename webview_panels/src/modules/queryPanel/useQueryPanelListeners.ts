@@ -1,30 +1,31 @@
+import { executeRequestInSync } from "@modules/app/requestExecutor";
 import { IncomingMessageProps } from "@modules/app/types";
+import { panelLogger } from "@modules/logger";
+import { resultElapsedTime } from "@queryElapsedTime";
 import { useCallback, useEffect, useRef } from "react";
 import { useQueryPanelDispatch } from "./QueryPanelProvider";
+import { HINTS } from "./constants";
 import {
   resetData,
+  setActiveEditor,
   setCompiledCodeMarkup,
   setHintIndex,
   setLimit,
   setLoading,
   setPerspectiveTheme,
-  setQueryHistoryDisabled,
   setQueryExecutionInfo,
   setQueryHistory,
+  setQueryHistoryDisabled,
   setQueryResults,
   setQueryResultsError,
   setViewType,
-  setActiveEditor,
 } from "./context/queryPanelSlice";
-import useQueryPanelState from "./useQueryPanelState";
-import { panelLogger } from "@modules/logger";
-import { executeRequestInSync } from "@modules/app/requestExecutor";
-import { HINTS } from "./constants";
 import {
   QueryHistory,
   QueryPanelStateProps,
   QueryPanelViewType,
 } from "./context/types";
+import useQueryPanelState from "./useQueryPanelState";
 
 const useQueryPanelListeners = (): { loading: boolean } => {
   const dispatch = useQueryPanelDispatch();
@@ -100,6 +101,17 @@ const useQueryPanelListeners = (): { loading: boolean } => {
     dispatch(setCompiledCodeMarkup(args.compiled_sql as string));
     clearHintInterval();
     endQueryExecutionTimer();
+    // The extension's measured time. The timer only ticks every 100 ms from the
+    // loading state, so a result right behind it would show no time at all.
+    dispatch(
+      setQueryExecutionInfo({
+        elapsedTime: resultElapsedTime(
+          args.elapsedTime,
+          queryStart.current,
+          Date.now(),
+        ),
+      }),
+    );
   };
 
   const handleResetState = () => {

@@ -1,3 +1,8 @@
+---
+title: Generate dbt Model from Source — Power User for dbt
+description: "Auto-generate a dbt model from a source table definition using AI in Power User for dbt."
+---
+
 Generating model from sources defined in yaml file is very easy as below:
 
 ![Generate model from source](images/generateModelSource.gif)
@@ -9,7 +14,7 @@ Generating model from sources defined in yaml file is very easy as below:
 ///
 
 /// admonition | Why does the generated model appear with the syntax {{ adapter.quote(column_name)}}?
-    type: info
+type: info
 
 This syntax provides a safe way for the adapter to quote the columns.
 Since the extension supports different adapters, this is the easiest way to ensure that it works for all of them.

@@ -46,7 +46,28 @@ export class AltimateDatapilot {
     return stdout.trim();
   }
 
+  private async getInstalledDbtCoreVersion(): Promise<string | undefined> {
+    const { stdout } = await this.commandProcessExecutionFactory
+      .createCommandProcessExecution({
+        command: this.pythonEnvironment.pythonPath,
+        args: [
+          "-c",
+          "import importlib.metadata as m;print(m.version('dbt-core'))",
+        ],
+        cwd: this.dbtConfiguration.getWorkingDirectory(),
+        envVars: this.pythonEnvironment.getEnvironmentVariables(
+          this.getWorkspaceFolder(),
+        ),
+      })
+      .complete();
+    const version = stdout.trim();
+    return /^\d+\.\d+\S*$/.test(version) ? version : undefined;
+  }
+
   async installAltimateDatapilot(datapilotVersion: string) {
+    // Pinning the installed dbt-core makes pip re-resolve its requirements too,
+    // repairing deps an older datapilot downgraded (e.g. click) without moving dbt-core
+    const dbtCoreVersion = await this.getInstalledDbtCoreVersion();
     const { stderr, stdout } = await this.commandProcessExecutionFactory
       .createCommandProcessExecution({
         command: this.pythonEnvironment.pythonPath,
@@ -55,6 +76,7 @@ export class AltimateDatapilot {
           "pip",
           "install",
           `${this.packageName}==${datapilotVersion}`,
+          ...(dbtCoreVersion ? [`dbt-core==${dbtCoreVersion}`] : []),
         ],
         cwd: this.dbtConfiguration.getWorkingDirectory(),
         envVars: this.pythonEnvironment.getEnvironmentVariables(

@@ -54,7 +54,7 @@ const HelpContent = (): JSX.Element => {
             Documentation
           </a>
           <span> or still have issue no problem Get in touch with us </span>
-          <a href="https://www.altimate.ai/support" className="text-blue">
+          <a href="https://www.altimate.ai/support?utm_source=dbt-power-user&utm_medium=extension" className="text-blue">
             Contact us
           </a>
         </div>

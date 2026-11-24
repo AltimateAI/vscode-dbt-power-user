@@ -1,7 +1,6 @@
-import { DBTTerminal } from "@altimateai/dbt-integration";
+import { DBTTerminal, PythonException } from "@altimateai/dbt-integration";
 import { inject } from "inversify";
 import { basename } from "path";
-import { PythonException } from "python-bridge";
 import {
   CancellationToken,
   commands,
@@ -354,7 +353,7 @@ export class ValidateSql {
           description,
           DiagnosticSeverity.Error,
         );
-        diagnostic.source = "dbt Power User";
+        diagnostic.source = "Power User for dbt";
         diagnostic.code = {
           value: "Fix with Altimate Code",
           target: Uri.parse(

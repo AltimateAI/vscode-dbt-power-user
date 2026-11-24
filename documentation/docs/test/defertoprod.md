@@ -1,3 +1,10 @@
+---
+title: Defer to Production — Power User for dbt
+description: "Use dbt's defer feature in Power User for dbt to run only changed models against production data during development."
+video_id: r91_NShqhlU
+video_upload_date: "2026-06-11T00:00:00Z"
+---
+
 Defer functionality in dbt allows the user to run a subset of models or tests without having to first build their upstream parents. Usually, it leads to significant cost and time savings during testing of the dbt models. More information about this functionality is available in [dbt docs](https://docs.getdbt.com/blog/defer-to-prod).
 
 ### Step 1: Enable Defer to production functionality in the "Actions" panel as below
@@ -22,7 +29,7 @@ Choose the location of your local manifest file as shown in the image below:
 
 First, create the dbt integration in the Altimate AI SaaS instance by going to Settings -> Integrations from left side navigation menu. This is just to create a reference where you can upload respective manifest files to point to.
 
-/// admonition | If you would like to connect your on-premise storage for manifest file uploads, please [contact us](https://www.altimate.ai/support) via chat or Slack.
+/// admonition | If you would like to connect your on-premise storage for manifest file uploads, please [contact us](https://www.altimate.ai/support?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link) via chat or Slack.
     type: info
 ///
 
@@ -44,6 +51,16 @@ Now, choose the right dbt integration to reference in your VSCode as below:
 
 ![addIntegration](images/chooseSaaS.png)<br>
 
+/// admonition | SaaS mode doesn't defer in dbt Fusion mode
+    type: warning
+
+In dbt Fusion mode, Defer to production with the manifest stored in the Altimate SaaS instance runs without deferral. Power User for dbt logs this warning once per project in the `Log - dbt` output:
+
+`Defer to production in DataPilot dbt integration mode needs the DataPilot client, which this project was not given; running without deferral`
+
+Local mode still defers in dbt Fusion mode. See [Feature Support](../setup/reqdConfigFusion.md#feature-support) on the dbt Fusion page.
+///
+
 ### Step 3: Enable/disable favor state
 
 Turn on favor-state if you need it. If it's turned on, the defer functionality will favor using the node defined in the referenced integration, even if the node exists in the current project.
@@ -52,10 +69,15 @@ Turn on favor-state if you need it. If it's turned on, the defer functionality w
 
 <iframe width="800" height="600" src="https://www.youtube.com/embed/r91_NShqhlU?si=dil-QKff7d5hHjL4" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
+<figure class="video-clip">
+<div class="video-clip__frame"><iframe src="https://www.youtube.com/embed/1yWejM5YW1o?rel=0&amp;start=1808" title="Power User multiple features demo" loading="lazy" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
+<figcaption>Video (44:55): Power User multiple features demo. It starts at 30:08, where this page's feature begins. <a href="https://www.youtube.com/watch?v=1yWejM5YW1o&amp;t=1808s" target="_blank" rel="noopener">Watch on YouTube</a>.</figcaption>
+</figure>
+
 ## Interactive demo
 
 <div style="position: relative; padding-bottom: calc(88.35733099209834% + 42px); height: 0;"><iframe src="https://app.supademo.com/embed/cltlt0f7g1tk6cd1jy5qo12ym" allow="clipboard-write" frameborder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
 
-/// admonition | Using defer to prod with SaaS instance requires an API key. You can get it by signing up for free at [www.altimate.ai](https://www.altimate.ai) Local mode doesn't require an API key.
+/// admonition | Using defer to prod with SaaS instance requires an API key. You can get it by signing up for free at [www.altimate.ai](https://www.altimate.ai?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link) Local mode doesn't require an API key.
     type: info
 ///

@@ -50,6 +50,7 @@ export class CodeLensProviders implements Disposable {
 
   dispose() {
     this.sqlActionsCodeLensProvider.dispose();
+    this.virtualSqlCodeLensProvider.dispose();
     while (this.disposables.length) {
       const x = this.disposables.pop();
       if (x) {

@@ -65,6 +65,18 @@ export class Location {
   }
 }
 
+export class CodeLens {
+  constructor(
+    public range: Range,
+    public command?: {
+      title: string;
+      command: string;
+      tooltip?: string;
+      arguments?: any[];
+    },
+  ) {}
+}
+
 export const DiagnosticSeverity = {
   Error: 0,
   Warning: 1,
@@ -112,13 +124,40 @@ export class TextEdit {
   }
 }
 
+export enum ConfigurationTarget {
+  Global = 1,
+  Workspace = 2,
+  WorkspaceFolder = 3,
+}
+
 // Mock VSCode API
 export const extensions = {
   getExtension: jest.fn(),
   all: [],
 };
 
-export const env = { uriScheme: "vscode" };
+export const uriParts = (value: string) => {
+  const url = new URL(value);
+  return {
+    scheme: url.protocol.slice(0, -1),
+    authority: url.host,
+    path: url.pathname,
+    query: url.search.slice(1),
+  };
+};
+
+export enum UIKind {
+  Desktop = 1,
+  Web = 2,
+}
+
+export const env = {
+  uriScheme: "vscode",
+  uiKind: UIKind.Desktop,
+  // A desktop editor resolves its own URI unchanged.
+  asExternalUri: jest.fn(async (uri: unknown) => uriParts(String(uri))),
+  openExternal: jest.fn(async () => true),
+};
 
 export const commands = {
   registerCommand: jest.fn().mockReturnValue({ dispose: jest.fn() }),
@@ -130,6 +169,14 @@ export const window = {
   showInformationMessage: jest.fn().mockReturnValue(Promise.resolve()),
   showWarningMessage: jest.fn().mockReturnValue(Promise.resolve()),
   showErrorMessage: jest.fn().mockReturnValue(Promise.resolve()),
+  onDidChangeActiveTextEditor: jest
+    .fn()
+    .mockReturnValue({ dispose: jest.fn() }),
+  onDidChangeVisibleTextEditors: jest
+    .fn()
+    .mockReturnValue({ dispose: jest.fn() }),
+  activeTextEditor: undefined as any,
+  visibleTextEditors: [] as any[],
   createOutputChannel: jest.fn().mockReturnValue({
     append: jest.fn(),
     appendLine: jest.fn(),
@@ -156,6 +203,12 @@ export const workspace = {
     update: jest.fn(),
   }),
   workspaceFolders: [],
+  textDocuments: [] as any[],
+  notebookDocuments: [] as any[],
+  onDidChangeTextDocument: jest.fn().mockReturnValue({ dispose: jest.fn() }),
+  onDidChangeNotebookDocument: jest
+    .fn()
+    .mockReturnValue({ dispose: jest.fn() }),
   getWorkspaceFolder: jest.fn((uri: typeof Uri) => {
     if (workspace.workspaceFolders && workspace.workspaceFolders.length > 0) {
       return workspace.workspaceFolders[0];

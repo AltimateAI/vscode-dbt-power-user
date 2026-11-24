@@ -28,13 +28,24 @@ import {
   DBT_PROJECT_FILE,
   DBTProjectDetection,
   DBTTerminal,
+  isInsidePackagesPath,
   readAndParseProjectConfig,
+  resolvePackagesInstallPath,
 } from "@altimateai/dbt-integration";
+import { getDbtIntegrationMode } from "./integrationMode";
 
 // Sentinel for the empty-after-retries case in `retryWithBackoff`. Lets the
 // caller distinguish "this folder has no dbt project" (silent, expected for
 // multi-root workspaces) from a real `findFiles` failure (telemetry-worthy).
 class NoProjectsFound extends Error {}
+
+/**
+ * Where dbt projects are not looked for: installed packages and Python
+ * site-packages hold `dbt_project.yml` files that are not the user's projects.
+ * Shared with the integration-mode decision, which lists projects the same way.
+ */
+export const PROJECT_EXCLUDE_PATTERN =
+  "**/{dbt_packages,site-packages,dbt_internal_packages}";
 
 export class DBTWorkspaceFolder implements Disposable {
   private watcher: FileSystemWatcher;
@@ -125,9 +136,7 @@ export class DBTWorkspaceFolder implements Disposable {
   }
 
   async discoverProjects() {
-    // Ignore dbt_packages and venv/site-packages/dbt project folders
-    const excludePattern =
-      "**/{dbt_packages,site-packages,dbt_internal_packages}";
+    const excludePattern = PROJECT_EXCLUDE_PATTERN;
     // Multi-root workspaces activate the extension when any folder contains
     // `dbt_project.yml`, but discoverProjects runs on every folder. A folder
     // that genuinely has no dbt project must resolve to an empty result
@@ -165,9 +174,14 @@ export class DBTWorkspaceFolder implements Disposable {
       allowListFolders,
     );
 
+    // Resolve the registered projects' packages paths once, rather than per
+    // candidate inside the filter below.
+    const packagesInstallPaths = this.knownPackagesInstallPaths();
     const projectDirectories = dbtProjectFiles
       .filter((uri) => existsSync(uri.fsPath) && statSync(uri.fsPath).isFile())
-      .filter((uri) => this.notInVenv(uri.fsPath))
+      .filter(
+        (uri) => !this.isInstalledPackage(uri.fsPath, packagesInstallPaths),
+      )
       .filter((uri) => {
         return (
           allowListFolders.length === 0 ||
@@ -189,9 +203,7 @@ export class DBTWorkspaceFolder implements Disposable {
       { numProjects: projectDirectories.length },
     );
 
-    const dbtIntegrationMode = workspace
-      .getConfiguration("dbt")
-      .get<string>("dbtIntegration", "core");
+    const dbtIntegrationMode = getDbtIntegrationMode();
 
     const filteredProjects =
       await this.dbtProjectDetectionFactory().discoverProjects(
@@ -200,7 +212,7 @@ export class DBTWorkspaceFolder implements Disposable {
 
     if (filteredProjects.length > 20) {
       window.showWarningMessage(
-        `dbt Power User detected ${filteredProjects.length} projects in your workspace, this will negatively affect performance.`,
+        `Power User for dbt detected ${filteredProjects.length} projects in your workspace, this will negatively affect performance.`,
       );
     }
 
@@ -290,7 +302,7 @@ export class DBTWorkspaceFolder implements Disposable {
           new Range(0, 0, 999, 999),
           error.message,
         );
-        yamlDiagnostic.source = "dbt Power User";
+        yamlDiagnostic.source = "Power User for dbt";
         yamlDiagnostic.code = {
           value: "Fix with Altimate Code",
           target: Uri.parse(
@@ -337,11 +349,7 @@ export class DBTWorkspaceFolder implements Disposable {
       if (
         existsSync(uri.fsPath) &&
         statSync(uri.fsPath).isFile() &&
-        this.notInVenv(uri.fsPath) &&
-        this.notInDBtPackages(
-          uri.fsPath,
-          this.dbtProjects.map((project) => project.getPackageInstallPath()),
-        ) &&
+        !this.isInstalledPackage(uri.fsPath) &&
         (allowListFolders.length === 0 ||
           allowListFolders.some((folder) => uri.fsPath.startsWith(folder)))
       ) {
@@ -353,30 +361,41 @@ export class DBTWorkspaceFolder implements Disposable {
     return watcher;
   }
 
-  private notInVenv(path: string): boolean {
-    const notInVenv = !path.includes("site-packages");
-    if (!notInVenv) {
+  /**
+   * A `dbt_project.yml` belonging to an installed package or a virtualenv,
+   * rather than to a standalone project the user wants registered.
+   *
+   * The rule itself lives in `@altimateai/dbt-integration` so that every
+   * consumer applies it identically; this only supplies the packages paths of
+   * the projects registered in this folder.
+   */
+  private isInstalledPackage(
+    fsPath: string,
+    packagesInstallPaths: string[] = this.knownPackagesInstallPaths(),
+  ): boolean {
+    const isPackage = isInsidePackagesPath(fsPath, packagesInstallPaths);
+    if (isPackage) {
       this.dbtTerminal.info(
         "discoverProjects",
-        "foundProjectInVenv",
+        "foundProjectInPackagesPath",
         false,
-        path,
+        fsPath,
       );
     }
-    return notInVenv;
+    return isPackage;
   }
 
-  private notInDBtPackages(
-    uri: string,
-    packagesInstallPaths: (string | undefined)[],
-  ) {
-    for (const packagesInstallPath of packagesInstallPaths) {
-      if (packagesInstallPath) {
-        if (uri.startsWith(packagesInstallPath)) {
-          return false;
-        }
-      }
-    }
-    return true;
+  private knownPackagesInstallPaths(): string[] {
+    return this.dbtProjects.map((project) => {
+      // `getPackageInstallPath()` stays undefined until a project finishes
+      // initializing, and `dbt deps` writes each package's `dbt_project.yml`
+      // during that window — so a watcher event arriving mid-initialization
+      // must not depend on it. Reading the configured path back out of
+      // `dbt_project.yml` is synchronous and closes that gap.
+      return (
+        project.getPackageInstallPath() ??
+        resolvePackagesInstallPath(project.projectRoot.fsPath)
+      );
+    });
   }
 }

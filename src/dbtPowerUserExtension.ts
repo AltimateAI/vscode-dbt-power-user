@@ -1,4 +1,5 @@
 import { NotebookProviders } from "@lib";
+import * as path from "path";
 import {
   commands,
   Disposable,
@@ -7,23 +8,40 @@ import {
   window,
   workspace,
 } from "vscode";
+import { AltimateRequest } from "./altimate";
 import { AutocompletionProviders } from "./autocompletion_provider";
 import { CodeLensProviders } from "./code_lens_provider";
 import { VSCodeCommands } from "./commands";
 import { CommentProviders } from "./comment_provider";
 import { ContentProviders } from "./content_provider";
 import { DBTProjectContainer } from "./dbt_client/dbtProjectContainer";
+import { readConfiguredDbtIntegration } from "./dbt_client/integrationMode";
+import { IntegrationModeService } from "./dbt_client/integrationModeService";
 import { DefinitionProviders } from "./definition_provider";
 import { DocumentFormattingEditProviders } from "./document_formatting_edit_provider";
 import { HoverProviders } from "./hover_provider";
 import { DbtPowerUserMcpServer } from "./mcp";
 import { DbtPowerUserActionsCenter } from "./quickpick";
+import { AltimateAuthService } from "./services/altimateAuthService";
+import {
+  AltimateConnectService,
+  AUTH_CALLBACK_PATH,
+  SETUP_CALLBACK_PATH,
+  WORKSPACE_CALLBACK_PATH,
+} from "./services/altimateConnectService";
+import {
+  clearCachedCredits,
+  fetchAndCacheCredits,
+  handleExecutionsExhausted,
+  updateCachedAvailableExecutions,
+} from "./services/creditsService";
 import { StatusBars } from "./statusbar";
 import { TelemetryService } from "./telemetry";
 import { TelemetryEvents } from "./telemetry/events";
 import { TreeviewProviders } from "./treeview_provider";
 import { ValidationProvider } from "./validation_provider";
 import { WebviewViewProviders } from "./webview_provider";
+import { WhatsNewPanel } from "./webview_provider/whatsNewPanel";
 
 enum PromptAnswer {
   YES = "Yes",
@@ -87,6 +105,11 @@ export class DBTPowerUserExtension implements Disposable {
     private commentProviders: CommentProviders,
     private notebookProviders: NotebookProviders,
     private mcpServer: DbtPowerUserMcpServer,
+    private altimateRequest: AltimateRequest,
+    private altimateAuthService: AltimateAuthService,
+    private whatsNewPanel: WhatsNewPanel,
+    private altimateConnectService: AltimateConnectService,
+    private integrationModeService: IntegrationModeService,
   ) {
     this.disposables.push(
       this.dbtProjectContainer,
@@ -106,6 +129,8 @@ export class DBTPowerUserExtension implements Disposable {
       this.commentProviders,
       this.notebookProviders,
       this.mcpServer,
+      this.whatsNewPanel,
+      this.altimateConnectService,
     );
   }
 
@@ -120,6 +145,16 @@ export class DBTPowerUserExtension implements Disposable {
 
   async activate(context: ExtensionContext): Promise<void> {
     try {
+      // The webview view providers are registered when the container builds
+      // them, before `activate` runs, so VS Code can resolve a view it is
+      // restoring (the lineage view after a window reload) at any point from
+      // here on. Those providers read `extensionUri` off the project
+      // container, which dereferences the context set here: it has to be set
+      // before the first `await` below yields to the event loop, or a restore
+      // that lands during that await throws
+      // "Cannot read properties of undefined (reading 'extensionUri')".
+      this.dbtProjectContainer.setContext(context);
+
       // VS Code's `@vscode/extension-telemetry` library auto-emits an
       // `unhandlederror` event for uncaught promise rejections, but it only
       // captures `name`/`message`/`stack` (baseTelemetrySender.sendErrorData)
@@ -152,10 +187,17 @@ export class DBTPowerUserExtension implements Disposable {
       });
 
       const telemetry = this.telemetry;
+      const altimateConnectService = this.altimateConnectService;
       context.subscriptions.push(
         window.registerUriHandler({
           handleUri(uri: Uri): void {
-            if (uri.path === "/troubleshoot") {
+            if (
+              uri.path === AUTH_CALLBACK_PATH ||
+              uri.path === SETUP_CALLBACK_PATH ||
+              uri.path === WORKSPACE_CALLBACK_PATH
+            ) {
+              void altimateConnectService.handleUri(uri);
+            } else if (uri.path === "/troubleshoot") {
               const params = new URLSearchParams(uri.query);
               const errorMessage = params.get("error") ?? "";
               const source = params.get("source") ?? "dbt";
@@ -175,29 +217,128 @@ export class DBTPowerUserExtension implements Disposable {
       );
 
       await this.mcpServer.updateMcpExtensionApi();
-      this.dbtProjectContainer.setContext(context);
       this.dbtProjectContainer.initializeWalkthrough();
-      await this.dbtProjectContainer.detectDBT();
-      await this.dbtProjectContainer.initializeDBTProjects();
-      await this.statusBars.initialize();
+      // Settles once the open decision is made; it never rejects.
+      void this.whatsNewPanel.checkAndShowOnActivation();
       // Ask to reload the window if the dbt integration changes
-      const dbtIntegration = workspace
-        .getConfiguration("dbt")
-        .get<string>("dbtIntegration", "core");
       workspace.onDidChangeConfiguration((e) => {
         if (!e.affectsConfiguration("dbt")) {
           return;
         }
-        const newDbtIntegration = workspace
-          .getConfiguration("dbt")
-          .get<string>("dbtIntegration", "core");
+        // Credentials changed (sign-in / sign-out / instance switch): the initial
+        // activation fetch is gated on auth and never retried, so refresh here.
         if (
-          dbtIntegration !== newDbtIntegration &&
-          ["core", "cloud", "corecommand", "fusion"].includes(newDbtIntegration)
+          e.affectsConfiguration("dbt.altimateAiKey") ||
+          e.affectsConfiguration("dbt.altimateInstanceName")
+        ) {
+          if (this.altimateAuthService.isAuthenticated()) {
+            void fetchAndCacheCredits(this.altimateRequest);
+          } else {
+            clearCachedCredits();
+          }
+        }
+        if (
+          e.affectsConfiguration("dbt.dbtIntegration") &&
+          ["core", "cloud", "corecommand", "fusion"].includes(
+            readConfiguredDbtIntegration().value,
+          ) &&
+          this.integrationModeService.needsReload()
         ) {
           commands.executeCommand("workbench.action.reloadWindow");
         }
       });
+      try {
+        // Before detection: the mode decides which dbt is looked for.
+        await this.integrationModeService.resolve(context.workspaceState);
+        void this.integrationModeService
+          .notifySwitchHeld()
+          .catch((error) =>
+            this.telemetry.sendTelemetryError(
+              "dbtIntegrationSwitchHeldNoticeError",
+              error,
+            ),
+          );
+      } catch (error) {
+        this.telemetry.sendTelemetryError("dbtIntegrationModeError", error);
+      }
+      if (this.integrationModeService.autoSwitched) {
+        // Subscribed before the projects start, so each one's first rebuild is seen.
+        context.subscriptions.push(
+          this.dbtProjectContainer.onProjectRebuildManifestStatusChange(
+            ({ project, inProgress }) =>
+              void this.integrationModeService
+                .rebuildStatusChanged({
+                  root: project.projectRoot.fsPath,
+                  name: project.getProjectName(),
+                  inProgress,
+                  errorCount: inProgress
+                    ? 0
+                    : project.rebuildManifestErrorCount(),
+                })
+                .catch((error) =>
+                  this.telemetry.sendTelemetryError(
+                    "dbtIntegrationAutoSwitchParseFailedError",
+                    error,
+                  ),
+                ),
+          ),
+        );
+      }
+      await this.dbtProjectContainer.detectDBT();
+      await this.dbtProjectContainer.initializeDBTProjects();
+      const notifyAutoSwitch = (roots: Uri[]) =>
+        void this.integrationModeService
+          .notifyProjects(
+            roots.map((root) => ({
+              root: root.fsPath,
+              name: path.basename(root.fsPath),
+            })),
+          )
+          .catch((error) =>
+            this.telemetry.sendTelemetryError(
+              "dbtIntegrationAutoSwitchNoticeError",
+              error,
+            ),
+          );
+      notifyAutoSwitch(
+        this.dbtProjectContainer
+          .getProjects()
+          .map((project) => project.projectRoot),
+      );
+      context.subscriptions.push(
+        this.dbtProjectContainer.onProjectRegisteredUnregistered((event) => {
+          if (event.registered) {
+            notifyAutoSwitch([event.root]);
+          }
+        }),
+      );
+      await this.statusBars.initialize();
+
+      // Fetch credits balance if user is authenticated (failures are silently ignored)
+      if (this.altimateAuthService.isAuthenticated()) {
+        void fetchAndCacheCredits(this.altimateRequest);
+      }
+      // Keep the cached credits balance live: the backend sets an
+      // `X-Credits-Remaining` header on every response, so each action updates
+      // the balance with no extra API calls. Guarded so listener registration
+      // can never interfere with activation.
+      try {
+        this.altimateRequest.setCreditsRemainingListener((remaining) =>
+          updateCachedAvailableExecutions(remaining),
+        );
+        // Single central handler: every 402 from any feature shows the same
+        // out-of-credits popup.
+        this.altimateRequest.setExecutionsExhaustedListener(() =>
+          handleExecutionsExhausted(this.altimateRequest),
+        );
+      } catch (error) {
+        // Listener registration must never block activation; record it so a
+        // version-skew failure is observable instead of silently swallowed.
+        this.telemetry.sendTelemetryError(
+          "creditsListenerRegistrationError",
+          error,
+        );
+      }
     } catch (error) {
       this.telemetry.sendTelemetryError("extensionActivationError", error);
     }

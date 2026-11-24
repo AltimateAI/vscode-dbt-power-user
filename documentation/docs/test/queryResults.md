@@ -1,4 +1,9 @@
-You can preview the resulting data and SQL query from your code with the extension, export it as CSV and do further analysis.
+---
+title: Query Results Panel — Power User for dbt
+description: "View query results in a rich, filterable table panel inside VS Code with Power User for dbt."
+---
+
+You can preview the resulting data and SQL query from your code with the extension, export it as CSV and do further analysis. You can also use [Altimate Code](../teammates/altimate-code.md) to explain your SQL or to profile a query for performance.
 
 ## Preview results, export and analyze
 
@@ -20,6 +25,12 @@ There is a copy SQL button also, it becomes visible only when you hover over the
 
 ///
 
+## Downloading and copying query results
+
+You can also download and copy the query results directly from the Query Results panel toolbar. Use **Export** to save results as CSV, or the copy icon to copy rows in CSV or JSON format.
+
+![Export and copy query results](images/exportCopyQueryResults.png)
+
 ## Configure settings for query preview
 
 There are multiple actions available as actions on the top of query results preview window. Please click “configure” button to make it visible.
@@ -39,6 +50,18 @@ You can also change table zoom level with 'scale' setting so you can see more co
 
 ![Query results settings](images/queryresultsSettings.png)
 
+## Explain with Altimate Code
+
+Open the "SQL" tab inside the "Query Results" bottom panel and click the "Explain with Altimate Code" button shown above the SQL. [Altimate Code](../teammates/altimate-code.md) opens in a chat and explains the code from the file you have open in the editor, or the part you have selected.
+
+![Explain with Altimate Code](images/explainWithAltimateCode.gif)
+
+## Profile this query
+
+Once a query returns results, a "Profile this query" button appears in the "Query Results" toolbar. Click it to start an [Altimate Code](../teammates/altimate-code.md) session that reviews your query for performance bottlenecks, data distribution issues and optimization opportunities.
+
+![Profile this query](images/profileThisQuery.gif)
+
 ## Compare Query Results
 
 You can save query results by opening in a tab. Then, make changes to a query and run query results.
@@ -50,3 +73,10 @@ Now, you can compare previous results with new results easily as below:
 
 You can run ad hoc SQL queries or dbt Models in the "Query Results" tab
 ![New Query](images/newQuery.gif)
+
+## Watch the Video
+
+<figure class="video-clip">
+<div class="video-clip__frame"><iframe src="https://www.youtube.com/embed/uMptd4t_mGI?rel=0" title="dbt SQL Review in One Click: Profile Query | dbt Power User Spotlight 1" loading="lazy" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
+<figcaption>Video (3:46): dbt SQL Review in One Click: Profile Query | dbt Power User Spotlight 1. <a href="https://www.youtube.com/watch?v=uMptd4t_mGI" target="_blank" rel="noopener">Watch on YouTube</a>.</figcaption>
+</figure>

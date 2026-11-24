@@ -1,5 +1,6 @@
 import { Button } from "@altimateai/ui-components/lineage";
 import { FeedbackIcon } from "@assets/icons";
+import CreditsChip from "@modules/commonActionButtons/CreditsChip";
 import FeedbackButton from "@modules/commonActionButtons/FeedbackButton";
 import { sendTelemetryEvent } from "@modules/documentationEditor/components/telemetry";
 import { vscode } from "@modules/vscode";
@@ -33,10 +34,13 @@ const ActionWidget = ({
   missingLineageMessage,
   aiEnabled,
   lineageType,
+  showGraphTools,
 }: {
   missingLineageMessage?: MissingLineageMessage;
   aiEnabled: boolean;
   lineageType: "sql" | "dynamic";
+  // Depth, Export, Settings and Reset act on a graph; the card has none.
+  showGraphTools: boolean;
 }): JSX.Element => {
   if (lineageType === "sql") {
     return (
@@ -46,7 +50,9 @@ const ActionWidget = ({
     );
   }
   return (
-    <div className={styles.actionWidget}>
+    <div
+      className={`${styles.actionWidget} ${showGraphTools ? "" : styles.noGraphTools}`}
+    >
       <MissingLineageMessageComponent
         missingLineageMessage={missingLineageMessage}
       />
@@ -57,6 +63,7 @@ const ActionWidget = ({
       <div id="settings-container" className="al-tw-scope" />
       <HelpButton />
       <div id="reset-container" className="al-tw-scope" />
+      <CreditsChip />
       <LineageFeedbackButton
         url={
           aiEnabled

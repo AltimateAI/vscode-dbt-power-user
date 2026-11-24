@@ -1,0 +1,20 @@
+name: aireceipts
+on: [pull_request]
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      # pr-check runs with a PR-write token, so the whole dependency tree is pinned by the committed
+      # lockfile in .github/aireceipts (reviewed aireceipts-cli 0.11.0); install scripts are disabled.
+      # Bump aireceipts-cli there deliberately and regenerate the lockfile.
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          sparse-checkout: .github/aireceipts
+      - run: npm ci --ignore-scripts --no-audit --no-fund --prefix .github/aireceipts
+      - run: .github/aireceipts/node_modules/.bin/aireceipts pr-check
+        env:
+          GH_TOKEN: ${{ github.token }}

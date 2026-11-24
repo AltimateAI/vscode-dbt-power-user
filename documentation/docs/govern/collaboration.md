@@ -1,3 +1,10 @@
+---
+title: Team Collaboration — Power User for dbt
+description: "Collaborate with your team on dbt models, reviews, and documentation using Power User for dbt's collaboration features."
+video_id: pI1U94j-pOI
+video_upload_date: "2026-06-11T00:00:00Z"
+---
+
 Collab functionality enables you to discuss code and documentation easily with the stakeholders via VSCode and UI. Many stakeholders are not comfortable using IDE directly; this functionality enables them also to have a discussion with technical users.
 
 ## Code Collaboration Workflow
@@ -103,6 +110,16 @@ You can also view the lineage from the list of all exported lineage views availa
 
 <iframe width="800" height="600" src="https://www.youtube.com/embed/pI1U94j-pOI?si=ckfDMYqeVgjBmg-7" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
-/// admonition | This feature requires an API key. You can get it by signing up for free at [www.altimate.ai](https://www.altimate.ai)
+/// admonition | This feature requires an API key. You can get it by signing up for free at [www.altimate.ai](https://www.altimate.ai?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link)
     type: info
 ///
+
+<figure class="video-clip">
+<div class="video-clip__frame"><iframe src="https://www.youtube.com/embed/1yWejM5YW1o?rel=0&amp;start=2314" title="Power User multiple features demo" loading="lazy" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
+<figcaption>Video (44:55): Power User multiple features demo. It starts at 38:34, where this page's feature begins. <a href="https://www.youtube.com/watch?v=1yWejM5YW1o&amp;t=2314s" target="_blank" rel="noopener">Watch on YouTube</a>.</figcaption>
+</figure>
+
+<figure class="video-clip">
+<div class="video-clip__frame"><iframe src="https://www.youtube.com/embed/A-z_R0QJig0?rel=0" title="dbt Column-Level Lineage in VS Code and Cursor | dbt Power User Spotlight 2" loading="lazy" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
+<figcaption>Video (6:02): dbt Column-Level Lineage in VS Code and Cursor | dbt Power User Spotlight 2. <a href="https://www.youtube.com/watch?v=A-z_R0QJig0" target="_blank" rel="noopener">Watch on YouTube</a>.</figcaption>
+</figure>

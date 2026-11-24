@@ -1,15 +1,17 @@
 ---
 status: new
+title: Optimize SQL with Altimate Code — Power User for dbt
+description: "Get AI-powered SQL optimization suggestions including join order, predicate pushdown, and query restructuring."
 ---
 
 # Optimize SQL with Altimate Code
 
 Optimize with Altimate analyzes a SQL query (or selected snippet) and suggests rewrites for performance — join order, predicate pushdown, redundant scans, unnecessary `DISTINCT` / `ORDER BY`, and dialect-specific anti-patterns.
 
-/// admonition | Requires the Datamates extension
+/// admonition | Requires the Altimate Workspaces extension
     type: info
 
-Altimate Code features (Explain, Optimize, Change, Translate, Review) open a chat session through the **[Datamates](https://marketplace.visualstudio.com/items?itemName=altimateai.vscode-altimate-mcp-server)** extension. Make sure Datamates is installed and active before invoking these actions.
+Altimate Code features (Explain, Optimize, Change, Translate, Review) open a chat session through the **[Altimate Workspaces](https://marketplace.visualstudio.com/items?itemName=altimateai.vscode-altimate-mcp-server)** extension. Make sure Altimate Workspaces is installed and active before invoking these actions.
 ///
 
 ## Start an optimization
@@ -44,6 +46,13 @@ Altimate Code opens in a side panel and returns a rewritten query alongside an e
     type: tip
 ///
 
-/// admonition | This feature requires an API key. You can get it by signing up for free at [www.altimate.ai](https://www.altimate.ai)
+/// admonition | This feature requires an API key. You can get it by signing up for free at [www.altimate.ai](https://www.altimate.ai?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link)
     type: info
 ///
+
+## Watch the Video
+
+<figure class="video-clip">
+<div class="video-clip__frame"><iframe src="https://www.youtube.com/embed/MDN2PSgVAmA?rel=0" title="Debug dbt Models and Profile CTEs in One Click | dbt Power User Spotlight 4" loading="lazy" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
+<figcaption>Video (8:17): Debug dbt Models and Profile CTEs in One Click | dbt Power User Spotlight 4. <a href="https://www.youtube.com/watch?v=MDN2PSgVAmA" target="_blank" rel="noopener">Watch on YouTube</a>.</figcaption>
+</figure>

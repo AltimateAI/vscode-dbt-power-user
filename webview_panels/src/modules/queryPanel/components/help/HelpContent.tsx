@@ -27,7 +27,7 @@ const HelpContent = (): JSX.Element => {
         </Button>
       </div>
       <p style={{ fontSize: 12, opacity: 0.75, margin: 0 }}>
-        #1 on ADE-Bench · 10M free tokens across GPT-5.4, Opus 4.6 &amp; Sonnet
+        #1 on ADE-Bench · 1M free tokens across GPT-5.4, Opus 4.6 &amp; Sonnet
         4.6.
       </p>
     </div>

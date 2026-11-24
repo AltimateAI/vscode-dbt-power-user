@@ -1,11 +1,13 @@
-# vscode-dbt-power-user
+<img src="media/images/power-user-icon.png" alt="Power User for dbt" width="96" />
+
+# Power User for dbt™
 
 ![Last updated](https://img.shields.io/visual-studio-marketplace/last-updated/innoverio.vscode-dbt-power-user) ![Version](https://img.shields.io/visual-studio-marketplace/v/innoverio.vscode-dbt-power-user) ![Installs](https://img.shields.io/visual-studio-marketplace/i/innoverio.vscode-dbt-power-user) ![Build passing](https://github.com/innoverio/vscode-dbt-power-user/workflows/.github/workflows/ci.yml/badge.svg)
 
 This [open source](https://github.com/AltimateAI/vscode-dbt-power-user) extension makes VSCode seamlessly work with [dbt™](https://www.getdbt.com/).
 
 If you need help with setting up the extension, please check the [documentation](https://docs.myaltimate.com/setup/installation/).
-For any issues or bugs, please [contact us](https://www.altimate.ai/support) via chat or Slack.
+For any issues or bugs, please [contact us](https://www.altimate.ai/support?utm_source=dbt-power-user&utm_medium=marketplace) via chat or Slack.
 
 **Features:**
 
@@ -100,4 +102,4 @@ Estimate data that will be processed by dbt™ model in BigQuery [(docs)](https:
 ![dbt-log](media/images/dbt-log.gif)
 
 Please check [documentation](https://docs.myaltimate.com/arch/faq/) for additional info.
-For any issues or bugs, please [contact us](https://www.altimate.ai/support) via chat or Slack.
+For any issues or bugs, please [contact us](https://www.altimate.ai/support?utm_source=dbt-power-user&utm_medium=marketplace) via chat or Slack.

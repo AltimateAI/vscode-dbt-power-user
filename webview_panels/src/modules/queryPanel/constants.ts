@@ -27,4 +27,16 @@ export const HINTS = [
     message: "Write & edit dbt tests in UI",
     link: "https://docs.myaltimate.com/test/writetests/",
   },
+  {
+    message: "Debug dbt project with altimate-code",
+    link: "https://help.altimate.ai/dbt-power-user/teammates/altimate-code",
+  },
+  {
+    message: "Ask how this column is calculated",
+    link: "https://help.altimate.ai/dbt-power-user/teammates/altimate-code",
+  },
+  {
+    message: "Autotune warehouses with Snowflake Native App",
+    link: "https://altimateai.github.io/altimate-snowflake-app/",
+  },
 ];

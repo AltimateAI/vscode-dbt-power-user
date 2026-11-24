@@ -1,5 +1,7 @@
 ---
 status: new
+title: Altimate LLM Gateway — Power User for dbt
+description: "The Altimate LLM Gateway gives Power User for dbt dynamic model routing at 60–80% lower cost than direct LLM providers."
 ---
 
 # Altimate LLM Gateway
@@ -14,7 +16,7 @@ The gateway dynamically routes each request to the best model for the task acros
 
 | Plan | Price | Tokens/mo | $/M tokens | Overage (per 1M tokens) |
 |------|-------|-----------|------------|------------------------|
-| **Community** | $0/mo | 10M (one-time) | Free | BYOK only |
+| **Community** | $0/mo | 1M (one-time) | Free | BYOK only |
 | **Pro Tier 1** | $29/mo | 20M | $1.45 | $5/M tokens |
 | **Pro Tier 2** | $89/mo | 70M | $1.27 | $3/M tokens |
 | **Enterprise** | Custom | Custom | Custom | Negotiated |
@@ -38,7 +40,7 @@ With Altimate, you pay $29 flat regardless of which model handles your task. Buy
 
 | | BYOK (Bring Your Own Key) | Altimate LLM Gateway |
 |---|---|---|
-| **Cost** | Free and unlimited | Token-based pricing (10M tokens free) |
+| **Cost** | Free and unlimited | Token-based pricing (1M tokens free) |
 | **API Keys** | You manage your own keys | No keys needed |
 | **Models** | Any model from your provider | Dynamic routing across best-in-class models |
 | **Data Path** | Direct to your provider — Altimate never sees it | Through Altimate — see [Security FAQ](faq.md#llm-ai-security) for data handling details |
@@ -78,14 +80,14 @@ The Altimate LLM Gateway is designed with enterprise security requirements in mi
 - IAM-based RBAC with MFA enforcement for developer access
 
 
-/// admonition | If you need us to do a security review with your IT/security teams, please [contact us](https://www.altimate.ai/support) via chat or Slack.
+/// admonition | If you need us to do a security review with your IT/security teams, please [contact us](https://www.altimate.ai/support?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link) via chat or Slack.
     type: tip
 ///
 
 ## Getting Started
 
-1. Install the [Datamates extension](https://marketplace.visualstudio.com/items?itemName=altimateai.vscode-altimate-mcp-server) in your IDE
-2. Open the command palette (`Cmd+Shift+P` / `Ctrl+Shift+P`) and select **Datamates: Open Altimate Code Chat**
-3. The Community plan with 10M free tokens is available immediately — no credit card required
+1. Install the [Altimate Workspaces extension](https://marketplace.visualstudio.com/items?itemName=altimateai.vscode-altimate-mcp-server) in your IDE
+2. Open the command palette (`Cmd+Shift+P` / `Ctrl+Shift+P`) and select **Altimate Workspaces: Open Altimate Code Chat**
+3. The Community plan with 1M free tokens is available immediately — no credit card required
 
-To upgrade or manage your plan, visit the [Altimate pricing page](https://www.altimate.ai/pricing).
+To upgrade or manage your plan, visit the [Altimate pricing page](https://www.altimate.ai/pricing?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link).

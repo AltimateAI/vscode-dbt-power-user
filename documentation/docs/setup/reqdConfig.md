@@ -1,10 +1,15 @@
+---
+title: Required Configuration — Power User for dbt
+description: "Required VS Code settings to configure Power User for dbt: dbt project path, profile, target, and connection details."
+---
+
 /// admonition | Only use the following steps for "dbt Core" environments. If you have a dbt Cloud environment, use the [required config instructions for "dbt Cloud" environments](./reqdConfigCloud.md). If you have a dbt Fusion environment, use the [required config instructions for "dbt Fusion" environments](./reqdConfigFusion.md).
     type: warning
 ///
 
 ## Use the setup wizard for configuration (recommended)
 
-/// admonition | Need to setup environment variables? Refer to this [section](https://docs.myaltimate.com/setup/optConfig/#environment-variables-setup)
+/// admonition | Need to setup environment variables? Refer to this [section](/setup/optConfig/#environment-variables-setup)
     type: warning
 ///
 
@@ -15,9 +20,19 @@ You can start the setup wizard by clicking on dbt status icon in bottom status b
 <interactive demo for setup wizard>
 
 <div style="position: relative; box-sizing: content-box; max-height: 80vh; max-height: 80svh; width: 100%; aspect-ratio: 1.50; padding: 40px 0 40px 0;">
-  <iframe src="https://app.supademo.com/embed/cmnsywfgw4brfcr4j1npz9esr?embed_v=2&utm_source=embed" loading="lazy" title="dbt Power User Setup guide-Core" allow="clipboard-write" frameborder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
+  <iframe src="https://app.supademo.com/embed/cmnsywfgw4brfcr4j1npz9esr?embed_v=2&utm_source=embed" loading="lazy" title="Power User for dbt Setup guide-Core" allow="clipboard-write" frameborder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
 
 **Here are steps covered in the setup wizard**
+
+/// admonition | dbt Core needs the Python extension
+    type: info
+
+Installing Power User for dbt doesn't install the Python extension (`ms-python.python`). Without it, Power User shows:
+
+> dbt Core runs through the Python extension, which is not installed. Install it, or switch dbt.dbtIntegration to fusion to use dbt Fusion without Python.
+
+Install the Python extension: **Install Python extension** installs it and then offers **Reload window**, and in the Get Started panel the Python interpreter check offers **Install Python Extension**. If your project runs on dbt Fusion, set `dbt.dbtIntegration` to `fusion` instead. The prompt also doesn't appear when `dbt.dbtPythonPathOverride` names an interpreter that exists, but avoid that setting unless you use Meltano; see [the warning about Python path overrides](#associate-python-interpreter-with-dbt-installation).
+///
 
 **Select Python Interpreter**
 
@@ -41,7 +56,7 @@ Many times project failures or weird errors are seen if dbt dependencies are not
 Last step is clicking on button - "Validate Project" It will run a bunch of checks to make sure your dbt environment and project are setup correctly.
 If there are some issues, it will tell you exactly what's wrong as well.
 
-/// admonition | If you still can't get the extension setup correctly, please contact us via slack or chat through [support page](https://www.altimate.ai/support)
+/// admonition | If you still can't get the extension setup correctly, please contact us via slack or chat through [support page](https://www.altimate.ai/support?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link)
     type: tip
 ///
 
@@ -118,7 +133,7 @@ Avoid using the setting dbt.dbtPythonPathOverride unless using Meltano, the exte
 
 There are multiple features in the extension, including [generate dbt documentation](../document/generatedoc.md), [column lineage](../test/lineage.md), [query explanation](../develop/explanation.md), [generate dbt model from SQL](../develop/genmodelSQL.md) that require an API key.
 
-/// details | You can get an API key for free by signing up at [www.altimate.ai](https://www.altimate.ai)
+/// details | You can get an API key for free by signing up at [www.altimate.ai](https://www.altimate.ai?utm_source=help-docs&utm_medium=referral&utm_campaign=docs-inline-link)
 
 <interactive demo to get an API key>
 

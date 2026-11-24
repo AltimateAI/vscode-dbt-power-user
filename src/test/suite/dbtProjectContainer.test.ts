@@ -255,6 +255,8 @@ describe("DBTProjectContainer Tests", () => {
       expect(mockDbtProject.executeSQLOnQueryPanel).toHaveBeenCalledWith(
         query,
         modelName,
+        "inline",
+        uri,
       );
     });
 
@@ -460,7 +462,50 @@ describe("DBTProjectContainer Tests", () => {
       expect(mockAltimateRequest.getDatapilotVersion).toHaveBeenCalledWith(
         "1.0.0",
       );
-      expect(result).toBe(true);
+      expect(result).toEqual({
+        isInstalled: true,
+        installedVersion: "1.0.0",
+        requiredVersion: "1.0.0",
+      });
+    });
+
+    it("should accept an installed Datapilot newer than the required version", async () => {
+      mockAltimateDatapilot.checkIfAltimateDatapilotInstalled.mockResolvedValueOnce(
+        "1.2.0",
+      );
+
+      const result = await container.checkIfAltimateDatapilotInstalled();
+
+      expect(result).toEqual({
+        isInstalled: true,
+        installedVersion: "1.2.0",
+        requiredVersion: "1.0.0",
+      });
+    });
+
+    it("should reject an installed Datapilot older than the required version", async () => {
+      mockAltimateDatapilot.checkIfAltimateDatapilotInstalled.mockResolvedValueOnce(
+        "0.9.0",
+      );
+
+      const result = await container.checkIfAltimateDatapilotInstalled();
+
+      expect(result).toEqual({
+        isInstalled: false,
+        installedVersion: "0.9.0",
+        requiredVersion: "1.0.0",
+      });
+    });
+
+    it("should report Datapilot as not installed when no version is found", async () => {
+      mockAltimateDatapilot.checkIfAltimateDatapilotInstalled.mockResolvedValueOnce(
+        "",
+      );
+
+      const result = await container.checkIfAltimateDatapilotInstalled();
+
+      expect(result).toEqual({ isInstalled: false, installedVersion: "" });
+      expect(mockAltimateRequest.getDatapilotVersion).not.toHaveBeenCalled();
     });
 
     it("should install Altimate Datapilot", async () => {
@@ -655,93 +700,101 @@ describe("DBTProjectContainer Tests", () => {
       container.setContext(mockContext);
     });
 
-    it("should show walkthrough when user accepts", async () => {
-      (window.showInformationMessage as any) = jest.fn(() =>
-        Promise.resolve("Yes"),
-      );
+    let workspaceState: { get: jest.Mock<any>; update: jest.Mock<any> };
+    const setUp = (
+      state: Record<string, unknown>,
+      hidden = false,
+      onboarding?: Record<string, unknown>,
+    ) => {
+      (workspace.getConfiguration as any) = jest.fn(() => ({
+        get: jest.fn((key: string, defaultValue?: any) =>
+          key === "hideWalkthrough" ? hidden : defaultValue,
+        ),
+      }));
+      const globalState = {
+        get: jest.fn((key: string) => state[key]),
+        update: jest.fn(),
+      };
+      workspaceState = {
+        get: jest.fn((key: string) =>
+          key === "onboarding.state" ? onboarding : undefined,
+        ),
+        update: jest.fn(),
+      };
+      container.setContext({
+        workspaceState,
+        globalState,
+      } as unknown as ExtensionContext);
+      (commands.executeCommand as jest.Mock).mockClear();
+      return globalState;
+    };
+    const withProject = (found: boolean) =>
+      ((workspace as any).findFiles = jest.fn(async () =>
+        found ? [Uri.file("/repo/dbt_project.yml")] : [],
+      ));
 
-      await container.showWalkthrough();
+    it("opens Get Started on first run in a dbt project", async () => {
+      const globalState = setUp({});
+      withProject(true);
 
-      expect(commands.executeCommand).toHaveBeenCalledWith(
-        "setContext",
-        "dbtPowerUser.showSetupWalkthrough",
-        false,
-      );
+      await container.initializeWalkthrough();
+
       expect(commands.executeCommand).toHaveBeenCalledWith(
         "dbtPowerUser.openOnboarding",
+        undefined,
+        "firstRun",
+      );
+      expect(globalState.update).toHaveBeenCalledWith(
+        "showSetupWalkthrough",
+        false,
       );
     });
 
-    it("should not show walkthrough when user ignores", async () => {
-      (window.showInformationMessage as any) = jest.fn(() =>
-        Promise.resolve("Ignore"),
-      );
+    it("waits for a dbt project before opening Get Started", async () => {
+      const globalState = setUp({});
+      withProject(false);
 
-      await container.showWalkthrough();
+      await container.initializeWalkthrough();
 
       expect(commands.executeCommand).not.toHaveBeenCalledWith(
         "dbtPowerUser.openOnboarding",
+        undefined,
+        "firstRun",
+      );
+      expect(globalState.update).not.toHaveBeenCalled();
+    });
+
+    it("skips Get Started when hidden in settings or already finished", async () => {
+      withProject(true);
+      setUp({}, true);
+      await container.initializeWalkthrough();
+      setUp({}, false, { finished: true });
+      await container.initializeWalkthrough();
+
+      expect(commands.executeCommand).not.toHaveBeenCalledWith(
+        "dbtPowerUser.openOnboarding",
+        undefined,
+        "firstRun",
       );
     });
 
-    it("should skip walkthrough when hidden in settings", async () => {
-      const mockConfig = {
-        get: jest.fn((key: string, defaultValue?: any) => {
-          if (key === "hideWalkthrough") {
-            return true;
-          }
-          return defaultValue;
-        }),
-      };
-      (workspace.getConfiguration as any) = jest.fn(() => mockConfig);
-
-      const mockContext = {
-        workspaceState: {
-          get: jest.fn(),
-          update: jest.fn(),
-        },
-        globalState: {
-          get: jest.fn(() => true),
-          update: jest.fn(),
-        },
-      } as unknown as ExtensionContext;
-      container.setContext(mockContext);
-      (window.showInformationMessage as any) = jest.fn();
+    it("reopens Get Started after the reload an integration change causes", async () => {
+      setUp({ showSetupWalkthrough: false }, false, {
+        screen: "connect",
+        resume: true,
+      });
 
       await container.initializeWalkthrough();
 
-      expect(window.showInformationMessage).not.toHaveBeenCalled();
-    });
-
-    it("should trigger walkthrough when not hidden and state undefined", async () => {
-      const mockConfig = {
-        get: jest.fn((key: string, defaultValue?: any) => {
-          if (key === "hideWalkthrough") {
-            return false;
-          }
-          return defaultValue;
-        }),
-      };
-      (workspace.getConfiguration as any) = jest.fn(() => mockConfig);
-
-      const mockContext = {
-        workspaceState: {
-          get: jest.fn(),
-          update: jest.fn(),
-        },
-        globalState: {
-          get: jest.fn(() => undefined),
-          update: jest.fn(),
-        },
-      } as unknown as ExtensionContext;
-      container.setContext(mockContext);
-      (window.showInformationMessage as any) = jest.fn(() =>
-        Promise.resolve("Ignore"),
+      expect(commands.executeCommand).toHaveBeenCalledWith(
+        "dbtPowerUser.openOnboarding",
+        undefined,
+        "resume",
       );
-
-      await container.initializeWalkthrough();
-
-      expect(window.showInformationMessage).toHaveBeenCalled();
+      expect(workspaceState.update).toHaveBeenCalledWith("onboarding.state", {
+        screen: "connect",
+        resume: false,
+      });
     });
   });
 
@@ -806,6 +859,8 @@ describe("DBTProjectContainer Tests", () => {
       expect(mockDbtProject.executeSQLOnQueryPanel).toHaveBeenCalledWith(
         query,
         modelName,
+        "inline",
+        expect.anything(),
       );
     });
 

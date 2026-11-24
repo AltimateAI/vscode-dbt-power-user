@@ -1,4 +1,40 @@
+---
+title: Auto-Generate dbt Documentation
+description: "Bulk-generate dbt model and column documentation with AI in Power User for dbt. Set persona and length preferences."
+video_id: 8EuBDEuYZ2o
+video_upload_date: "2026-06-11T00:00:00Z"
+---
+
 Instead of writing documentation manually, you can generate the documentation!
+
+### Single-column hover shortcut
+
+The fastest way to add a description or test to **one** column is to hover the `name:` value of that column in your `schema.yml`. Two Altimate Code actions appear in the hover popup:
+
+- ✏️ **Suggest description** — drafts a clear description with business context.
+- 🧪 **Suggest tests** — suggests appropriate dbt tests (`not_null`, `unique`, `accepted_values`, `relationships`, etc.).
+
+Clicking either action opens Altimate Code chat beside the editor with a pre-filled prompt — no need to open the Documentation Editor for a single column.
+
+The hover only fires on the **value** of a column's `name:` field — not on the `name` key, not on the dash, not on the description line below. The YAML structure has to match `models: → columns: → name:`.
+
+```yaml
+models:
+  - name: stg_customers
+    columns:
+      - name: customer_id      # ← hover INSIDE these letters
+        description: primary key
+```
+
+The popup shows `(column) customer_id` on top with a divider, then the two action links. Column detection uses YAML AST traversal, so it correctly distinguishes column `name:` entries from model-level `name:` entries at any indentation level.
+
+![Hover popup on a column name: in schema.yml showing "Suggest description" and "Suggest tests"](images/hoverActionsYamlColumn.png)
+
+/// admonition | Requires `yaml` or `jinja-yaml` language
+    type: info
+
+The file's language ID (bottom-right of the editor) must be `yaml` or `jinja-yaml`. If the file shows as "Plain Text" or another language the hover won't fire. The file also has to live inside a workspace the extension recognizes as a dbt project.
+///
 
 ### Bulk generate documentation
 
@@ -63,7 +99,7 @@ Here's a demo of generating model and column descriptions:
 
 <div style="position: relative; padding-bottom: calc(86.34704370179949% + 42px); height: 0;"><iframe src="https://app.supademo.com/embed/cm8oeopuq03drzh0i0yyvsxw7" allow="clipboard-write" frameborder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
 
-/// admonition | Document generation or propagation requires an API key. You can get it by signing up for free at [www.altimate.ai](https://wwww.altimate.ai)
+/// admonition | Document generation or propagation requires an API key. You can get it by signing up for free at [www.altimate.ai](https://www.altimate.ai)
     type: info
 ///
 
@@ -79,3 +115,8 @@ Here's a demo of generating model and column descriptions:
           allowfullscreen>
   </iframe>
 </div>
+
+<figure class="video-clip">
+<div class="video-clip__frame"><iframe src="https://www.youtube.com/embed/NrEYqEUcpHY?rel=0" title="dbt Docs, Data Tests and Unit Tests in One Editor | dbt Power User Spotlight 3" loading="lazy" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
+<figcaption>Video (6:20): dbt Docs, Data Tests and Unit Tests in One Editor | dbt Power User Spotlight 3. <a href="https://www.youtube.com/watch?v=NrEYqEUcpHY" target="_blank" rel="noopener">Watch on YouTube</a>.</figcaption>
+</figure>

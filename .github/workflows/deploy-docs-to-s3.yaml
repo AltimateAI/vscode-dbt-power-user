@@ -34,11 +34,23 @@ jobs:
           cd documentation
           mkdocs build --clean
 
-      # Deploy to AWS
-      - name: Deploy to AWS
-        uses: onramper/action-deploy-aws-static-site@v3.2.0
+      # Configure AWS credentials for the deploy steps.
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          domain: docs.myaltimate.com
-          publish_dir: ./documentation/site
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      # Sync the built site straight to the existing S3 bucket from the runner
+      # (~7 GB RAM) instead of the 128 MB CDK BucketDeployment Lambda, which
+      # OOM-crashes (Runtime.OutOfMemory) on the docs bundle. `--delete` mirrors
+      # the previous Prune: true behavior. Then invalidate CloudFront.
+      - name: Deploy to S3 and invalidate CloudFront
+        run: |
+          aws s3 sync ./documentation/site \
+            s3://staticpage-docs-myaltimate-websitebucket75c24d94-1f2vy8nwes36i \
+            --delete
+          aws cloudfront create-invalidation \
+            --distribution-id E1H4J8TKJWS3II \
+            --paths "/*"
