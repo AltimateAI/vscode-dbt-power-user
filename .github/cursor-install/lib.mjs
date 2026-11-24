@@ -273,14 +273,15 @@ export function debuggerSwitchVerdict(output) {
 }
 
 // Starts a Linux Cursor build once with each switch Playwright's Electron launch passes, with no
-// display, so each start exits at once. Returns { accepted: true } only when both got past the
+// display, so each start exits at once. --no-sandbox as for the ui launch: on GitHub's Ubuntu
+// runners Chromium otherwise stops at its SUID sandbox helper before Cursor checks the switch. Returns { accepted: true } only when both got past the
 // switch checks, { refusal } for the first refused switch, or { unknown }.
 export function probeDebuggerSwitches(exe) {
   const env = { ...process.env };
   for (const key of ["ELECTRON_RUN_AS_NODE", "DISPLAY", "WAYLAND_DISPLAY"])
     delete env[key];
   for (const flag of ["--inspect=0", "--remote-debugging-port=0"]) {
-    const run = spawnSync(exe, [flag, "--version"], {
+    const run = spawnSync(exe, ["--no-sandbox", flag, "--version"], {
       encoding: "utf8",
       timeout: 30000,
       killSignal: "SIGKILL",
