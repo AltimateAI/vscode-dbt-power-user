@@ -260,10 +260,10 @@ export function debuggerSwitchRefusal(output) {
 }
 
 // What one start of a Linux Cursor build with a debugger switch and no display printed: the
-// refusal, or Chromium's X11 error, which only a build that got past its switch checks reaches.
-// Anything else (a missing library, a crash) says nothing about the switch.
-const NO_DISPLAY =
-  /Missing X server or \$DISPLAY|The platform failed to initialize/;
+// refusal, or Chromium's X11 "Missing X server or $DISPLAY", which only a build that got past its
+// switch checks reaches. Anything else (a missing library, a crash, another platform error) says
+// nothing about the switch.
+const NO_DISPLAY = /Missing X server or \$DISPLAY/;
 export function debuggerSwitchVerdict(output) {
   const refusal = debuggerSwitchRefusal(output);
   if (refusal) return { refusal };

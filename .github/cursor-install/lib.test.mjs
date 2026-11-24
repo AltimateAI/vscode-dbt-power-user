@@ -158,3 +158,13 @@ test("output with neither the refusal nor the display error proves nothing", () 
   assert.deepEqual(debuggerSwitchVerdict(output), { unknown: output });
   assert.deepEqual(debuggerSwitchVerdict(""), { unknown: "no output" });
 });
+
+test("Chromium's generic platform failure isn't taken as acceptance", () => {
+  const output = [
+    "No wl_shm object",
+    "The platform failed to initialize.  Exiting.",
+  ].join("\n");
+  assert.deepEqual(debuggerSwitchVerdict(output), {
+    unknown: "No wl_shm object",
+  });
+});
