@@ -3,6 +3,8 @@ import { test } from "node:test";
 import {
   activationState,
   annotate,
+  debuggerSwitchRefusal,
+  debuggerSwitchVerdict,
   escapeData,
   escapeProperty,
   isInstallErrorLine,
@@ -126,4 +128,52 @@ test("a non-error line naming Power User doesn't count", () => {
     ),
     false,
   );
+});
+
+test("Cursor's refusal of debugger switches is found in its output", () => {
+  const line =
+    "--remote-debugging-port is not supported in this build. Debugger switches work only in development builds.";
+  assert.equal(debuggerSwitchRefusal(`\n${line}\n`), line);
+});
+
+test("a build that accepts debugger switches has no refusal", () => {
+  // Cursor 3.31.15 on Linux with --remote-debugging-port and no display.
+  const output = [
+    "[31863:1124/222326.809602:ERROR:ui/ozone/platform/x11/ozone_platform_x11.cc:257] Missing X server or $DISPLAY",
+    "[31863:1124/222326.809655:ERROR:ui/aura/env.cc:246] The platform failed to initialize.  Exiting.",
+  ].join("\n");
+  assert.equal(debuggerSwitchRefusal(output), undefined);
+  assert.deepEqual(debuggerSwitchVerdict(output), { accepted: true });
+});
+
+test("a refused switch is a refusal, whatever else is printed", () => {
+  const line =
+    "--inspect is not supported in this build. Debugger switches work only in development builds.";
+  assert.deepEqual(debuggerSwitchVerdict(line), { refusal: line });
+});
+
+test("output with neither the refusal nor the display error proves nothing", () => {
+  const output =
+    "cursor: error while loading shared libraries: libnss3.so: cannot open shared object file";
+  assert.deepEqual(debuggerSwitchVerdict(output), { unknown: output });
+  assert.deepEqual(debuggerSwitchVerdict(""), { unknown: "no output" });
+});
+
+test("another 'not supported in this build' line isn't a switch refusal", () => {
+  const output = [
+    "Some feature is not supported in this build.",
+    "[1:1124/1.1:ERROR:ui/ozone/platform/x11/ozone_platform_x11.cc:257] Missing X server or $DISPLAY",
+  ].join("\n");
+  assert.equal(debuggerSwitchRefusal(output), undefined);
+  assert.deepEqual(debuggerSwitchVerdict(output), { accepted: true });
+});
+
+test("Chromium's generic platform failure isn't taken as acceptance", () => {
+  const output = [
+    "No wl_shm object",
+    "The platform failed to initialize.  Exiting.",
+  ].join("\n");
+  assert.deepEqual(debuggerSwitchVerdict(output), {
+    unknown: "No wl_shm object",
+  });
 });
