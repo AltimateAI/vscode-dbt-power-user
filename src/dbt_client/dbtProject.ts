@@ -87,6 +87,7 @@ import { ProjectConfigChangedEvent } from "./event/projectConfigChangedEvent";
 import { RunResultsEvent } from "./event/runResultsEvent";
 import { getDbtIntegrationMode } from "./integrationMode";
 import { PythonEnvironment } from "./pythonEnvironment";
+import { VSCodeDBTTerminal } from "./vscodeTerminal";
 
 interface FileNameTemplateMap {
   [key: string]: string;
@@ -189,6 +190,8 @@ export class DBTProject implements Disposable {
     DBTCommandExecution[]
   >();
   private queueStates: Map<string, boolean> = new Map<string, boolean>();
+  /** The queued commands running now: closing "Tasks - dbt" aborts them. */
+  private runningCommands = new Set<AbortController>();
 
   constructor(
     @inject(PythonEnvironment)
@@ -227,6 +230,13 @@ export class DBTProject implements Disposable {
     }
 
     this.dbtProjectLog = this.dbtProjectLogFactory(this.onProjectConfigChanged);
+
+    // Kill Terminal on "Tasks - dbt" stops the dbt commands it shows.
+    if (this.terminal instanceof VSCodeDBTTerminal) {
+      this.disposables.push(
+        this.terminal.onDidClose(() => this.stopQueuedCommands()),
+      );
+    }
 
     // Check if dbt loom is installed for telemetry (only for core integration)
     const dbtIntegrationMode = getDbtIntegrationMode();
@@ -2575,27 +2585,58 @@ export class DBTProject implements Disposable {
         }
       };
 
-      if (showProgress) {
-        await window.withProgress(
-          {
-            location: focus
-              ? ProgressLocation.Notification
-              : ProgressLocation.Window,
-            cancellable: true,
-            title: statusMessage,
-          },
-          async (_, token) => {
-            const abortController = new AbortController();
-            token.onCancellationRequested(() => abortController.abort());
-            await commandExecution(abortController.signal);
-          },
-        );
-      } else {
-        await commandExecution();
+      // Aborted by Cancel on the progress notification, or by closing
+      // "Tasks - dbt".
+      const abortController = new AbortController();
+      this.runningCommands.add(abortController);
+      try {
+        if (showProgress) {
+          await window.withProgress(
+            {
+              location: focus
+                ? ProgressLocation.Notification
+                : ProgressLocation.Window,
+              cancellable: true,
+              title: statusMessage,
+            },
+            async (_, token) => {
+              token.onCancellationRequested(() => abortController.abort());
+              await commandExecution(abortController.signal);
+            },
+          );
+        } else {
+          await commandExecution(abortController.signal);
+        }
+      } finally {
+        this.runningCommands.delete(abortController);
       }
       this.queueStates.set(queueName, false);
       this.pickCommandToRun(queueName);
     }
+  }
+
+  /**
+   * The user closed "Tasks - dbt": stop the running commands, as Cancel does,
+   * and drop the ones queued behind them.
+   */
+  private stopQueuedCommands(): void {
+    const running = [...this.runningCommands].filter(
+      (controller) => !controller.signal.aborted,
+    );
+    let queued = 0;
+    for (const queue of this.queues.values()) {
+      queued += queue.length;
+      queue.length = 0;
+    }
+    if (running.length === 0 && queued === 0) {
+      return;
+    }
+    running.forEach((controller) => controller.abort());
+    this.telemetry.sendTelemetryEvent(
+      "dbtCommandsStoppedByTerminalClose",
+      {},
+      { running: running.length, queued },
+    );
   }
 
   private getCurrentProjectIntegration(): DBTProjectIntegration {

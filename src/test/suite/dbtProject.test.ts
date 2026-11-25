@@ -27,6 +27,7 @@ import { DBTProjectLog } from "../../dbt_client/dbtProjectLog";
 import { ManifestCacheChangedEvent } from "../../dbt_client/event/manifestCacheChangedEvent";
 import { setEffectiveDbtIntegrationMode } from "../../dbt_client/integrationMode";
 import { PythonEnvironment } from "../../dbt_client/pythonEnvironment";
+import { VSCodeDBTTerminal } from "../../dbt_client/vscodeTerminal";
 import { AltimateAuthService } from "../../services/altimateAuthService";
 import { RunHistoryService } from "../../services/runHistoryService";
 import { SharedStateService } from "../../services/sharedStateService";
@@ -1442,6 +1443,185 @@ describe("DBTProject Test Suite", () => {
       expect(mockProjectIntegration.dispose).toHaveBeenCalled();
       // dbtProjectLog is created in constructor and added to disposables in initialize
       expect(mockDbtProjectLog.dispose).toHaveBeenCalled();
+    });
+  });
+
+  describe('Kill Terminal on "Tasks - dbt"', () => {
+    // The pty Power User gives VS Code: VS Code calls `close` when the user
+    // closes the terminal (Kill Terminal).
+    let pty: { close: () => void } | undefined;
+    // Cancel on the progress notification.
+    let cancel: (() => void) | undefined;
+    let tasksTerminal: VSCodeDBTTerminal;
+    const createTerminal = vscode.window.createTerminal as jest.Mock;
+    const withProgress = vscode.window.withProgress as jest.Mock;
+    const originals = {
+      createTerminal: createTerminal.getMockImplementation(),
+      withProgress: withProgress.getMockImplementation(),
+    };
+
+    const waitFor = async (condition: () => boolean) => {
+      for (let i = 0; i < 100 && !condition(); i++) {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+    };
+
+    /** A queued dbt command that shows "Tasks - dbt" and runs until aborted. */
+    const longCommand = (name: string) => {
+      const run = {
+        started: false,
+        shown: false,
+        finished: false,
+        signal: undefined as AbortSignal | undefined,
+      };
+      const command = {
+        execute: async (signal?: AbortSignal) => {
+          run.started = true;
+          run.signal = signal;
+          await tasksTerminal.show(true);
+          run.shown = true;
+          await new Promise<void>((resolve) => {
+            signal?.addEventListener("abort", () => resolve());
+            // dbt finishing on its own, long after the test looks.
+            setTimeout(resolve, 2000);
+          });
+          run.finished = true;
+          return { stdout: "" };
+        },
+        getCommandAsString: () => `dbt run --select ${name}`,
+        focus: true,
+        showProgress: true,
+      };
+      return { run, command };
+    };
+
+    const queue = (command: unknown) =>
+      (dbtProject as any).addCommandToQueue("all", command);
+
+    beforeEach(() => {
+      pty = undefined;
+      cancel = undefined;
+      createTerminal.mockImplementation((options: any) => {
+        pty = options.pty;
+        return { show: jest.fn(), dispose: jest.fn() };
+      });
+      withProgress.mockImplementation((_options: any, task: any) =>
+        task(
+          { report: jest.fn() },
+          {
+            onCancellationRequested: (listener: () => void) => {
+              cancel = listener;
+              return { dispose: jest.fn() };
+            },
+          },
+        ),
+      );
+      tasksTerminal = new VSCodeDBTTerminal(mockTelemetry);
+      (tasksTerminal as any).outputChannel = {
+        info: jest.fn(),
+        debug: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+        appendLine: jest.fn(),
+      };
+      dbtProject = new DBTProject(
+        mockPythonEnvironment,
+        dbtProjectLogFactory as any,
+        mockCommandFactory,
+        tasksTerminal,
+        mockSharedStateService,
+        mockTelemetry,
+        mockExecutionInfrastructure,
+        jest.fn().mockReturnValue(mockProjectIntegration) as any,
+        mockAltimate,
+        mockValidationProvider,
+        mockAltimateAuthService,
+        mockRunHistoryService,
+        vscode.Uri.file("/test/project"),
+        {},
+        mockManifestChangedEmitter,
+      );
+      (dbtProject as any).createQueue("all");
+      (mockRunHistoryService as any).notifyCommandFailed = jest.fn();
+    });
+
+    afterEach(() => {
+      createTerminal.mockImplementation(originals.createTerminal!);
+      withProgress.mockImplementation(originals.withProgress!);
+    });
+
+    const stoppedEvents = () =>
+      (mockTelemetry.sendTelemetryEvent as jest.Mock).mock.calls.filter(
+        (call) => call[0] === "dbtCommandsStoppedByTerminalClose",
+      );
+
+    it("stops the dbt command running in it", async () => {
+      const first = longCommand("orders+");
+      queue(first.command);
+      await waitFor(() => first.run.shown);
+
+      pty!.close();
+
+      expect(first.run.signal?.aborted).toBe(true);
+      await waitFor(() => first.run.finished);
+      expect(stoppedEvents()).toEqual([
+        ["dbtCommandsStoppedByTerminalClose", {}, { running: 1, queued: 0 }],
+      ]);
+    });
+
+    it("drops the commands queued behind it", async () => {
+      const first = longCommand("orders+");
+      const second = longCommand("customers");
+      queue(first.command);
+      queue(second.command);
+      await waitFor(() => first.run.shown);
+
+      pty!.close();
+      await waitFor(() => first.run.finished);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      expect(second.run.started).toBe(false);
+      expect(stoppedEvents()).toEqual([
+        ["dbtCommandsStoppedByTerminalClose", {}, { running: 1, queued: 1 }],
+      ]);
+    });
+
+    it("does nothing when no command is running", async () => {
+      await tasksTerminal.show(true);
+
+      pty!.close();
+
+      expect(stoppedEvents()).toEqual([]);
+    });
+
+    it("leaves Cancel as it was: the next queued command still runs", async () => {
+      const first = longCommand("orders+");
+      const second = longCommand("customers");
+      queue(first.command);
+      queue(second.command);
+      await waitFor(() => cancel !== undefined && first.run.shown);
+
+      cancel!();
+      await waitFor(() => second.run.shown);
+
+      expect(first.run.signal?.aborted).toBe(true);
+      expect(second.run.started).toBe(true);
+      expect(stoppedEvents()).toEqual([]);
+      // Let the second command end: nothing else aborts it.
+      pty!.close();
+      await waitFor(() => second.run.finished);
+    });
+
+    it("opens a new terminal for the next command after it was closed", async () => {
+      await tasksTerminal.show(true);
+      const closed = jest.fn();
+      tasksTerminal.onDidClose(closed);
+
+      pty!.close();
+      await tasksTerminal.show(true);
+
+      expect(closed).toHaveBeenCalledTimes(1);
+      expect(createTerminal).toHaveBeenCalledTimes(2);
     });
   });
 
