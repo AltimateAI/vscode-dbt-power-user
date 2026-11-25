@@ -190,6 +190,27 @@ describe("DBTWorkspaceFolder: projects start a few at a time", () => {
     );
   });
 
+  it("puts the open file's project first for a document of another scheme too", async () => {
+    (window as any).activeTextEditor = {
+      document: {
+        uri: {
+          scheme: "vscode-remote",
+          fsPath: path.join(projectRoot("c"), "models", "orders.sql"),
+        },
+      },
+    };
+    const folder = makeFolder(["a", "b", "c"], new ProjectStartQueue(1));
+
+    const discovered = folder.discoverProjects();
+    await settle();
+    expect(created).toEqual([projectRoot("c")]);
+
+    for (const name of ["c", "a", "b"]) {
+      await finish(name);
+    }
+    await discovered;
+  });
+
   it("never starts a project whose dbt_project.yml is deleted while it waits", async () => {
     const folder = makeFolder(["a", "b", "c"], new ProjectStartQueue(1));
 

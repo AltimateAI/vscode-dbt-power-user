@@ -251,7 +251,9 @@ export class DBTWorkspaceFolder implements Disposable {
     projectRoots: string[],
     file: Uri | undefined,
   ): string | undefined {
-    if (file?.scheme !== "file") {
+    // By fsPath alone, as `contains` matches: a document of another scheme
+    // (a diff view of the file) still names its project.
+    if (!file?.fsPath) {
       return undefined;
     }
     return projectRoots
