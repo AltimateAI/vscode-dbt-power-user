@@ -255,8 +255,8 @@ export function newestLogDir(userDataDir) {
 export function debuggerSwitchRefusal(output) {
   return output
     .split(/\r?\n/)
-    .find((line) => line.includes("is not supported in this build"))
-    ?.trim();
+    .map((line) => line.trim())
+    .find((line) => /^--[\w-]+ is not supported in this build/.test(line));
 }
 
 // What one start of a Linux Cursor build with a debugger switch and no display printed: the
@@ -273,9 +273,10 @@ export function debuggerSwitchVerdict(output) {
 }
 
 // Starts a Linux Cursor build once with each switch Playwright's Electron launch passes, with no
-// display, so each start exits at once. --no-sandbox as for the ui launch: on GitHub's Ubuntu
-// runners Chromium otherwise stops at its SUID sandbox helper before Cursor checks the switch. Returns { accepted: true } only when both got past the
-// switch checks, { refusal } for the first refused switch, or { unknown }.
+// display, so each start exits at once. Returns { accepted: true } only when both got past the
+// switch checks, { refusal } for the first refused switch, or { unknown }. --no-sandbox as for the
+// ui launch: on GitHub's Ubuntu runners Chromium otherwise stops at its SUID sandbox helper before
+// Cursor checks the switch.
 export function probeDebuggerSwitches(exe) {
   const env = { ...process.env };
   for (const key of ["ELECTRON_RUN_AS_NODE", "DISPLAY", "WAYLAND_DISPLAY"])

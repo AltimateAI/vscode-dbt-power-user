@@ -20,8 +20,9 @@ if (accepted)
   annotate(
     "warning",
     title,
-    `accepted: the ui rows can move from Cursor ${args.pinned} to the latest ` +
-      "(drop UI_CURSOR_VERSION in .github/workflows/cursor-install.yml).",
+    `accepted: the ui rows can move from Cursor ${args.pinned} to the latest. In ` +
+      '.github/workflows/cursor-install.yml, set the plan step\'s "pinned" ui rows back to ' +
+      '"latest", and drop UI_CURSOR_VERSION, UI_CURSOR_COMMIT and the "pinned" download branch.',
   );
 else if (refusal) annotate("notice", title, `still refused: ${refusal}`);
 else annotate("notice", title, `couldn't tell: ${unknown}`);

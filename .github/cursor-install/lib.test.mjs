@@ -159,6 +159,15 @@ test("output with neither the refusal nor the display error proves nothing", () 
   assert.deepEqual(debuggerSwitchVerdict(""), { unknown: "no output" });
 });
 
+test("another 'not supported in this build' line isn't a switch refusal", () => {
+  const output = [
+    "Some feature is not supported in this build.",
+    "[1:1124/1.1:ERROR:ui/ozone/platform/x11/ozone_platform_x11.cc:257] Missing X server or $DISPLAY",
+  ].join("\n");
+  assert.equal(debuggerSwitchRefusal(output), undefined);
+  assert.deepEqual(debuggerSwitchVerdict(output), { accepted: true });
+});
+
 test("Chromium's generic platform failure isn't taken as acceptance", () => {
   const output = [
     "No wl_shm object",
