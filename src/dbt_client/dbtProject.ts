@@ -233,7 +233,7 @@ export class DBTProject implements Disposable {
     this.dbtIntegrationMode = dbtIntegrationMode;
 
     if (dbtIntegrationMode === "core") {
-      this.isDbtLoomInstalled()
+      this.dbtLoomInstalled()
         .then((isInstalled) => {
           this.telemetry.setTelemetryCustomAttribute(
             "dbtLoomInstalled",
@@ -410,6 +410,24 @@ export class DBTProject implements Disposable {
           err,
         );
       });
+  }
+
+  /**
+   * The dbt-loom probe's answer for each interpreter path. It depends only on
+   * the interpreter, so projects that share one share a single probe.
+   */
+  private static dbtLoomProbes = new Map<string, Promise<boolean>>();
+
+  // Async: reading the interpreter before it is resolved throws, and that
+  // must reach the caller's catch as a rejection.
+  private async dbtLoomInstalled(): Promise<boolean> {
+    const interpreter = this.PythonEnvironment.pythonPath ?? "";
+    let probe = DBTProject.dbtLoomProbes.get(interpreter);
+    if (probe === undefined) {
+      probe = this.isDbtLoomInstalled();
+      DBTProject.dbtLoomProbes.set(interpreter, probe);
+    }
+    return probe;
   }
 
   private async isDbtLoomInstalled(): Promise<boolean> {

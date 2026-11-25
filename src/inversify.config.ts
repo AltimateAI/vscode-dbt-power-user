@@ -54,6 +54,7 @@ import { DBTProjectLog } from "./dbt_client/dbtProjectLog";
 import { DBTWorkspaceFolder } from "./dbt_client/dbtWorkspaceFolder";
 import { ManifestCacheChangedEvent } from "./dbt_client/event/manifestCacheChangedEvent";
 import { ProjectConfigChangedEvent } from "./dbt_client/event/projectConfigChangedEvent";
+import { ProjectStartQueue } from "./dbt_client/projectStartQueue";
 import { PythonEnvironment } from "./dbt_client/pythonEnvironment";
 import {
   StaticRuntimePythonEnvironment,
@@ -548,9 +549,13 @@ container
         workspaceFolder,
         _onManifestChanged,
         _onProjectRegisteredUnregistered,
+        container.get(ProjectStartQueue),
       );
     };
   });
+
+// One queue for the window: every folder's projects start through it.
+container.bind(ProjectStartQueue).toConstantValue(new ProjectStartQueue());
 
 container
   .bind<
