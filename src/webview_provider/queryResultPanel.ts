@@ -280,7 +280,10 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       .getConfiguration("dbt")
       .get("disableQueryHistory", false);
 
-    const limit = workspace.getConfiguration("dbt").get<number>("queryLimit");
+    // `dbt.queryLimit` is per project: show the active file's.
+    const limit = workspace
+      .getConfiguration("dbt", window.activeTextEditor?.document.uri)
+      .get<number>("queryLimit");
     await to?.postMessage({
       command: OutboundCommand.GetContext,
       limit,
@@ -616,8 +619,13 @@ export class QueryResultPanel extends AltimateWebviewProvider {
           case InboundCommand.UpdateConfig:
             const configMessage = message as RecConfig;
             if (configMessage.limit !== undefined) {
+              // Saved to the active file's folder (the workspace when only one
+              // folder is open), so that file's next query uses it.
+              const activeUri = window.activeTextEditor?.document.uri;
+              const folder =
+                activeUri && workspace.getWorkspaceFolder(activeUri);
               workspace
-                .getConfiguration("dbt")
+                .getConfiguration("dbt", folder?.uri)
                 .update("queryLimit", configMessage.limit);
             }
             if (configMessage.scale) {
@@ -838,7 +846,9 @@ export class QueryResultPanel extends AltimateWebviewProvider {
 
   /** Sends VSCode config data to webview */
   private transmitConfig() {
-    const limit = workspace.getConfiguration("dbt").get<number>("queryLimit");
+    const limit = workspace
+      .getConfiguration("dbt", window.activeTextEditor?.document.uri)
+      .get<number>("queryLimit");
     if (this._panel) {
       this._panel.webview.postMessage({
         command: OutboundCommand.InjectConfig,

@@ -80,7 +80,7 @@ export class DBTWorkspaceFolder implements Disposable {
 
   getAllowListFolders() {
     const nonFilteredAllowListFolders = workspace
-      .getConfiguration("dbt")
+      .getConfiguration("dbt", this.workspaceFolder.uri)
       .get<string[]>("allowListFolders", [])
       .map((folder) => {
         if (!path.isAbsolute(folder)) {
