@@ -1037,6 +1037,7 @@ container
     return new DBTClient(
       context.container.get(PythonEnvironment),
       context.container.get("Factory<DBTDetection>"),
+      context.container.get(IntegrationModeService),
     );
   })
   .inSingletonScope();

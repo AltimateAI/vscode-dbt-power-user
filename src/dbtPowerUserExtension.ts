@@ -250,14 +250,6 @@ export class DBTPowerUserExtension implements Disposable {
       try {
         // Before detection: the mode decides which dbt is looked for.
         await this.integrationModeService.resolve(context.workspaceState);
-        void this.integrationModeService
-          .notifySwitchHeld()
-          .catch((error) =>
-            this.telemetry.sendTelemetryError(
-              "dbtIntegrationSwitchHeldNoticeError",
-              error,
-            ),
-          );
       } catch (error) {
         this.telemetry.sendTelemetryError("dbtIntegrationModeError", error);
       }
@@ -285,6 +277,16 @@ export class DBTPowerUserExtension implements Disposable {
         );
       }
       await this.dbtProjectContainer.detectDBT();
+      // After detection: where dbt Core mode can't start, detection already
+      // showed why the window was held, as its "dbt is not installed" error.
+      void this.integrationModeService
+        .notifySwitchHeld()
+        .catch((error) =>
+          this.telemetry.sendTelemetryError(
+            "dbtIntegrationSwitchHeldNoticeError",
+            error,
+          ),
+        );
       await this.dbtProjectContainer.initializeDBTProjects();
       const notifyAutoSwitch = (roots: Uri[]) =>
         void this.integrationModeService

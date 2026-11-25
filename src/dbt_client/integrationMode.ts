@@ -104,6 +104,43 @@ const FUSION_ADAPTERS: Record<string, readonly number[]> = {
   lakecompute: [2, 0, 6],
 };
 
+/**
+ * The adapters dbt Fusion runs without an opt-in, as its own refusal of the
+ * others names them (2.0.9 and 2.0.12): "The 'postgres' adapter is not yet
+ * supported by dbt. Supported adapters: snowflake, bigquery, databricks,
+ * redshift, duckdb, salesforce, clickhouse. To use an experimental adapter,
+ * set the environment variable DBT_ALLOW_EXPERIMENTAL_ADAPTERS=true." The
+ * rest of `FUSION_ADAPTERS` is experimental.
+ */
+const FUSION_GA_ADAPTERS = new Set([
+  "snowflake",
+  "bigquery",
+  "databricks",
+  "redshift",
+  "duckdb",
+  "salesforce",
+  "clickhouse",
+]);
+
+/** The environment variable that lets dbt Fusion run its experimental adapters. */
+export const ALLOW_EXPERIMENTAL_ADAPTERS = "DBT_ALLOW_EXPERIMENTAL_ADAPTERS";
+
+/**
+ * Whether `DBT_ALLOW_EXPERIMENTAL_ADAPTERS` lets dbt Fusion run an
+ * experimental adapter. 2.0.9 and 2.0.12 take "true", "1", "yes" and "on" in
+ * any case, and refuse anything else, " true" and "y" included.
+ */
+export function experimentalAdaptersAllowed(
+  env: Record<string, string | undefined>,
+): boolean {
+  // `terminal.integrated.env` can hold null (unset): only a string counts.
+  const value: unknown = env[ALLOW_EXPERIMENTAL_ADAPTERS];
+  return (
+    typeof value === "string" &&
+    ["true", "1", "yes", "on"].includes(value.toLowerCase())
+  );
+}
+
 function versionAtLeast(
   version: readonly number[],
   minimum: readonly number[],
@@ -122,16 +159,26 @@ function versionAtLeast(
  * - "supported": this version accepts it.
  * - "unconfirmed": dbt Fusion accepts it from a later version than this one
  *   is known to be, so this build may or may not.
+ * - "experimental": dbt Fusion runs it only with
+ *   `DBT_ALLOW_EXPERIMENTAL_ADAPTERS`, which is not set.
  * - "unsupported": no dbt Fusion is known to accept it.
  */
-export type FusionAdapterSupport = "supported" | "unconfirmed" | "unsupported";
+export type FusionAdapterSupport =
+  | "supported"
+  | "unconfirmed"
+  | "experimental"
+  | "unsupported";
 
 export function fusionAdapterSupport(
   type: string,
   version: readonly number[],
+  allowExperimental = false,
 ): FusionAdapterSupport {
   if (!Object.prototype.hasOwnProperty.call(FUSION_ADAPTERS, type)) {
     return "unsupported";
+  }
+  if (!allowExperimental && !FUSION_GA_ADAPTERS.has(type)) {
+    return "experimental";
   }
   return versionAtLeast(version, FUSION_ADAPTERS[type])
     ? "supported"
@@ -143,8 +190,11 @@ export function fusionAdapterSupport(
  * every project in the window:
  * - "supported": it accepts each adapter.
  * - "unsupported": it accepts none of a project's candidate adapters.
+ * - "experimental": it runs a project's candidate adapters only with
+ *   `DBT_ALLOW_EXPERIMENTAL_ADAPTERS` (the rest, if any, not at all); no
+ *   project is unsupported.
  * - "unknown": a project's adapter could not be read, or its candidates
- *   disagree; no project is unsupported.
+ *   disagree; no project is unsupported or experimental.
  * - "unconfirmed": each adapter is one dbt Fusion accepts, but some only from
  *   a later version than this one is known to be.
  * - "noProjects": no dbt project was found to read.
@@ -162,15 +212,26 @@ export type FusionAdapterCheck =
 export function projectAdapterCheck(
   types: (string | undefined)[],
   version: readonly number[],
+  allowExperimental = false,
 ): FusionAdapterCheck {
   const verdicts = types.map((type) =>
-    type === undefined ? "unknown" : fusionAdapterSupport(type, version),
+    type === undefined
+      ? "unknown"
+      : fusionAdapterSupport(type, version, allowExperimental),
   );
   if (verdicts.length === 0) {
     return "unknown";
   }
   if (verdicts.every((verdict) => verdict === "unsupported")) {
     return "unsupported";
+  }
+  // Whichever target dbt picks, dbt Fusion refuses it without the opt-in.
+  if (
+    verdicts.every(
+      (verdict) => verdict === "experimental" || verdict === "unsupported",
+    )
+  ) {
+    return "experimental";
   }
   if (
     verdicts.some(
@@ -184,6 +245,7 @@ export function projectAdapterCheck(
 
 const ADAPTER_CHECK_PRECEDENCE: FusionAdapterCheck[] = [
   "unsupported",
+  "experimental",
   "unknown",
   "unconfirmed",
   "supported",
@@ -219,26 +281,60 @@ export interface DbtIntegrationFacts {
    * and an adapter only a later dbt Fusion is known to accept, do not count.
    */
   fusionAdapterUnsupported: boolean;
+  /**
+   * A dbt project's profile uses only adapters dbt Fusion runs with
+   * `DBT_ALLOW_EXPERIMENTAL_ADAPTERS`, which is not set (`windowAdapterCheck`
+   * is "experimental").
+   */
+  fusionAdapterExperimental: boolean;
+  /**
+   * A dbt project's profile is certainly missing where dbt looks for it: no
+   * `profile:` in dbt_project.yml, no profiles.yml, the profile not in it, or
+   * its target not in the profile. A profile that could not be read (a
+   * template, YAML that does not parse) does not count.
+   */
+  profileNotFound: boolean;
 }
 
 /**
  * Why a found dbt 2.x binary did not switch the window: dbt-core imports in
  * the interpreter, a project's adapter is one dbt Fusion does not accept, a
- * dbt-loom config is present, or the dbt-core check could not tell (unknown
- * counts as "may have dbt-core", so the window is held).
+ * dbt-loom config is present, a project's profile is missing, a project's
+ * adapters are ones dbt Fusion runs only as experimental, or the dbt-core
+ * check could not tell (unknown counts as "may have dbt-core", so the window
+ * is held). Checked in this order; the first that applies is the reason.
  */
 export type SwitchHeldReason =
   | "dbtCore"
   | "adapterUnsupported"
   | "dbtLoom"
+  | "profileNotFound"
+  | "adapterExperimental"
   | "dbtCoreUnknown";
+
+/** The hold reasons in the order they are checked; the first that holds is the reason. */
+const HOLD_ORDER: [
+  SwitchHeldReason,
+  (facts: DbtIntegrationFacts) => boolean,
+][] = [
+  ["dbtCore", (facts) => facts.pythonDbtCore === true],
+  ["adapterUnsupported", (facts) => facts.fusionAdapterUnsupported],
+  ["dbtLoom", (facts) => facts.dbtLoom],
+  ["profileNotFound", (facts) => facts.profileNotFound],
+  ["adapterExperimental", (facts) => facts.fusionAdapterExperimental],
+  ["dbtCoreUnknown", (facts) => facts.pythonDbtCore === "unknown"],
+];
 
 /**
  * The mode to run in: an explicit setting always; otherwise dbt Fusion when
  * a dbt 2.x binary was found, the project cannot run in dbt Core mode (no
- * dbt-core in the interpreter, no dbt-loom config) and dbt Fusion accepts its
- * adapter, and the default when not. `heldBack` says why a found binary did
- * not switch the window.
+ * dbt-core in the interpreter, no dbt-loom config), its profile is where dbt
+ * looks and dbt Fusion runs its adapter without an opt-in, and the default
+ * when not. `heldBack` says why a found binary did not switch the window.
+ * A missing profile comes before an adapter dbt Fusion runs only as
+ * experimental and before a dbt-core check that could not tell: it stops both
+ * modes. An importable dbt-core, an unsupported adapter and a dbt-loom config
+ * come first, as before.
  */
 export function decideDbtIntegrationMode(
   configured: ConfiguredDbtIntegration,
@@ -251,16 +347,7 @@ export function decideDbtIntegrationMode(
   ) {
     return { mode: configured.value, autoSwitched: false };
   }
-  const heldBack: SwitchHeldReason | undefined =
-    facts.pythonDbtCore === true
-      ? "dbtCore"
-      : facts.fusionAdapterUnsupported
-        ? "adapterUnsupported"
-        : facts.dbtLoom
-          ? "dbtLoom"
-          : facts.pythonDbtCore === "unknown"
-            ? "dbtCoreUnknown"
-            : undefined;
+  const heldBack = HOLD_ORDER.find(([, holds]) => holds(facts))?.[0];
   if (heldBack) {
     return { mode: configured.value, autoSwitched: false, heldBack };
   }
