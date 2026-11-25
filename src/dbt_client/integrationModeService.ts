@@ -283,6 +283,31 @@ type SwitchHeldAnswer =
 /** How the user answered the offer to switch back to dbt Core. */
 export type ParseFailedAnswer = "switchBack" | "keepFusion" | "dismissed";
 
+/** A notification VS Code cancelled while it was open. */
+const CANCELED = Symbol("canceled");
+
+/**
+ * The button chosen on a notification (`undefined` when it was dismissed), or
+ * `CANCELED` when VS Code cancelled it while it was open: the window closed or
+ * the extension host stopped first. That is no answer, not an error.
+ */
+async function answerTo<T>(
+  notification: Thenable<T | undefined>,
+): Promise<T | undefined | typeof CANCELED> {
+  try {
+    return await notification;
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.name === "Canceled" &&
+      error.message === "Canceled"
+    ) {
+      return CANCELED;
+    }
+    throw error;
+  }
+}
+
 export interface IntegrationModeProbes {
   findBinary: (
     options: FindDbtV2BinaryOptions,
@@ -753,10 +778,12 @@ export class IntegrationModeService {
       `Telling ${names} about the switch to dbt Fusion`,
     );
     const version = autoSwitch.binary.version.join(".");
-    const answer = await window.showInformationMessage(
-      `Power User for dbt is using dbt Fusion for ${names}: the dbt on your path is dbt ${version}, ` +
-        "which needs dbt Fusion mode. Set dbt.dbtIntegration to choose a mode yourself.",
-      OPEN_SETTINGS,
+    const answer = await answerTo(
+      window.showInformationMessage(
+        `Power User for dbt is using dbt Fusion for ${names}: the dbt on your path is dbt ${version}, ` +
+          "which needs dbt Fusion mode. Set dbt.dbtIntegration to choose a mode yourself.",
+        OPEN_SETTINGS,
+      ),
     );
     if (answer === OPEN_SETTINGS) {
       commands.executeCommand(
@@ -811,14 +838,29 @@ export class IntegrationModeService {
       `dbt Fusion could not parse ${name} (${errorCount} errors): offering dbt Core`,
       false,
     );
-    const choice = await window.showWarningMessage(
-      `dbt Fusion could not parse ${name}. Power User switched this window to dbt Fusion because dbt ${version} is on your path` +
-        (SWITCHED_BECAUSE[autoSwitch.dbtCoreCheck]
-          ? ` and ${SWITCHED_BECAUSE[autoSwitch.dbtCoreCheck]}`
-          : "."),
-      SWITCH_BACK,
-      KEEP_FUSION,
+    // Sent when shown: one that is never answered still counts.
+    this.telemetry.sendTelemetryEvent(
+      "dbtIntegrationAutoSwitchParseFailedOffered",
+      { binaryVersion: version, dbtCoreCheck: autoSwitch.dbtCoreCheck },
+      { errorCount },
     );
+    const choice = await answerTo(
+      window.showWarningMessage(
+        `dbt Fusion could not parse ${name}. Power User switched this window to dbt Fusion because dbt ${version} is on your path` +
+          (SWITCHED_BECAUSE[autoSwitch.dbtCoreCheck]
+            ? ` and ${SWITCHED_BECAUSE[autoSwitch.dbtCoreCheck]}`
+            : "."),
+        SWITCH_BACK,
+        KEEP_FUSION,
+      ),
+    );
+    if (choice === CANCELED) {
+      this.terminal.debug(
+        "dbtIntegrationAutoSwitchParseFailed",
+        `The offer for ${name} closed without an answer`,
+      );
+      return;
+    }
     const answer: ParseFailedAnswer =
       choice === SWITCH_BACK
         ? "switchBack"
@@ -864,11 +906,12 @@ export class IntegrationModeService {
       return;
     }
     const { text, actions } = heldMessage(held, false);
-    const answer = await window.showInformationMessage(
-      text,
-      ...actions,
-      DISMISS,
+    const answer = await answerTo(
+      window.showInformationMessage(text, ...actions, DISMISS),
     );
+    if (answer === CANCELED) {
+      return;
+    }
     await this.answerHeld(held, answer, "notice");
   }
 
@@ -887,8 +930,10 @@ export class IntegrationModeService {
     // Before the first await: the activation's notice checks it next.
     this.heldErrorShown = true;
     const { text, actions } = heldMessage(held, true);
-    const answer = await window.showErrorMessage(text, ...actions);
-    await this.answerHeld(held, answer, "error");
+    const answer = await answerTo(window.showErrorMessage(text, ...actions));
+    if (answer !== CANCELED) {
+      await this.answerHeld(held, answer, "error");
+    }
     return true;
   }
 
