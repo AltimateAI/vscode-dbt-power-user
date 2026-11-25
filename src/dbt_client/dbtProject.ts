@@ -591,6 +591,47 @@ export class DBTProject implements Disposable {
       .length;
   }
 
+  /**
+   * The first error that kept this project from loading: the Python bridge,
+   * the project configuration check, or the latest manifest rebuild. An error
+   * without a message still counts; Problems has its details.
+   */
+  private getLoadError(): string | undefined {
+    const diagnostics = this.getCurrentProjectIntegration().getDiagnostics();
+    const error = [
+      ...diagnostics.pythonBridgeDiagnostics,
+      ...diagnostics.projectConfigDiagnostics,
+      ...diagnostics.rebuildManifestDiagnostics,
+    ].find(({ severity }) => severity === "error");
+    if (!error) {
+      return undefined;
+    }
+    return error.message.trim() || "see Problems for the error";
+  }
+
+  /** Says why Generate model can't run, with Show problems and Re-parse. */
+  private showGenerateModelLoadError(loadError: string): void {
+    const showProblems = "Show problems";
+    const reparse = "Re-parse";
+    window
+      .showErrorMessage(
+        `Can't generate the model: the dbt project didn't load: ${loadError}`,
+        showProblems,
+        reparse,
+      )
+      .then((choice) => {
+        if (choice === showProblems) {
+          return commands.executeCommand("workbench.actions.view.problems");
+        }
+        if (choice === reparse) {
+          return commands.executeCommand(
+            "dbtPowerUser.reparseProject",
+            this.projectRoot,
+          );
+        }
+      });
+  }
+
   getAllDiagnostic(): Diagnostic[] {
     const projectURI = Uri.file(
       path.join(this.projectRoot.fsPath, DBT_PROJECT_FILE),
@@ -1625,6 +1666,14 @@ export class DBTProject implements Disposable {
     tableName: string,
     sourcePath: string,
   ) {
+    const loadError = this.getLoadError();
+    if (loadError) {
+      this.telemetry.sendTelemetryEvent("generateModelProjectNotLoaded", {
+        adapter: this.getAdapterType(),
+      });
+      this.showGenerateModelLoadError(loadError);
+      return;
+    }
     await window.withProgress(
       {
         location: ProgressLocation.Notification,
@@ -1634,7 +1683,7 @@ export class DBTProject implements Disposable {
       async () => {
         try {
           const prefix = workspace
-            .getConfiguration("dbt")
+            .getConfiguration("dbt", this.projectRoot)
             .get<string>("prefixGenerateModel", "base");
 
           // Map setting to fileName
@@ -1649,7 +1698,7 @@ export class DBTProject implements Disposable {
           let fileName = `${prefix}_${sourceName}_${tableName}`;
 
           const fileNameTemplate = workspace
-            .getConfiguration("dbt")
+            .getConfiguration("dbt", this.projectRoot)
             .get<string>(
               "fileNameTemplateGenerateModel",
               "{prefix}_{sourceName}_{tableName}",
@@ -1700,6 +1749,17 @@ export class DBTProject implements Disposable {
             );
           }
         } catch (exc: any) {
+          if (exc instanceof NoCredentialsError) {
+            this.altimateAuthService.handlePreviewFeatures();
+            return;
+          }
+          // The traceback goes to the log; the toast carries the message.
+          this.terminal.error(
+            "dbtProject:generateModel",
+            "Could not generate the model",
+            exc,
+            false,
+          );
           if (exc instanceof PythonException) {
             this.telemetry.sendTelemetryError("generateModelPythonError", exc, {
               adapter: this.getAdapterType(),
@@ -1708,6 +1768,7 @@ export class DBTProject implements Disposable {
               "An error occured while trying to generate the model " +
                 exc.exception.message,
             );
+            return;
           }
           // Unknown error
           this.telemetry.sendTelemetryError("generateModelUnknownError", exc, {
@@ -1733,7 +1794,7 @@ export class DBTProject implements Disposable {
     tab?: Webview,
   ) {
     const limit = workspace
-      .getConfiguration("dbt")
+      .getConfiguration("dbt", this.projectRoot)
       .get<number>("queryLimit", 500);
     return this.executeSQLWithLimitOnQueryPanel(
       query,
@@ -2050,7 +2111,7 @@ export class DBTProject implements Disposable {
     this.throwDiagnosticsErrorIfAvailable();
     this.throwIfNotAuthenticated();
     const limit = workspace
-      .getConfiguration("dbt")
+      .getConfiguration("dbt", this.projectRoot)
       .get<number>("queryLimit", 500);
     this.terminal.info("executeSQL", "Executed query: " + query, true, {
       adapter: this.getAdapterType(),
@@ -2061,7 +2122,7 @@ export class DBTProject implements Disposable {
 
   executeSQL(query: string, modelName: string): Promise<QueryExecution> {
     const limit = workspace
-      .getConfiguration("dbt")
+      .getConfiguration("dbt", this.projectRoot)
       .get<number>("queryLimit", 500);
     this.terminal.info("executeSQL", "Executed query: " + query, true, {
       adapter: this.getAdapterType(),
@@ -2134,13 +2195,16 @@ export class DBTProject implements Disposable {
     }
     const columnsFromManifest: Record<string, ColumnMetaData> = {};
     Object.entries(node.columns).forEach(([k, v]) => {
-      columnsFromManifest[getColumnNameByCase(k, this.getAdapterType())] = v;
+      columnsFromManifest[
+        getColumnNameByCase(k, this.getAdapterType(), this.projectRoot)
+      ] = v;
     });
 
     for (const c of columnsFromDB) {
       const columnNameFromDB = getColumnNameByCase(
         c.column,
         this.getAdapterType(),
+        this.projectRoot,
       );
       const existing_column = columnsFromManifest[columnNameFromDB];
       if (existing_column) {
@@ -2431,7 +2495,7 @@ export class DBTProject implements Disposable {
   private retrieveDeferConfigFromSettings(): DeferConfig | undefined {
     const relativePath = getProjectRelativePath(this.projectRoot);
     const currentConfig: Record<string, DeferConfig> = workspace
-      .getConfiguration("dbt")
+      .getConfiguration("dbt", this.projectRoot)
       .get("deferConfigPerProject", {});
     if (currentConfig[relativePath]) {
       const config = currentConfig[relativePath];

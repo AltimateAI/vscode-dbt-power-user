@@ -34,6 +34,7 @@ import {
   mb,
   newestLogDir,
   parseArgs,
+  probeDebuggerSwitches,
   PU_ID,
   readIfExists,
   readJson,
@@ -536,6 +537,20 @@ function watchQueries(page) {
 
 let app;
 let win;
+// Playwright 1.48 waits for several of Electron's startup lines at once. When Cursor exits before
+// printing them, the launch rejects (handled below), and the other waits reject first with nothing
+// awaiting them: without this, Node would end the run before the result is written. Only those
+// errors, and only while _electron.launch is pending: anything else still ends the run.
+let launching = false;
+process.on("unhandledRejection", (error) => {
+  if (
+    launching &&
+    error instanceof Error &&
+    error.message.startsWith("Process failed to launch!")
+  )
+    return;
+  throw error;
+});
 // Last resort: never let a stuck Cursor hold the job until its timeout.
 const watchdog = setTimeout(
   () => {
@@ -578,17 +593,29 @@ try {
   delete env.ELECTRON_RUN_AS_NODE;
   note(`launching ${cursor.exe}`);
   try {
-    app = await _electron.launch({
-      executablePath: cursor.exe,
-      args: [...launchArgs, dirs.workspace],
-      env,
-      timeout: 180000,
-    });
+    launching = true;
+    try {
+      app = await _electron.launch({
+        executablePath: cursor.exe,
+        args: [...launchArgs, dirs.workspace],
+        env,
+        timeout: 180000,
+      });
+    } finally {
+      launching = false;
+    }
     win = await findWorkbenchWindow(app, 180000);
   } catch (error) {
+    // A release build that refuses debugger switches exits before Playwright can attach.
+    const refusal =
+      process.platform === "linux"
+        ? probeDebuggerSwitches(cursor.exe).refusal
+        : undefined;
     throw harness(
       "launch",
-      `Cursor did not start: ${error.message.split("\n")[0]}`,
+      `Cursor did not start: ${error.message.split("\n")[0]}${
+        refusal ? ` (this build refuses debugger switches: "${refusal}")` : ""
+      }`,
     );
   }
   if (!win) {

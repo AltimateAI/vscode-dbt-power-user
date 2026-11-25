@@ -14,6 +14,7 @@ import {
   Range,
   TextDocument,
   TextEdit,
+  Uri,
   window,
   workspace,
 } from "vscode";
@@ -45,10 +46,13 @@ export class DbtDocumentFormattingEditProvider implements DocumentFormattingEdit
   }
 
   private async executeSqlFmt(document: TextDocument) {
-    const sqlFmtPathSetting =
-      this.pythonEnvironment.getResolvedConfigValue("sqlFmtPath");
+    const folder = workspace.getWorkspaceFolder(document.uri);
+    const sqlFmtPathSetting = this.pythonEnvironment.getResolvedConfigValue(
+      "sqlFmtPath",
+      folder,
+    );
     const sqlFmtAdditionalParamsSetting = workspace
-      .getConfiguration("dbt")
+      .getConfiguration("dbt", document.uri)
       .get<string[]>("sqlFmtAdditionalParams", [])
       .join(" ")
       .split(" ")
@@ -61,7 +65,7 @@ export class DbtDocumentFormattingEditProvider implements DocumentFormattingEdit
       "--quiet",
       ...sqlFmtAdditionalParamsSetting,
     ];
-    const sqlFmtPath = await this.resolveSqlFmtPath();
+    const sqlFmtPath = await this.resolveSqlFmtPath(document.uri);
     if (!sqlFmtPath) {
       // sqlfmt not installed is an expected, user-actionable configuration
       // state, not a runtime failure. Emit a distinct non-error signal and
@@ -127,11 +131,14 @@ export class DbtDocumentFormattingEditProvider implements DocumentFormattingEdit
    * Resolves the sqlfmt binary for both the format command and the
    * availability notifier. Reads the `dbt.sqlFmtPath` setting first; if
    * unset, probes the python venv, well-known uv/pipx locations, and the
-   * system PATH. Returns undefined if not found anywhere.
+   * system PATH. Returns undefined if not found anywhere. `resource` is the
+   * file being formatted: the setting is read for its workspace folder.
    */
-  public async resolveSqlFmtPath(): Promise<string | undefined> {
-    const sqlFmtPathSetting =
-      this.pythonEnvironment.getResolvedConfigValue("sqlFmtPath");
+  public async resolveSqlFmtPath(resource: Uri): Promise<string | undefined> {
+    const sqlFmtPathSetting = this.pythonEnvironment.getResolvedConfigValue(
+      "sqlFmtPath",
+      workspace.getWorkspaceFolder(resource),
+    );
     return sqlFmtPathSetting || (await this.findSqlFmtPath());
   }
 

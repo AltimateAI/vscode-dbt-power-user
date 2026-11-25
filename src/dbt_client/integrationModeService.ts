@@ -11,6 +11,7 @@ import {
   resolveProfileTargets,
 } from "@altimateai/dbt-integration";
 import { existsSync, readFileSync } from "fs";
+import { homedir } from "os";
 import * as path from "path";
 import {
   commands,
@@ -22,12 +23,16 @@ import {
   workspace,
   WorkspaceFolder,
 } from "vscode";
+import { parse as parseYaml } from "yaml";
 import { TelemetryService } from "../telemetry";
 import { PROJECT_EXCLUDE_PATTERN } from "./dbtWorkspaceFolder";
 import {
+  ALLOW_EXPERIMENTAL_ADAPTERS,
   DbtCoreCheck,
   decideDbtIntegrationMode,
+  experimentalAdaptersAllowed,
   FusionAdapterCheck,
+  fusionAdapterSupport,
   getDbtIntegrationMode,
   projectAdapterCheck,
   pythonDbtCoreFromCheck,
@@ -50,6 +55,10 @@ export const PARSE_FAILED_OFFERED_KEY =
 const OPEN_SETTINGS = "Open setting";
 const USE_FUSION = "Use dbt Fusion";
 const DISMISS = "Dismiss";
+const SELECT_INTERPRETER = "Select interpreter";
+const INSTALL_DBT_CORE = "Install dbt Core";
+const OPEN_PROFILES = "Open profiles.yml";
+const OPEN_PROJECT_FILE = "Open dbt_project.yml";
 const SWITCH_BACK = "Switch back to dbt Core";
 const KEEP_FUSION = "Keep dbt Fusion";
 const DBT_LOOM_CONFIG = "dbt_loom.config.yml";
@@ -78,13 +87,9 @@ const HELD_CAUSES: Record<SwitchHeldReason, string> = {
   dbtCore: "dbt-core imports in the selected interpreter",
   adapterUnsupported: "dbt Fusion does not support the profile's adapter",
   dbtLoom: "a dbt-loom config is present",
-  dbtCoreUnknown: "dbt-core could not be checked in the selected interpreter",
-};
-const HELD_BECAUSE: Record<SwitchHeldReason, string> = {
-  dbtCore: "the interpreter has dbt-core",
-  adapterUnsupported:
-    "the dbt profile uses an adapter dbt Fusion does not support",
-  dbtLoom: "a dbt-loom config is present",
+  profileNotFound: "a project's dbt profile is missing",
+  adapterExperimental:
+    "dbt Fusion runs the profile's adapter only as an experimental one",
   dbtCoreUnknown: "dbt-core could not be checked in the selected interpreter",
 };
 /**
@@ -97,15 +102,137 @@ const CORE_MODE_NEEDS: Partial<Record<DbtCoreCheck, string>> = {
   noInterpreter: "dbt Core mode needs a Python interpreter with dbt-core.",
 };
 
+/** "a", "a and b", "a, b and c" */
+function listed(items: string[]): string {
+  return items.length > 1
+    ? `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`
+    : items[0];
+}
+
 /** "the dbt profile uses the sqlserver adapter, which dbt Fusion does not support" */
-function unsupportedAdaptersPhrase(types: string[]): string {
-  const names =
-    types.length > 1
-      ? `${types.slice(0, -1).join(", ")} and ${types[types.length - 1]}`
-      : types[0];
+function adaptersPhrase(types: string[], which: string): string {
   return types.length > 1
-    ? `the dbt profile targets use the ${names} adapters, which dbt Fusion does not support`
-    : `the dbt profile uses the ${names} adapter, which dbt Fusion does not support`;
+    ? `the dbt profile targets use the ${listed(types)} adapters, which dbt Fusion ${which}`
+    : `the dbt profile uses the ${listed(types)} adapter, which dbt Fusion ${which}`;
+}
+
+/** The `terminal.integrated.env` setting for this platform, which dbt runs with. */
+function terminalEnvSetting(): string {
+  const os =
+    process.platform === "win32"
+      ? "windows"
+      : process.platform === "darwin"
+        ? "osx"
+        : "linux";
+  return `terminal.integrated.env.${os}`;
+}
+
+/**
+ * What is missing for a "profileNotFound" hold, read the way dbt Fusion
+ * reads it:
+ * - "noProfileName": dbt_project.yml has no `profile:`.
+ * - "noProfilesFile": no profiles.yml where dbt looks.
+ * - "profileMissing": the profile is not in that profiles.yml.
+ * - "targetMissing": the target dbt selects (`DBT_TARGET` or the profile's
+ *   `target:`) is not one of the profile's outputs.
+ */
+export type ProfileCheck =
+  | "noProfileName"
+  | "noProfilesFile"
+  | "profileMissing"
+  | "targetMissing";
+
+export interface ProfileProblem {
+  check: ProfileCheck;
+  /** The project's root, and its folder name for the message. */
+  projectRoot: string;
+  /** The profiles.yml read ("profileMissing", "targetMissing"). */
+  profilesFile?: string;
+  /** Where dbt looked for profiles.yml ("noProfilesFile"); empty when
+   * `DBT_PROFILES_DIR` is set but empty. */
+  searched?: string[];
+  profile?: string;
+  /** The target dbt selects, when it is written out ("targetMissing"). */
+  target?: string;
+}
+
+/**
+ * Where dbt Fusion looks for profiles.yml, as `findProfilesFile` does:
+ * `DBT_PROFILES_DIR` alone when it is set, else the project, then `~/.dbt`.
+ */
+function profilesSearched(
+  projectRoot: string,
+  env: EnvironmentVariables,
+): string[] {
+  const profilesDir = env.DBT_PROFILES_DIR;
+  if (profilesDir !== undefined) {
+    return profilesDir === ""
+      ? []
+      : [path.resolve(projectRoot, profilesDir, "profiles.yml")];
+  }
+  return [
+    path.join(projectRoot, "profiles.yml"),
+    path.join(homedir(), ".dbt", "profiles.yml"),
+  ];
+}
+
+// `{{ env_var('NAME') }}` or `{{ env_var("NAME", "default") }}`, as
+// dbt-integration's `resolveProfileTargets` reads a profile's `target:`.
+const SINGLE_ENV_VAR =
+  /^\{\{\s*env_var\(\s*(['"])([^'"]+)\1\s*(?:,\s*(['"])([^'"]*)\3\s*)?\)\s*\}\}$/;
+
+/** Jinja dbt renders before it reads a value: an expression, a statement or a comment. */
+const isTemplated = (value: string) => /\{[{%#]/.test(value);
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+/**
+ * The target dbt selects for a profile, when it can be told without dbt:
+ * `DBT_TARGET`, else the profile's `target:` when it is a plain name or a
+ * single `env_var` call (resolved as `resolveProfileTargets` resolves it).
+ * Undefined for any other template, which only dbt can render.
+ */
+function selectedTarget(
+  profile: Record<string, unknown>,
+  env: EnvironmentVariables,
+): string | undefined {
+  // Set to something other than a string (null in terminal.integrated.env):
+  // only dbt can tell what it selects.
+  const dbtTarget: unknown = env.DBT_TARGET;
+  if (dbtTarget !== undefined) {
+    return typeof dbtTarget === "string" ? dbtTarget : undefined;
+  }
+  const target = profile.target;
+  if (typeof target !== "string") {
+    return undefined;
+  }
+  if (!isTemplated(target)) {
+    return target;
+  }
+  const match = SINGLE_ENV_VAR.exec(target);
+  if (!match) {
+    return undefined;
+  }
+  const [, , name, , fallback] = match;
+  return (env[name] !== undefined ? env[name] : fallback) || undefined;
+}
+
+/** Why the window was held, with what was found, for the log. */
+function heldCause(
+  reason: SwitchHeldReason,
+  adapters: AdapterFindings,
+): string {
+  switch (reason) {
+    case "adapterUnsupported":
+      return `${HELD_CAUSES[reason]} (${adapters.unsupported.join(", ")})`;
+    case "adapterExperimental":
+      return `${HELD_CAUSES[reason]} (${adapters.experimental.join(", ")})`;
+    case "profileNotFound":
+      return `${HELD_CAUSES[reason]} (${adapters.profileProblem?.check} in ${adapters.profileProblem?.projectRoot})`;
+    default:
+      return HELD_CAUSES[reason];
+  }
 }
 
 /** What an adapter type looks like, for telemetry. */
@@ -118,6 +245,10 @@ interface AdapterFindings {
   types: string[];
   /** The types of the projects found unsupported, sorted, each once. */
   unsupported: string[];
+  /** The types of the projects found experimental, sorted, each once. */
+  experimental: string[];
+  /** The first project whose profile is certainly missing. */
+  profileProblem?: ProfileProblem;
 }
 
 export interface AutoSwitch {
@@ -134,7 +265,20 @@ export interface SwitchHeld {
   fusionAdapterCheck: FusionAdapterCheck;
   /** The adapter types dbt Fusion does not support, for "adapterUnsupported". */
   unsupportedAdapters: string[];
+  /** The experimental adapter types, for "adapterExperimental". */
+  experimentalAdapters: string[];
+  /** What is missing, for "profileNotFound". */
+  profileProblem?: ProfileProblem;
 }
+
+/** How the user answered a hold message, for telemetry. */
+type SwitchHeldAnswer =
+  | "useFusion"
+  | "selectInterpreter"
+  | "installDbtCore"
+  | "openFile"
+  | "openSetting"
+  | "dismissed";
 
 /** How the user answered the offer to switch back to dbt Core. */
 export type ParseFailedAnswer = "switchBack" | "keepFusion" | "dismissed";
@@ -197,6 +341,8 @@ export class IntegrationModeService {
   private firstRebuildSettled = new Set<string>();
   /** Manifest rebuilds running per project root. */
   private rebuildsRunning = new Map<string, number>();
+  /** `notifyHeldWithoutDbtCore` told this window why it was held. */
+  private heldErrorShown = false;
 
   constructor(
     private pythonEnvironment: PythonEnvironment,
@@ -224,6 +370,7 @@ export class IntegrationModeService {
       check: "noProjects",
       types: [],
       unsupported: [],
+      experimental: [],
     };
     if (!configured.explicit) {
       await this.pythonEnvironment.initialize();
@@ -258,6 +405,8 @@ export class IntegrationModeService {
         pythonDbtCore: pythonDbtCoreFromCheck(dbtCoreCheck),
         dbtLoom,
         fusionAdapterUnsupported: adapters.check === "unsupported",
+        fusionAdapterExperimental: adapters.check === "experimental",
+        profileNotFound: adapters.profileProblem !== undefined,
       },
     );
     // Adapter names as telemetry sees them; anything else a profile holds is "other".
@@ -272,11 +421,11 @@ export class IntegrationModeService {
         dbtCoreCheck,
         fusionAdapterCheck: adapters.check,
         unsupportedAdapters: adapters.unsupported,
+        experimentalAdapters: adapters.experimental,
+        profileProblem:
+          heldBack === "profileNotFound" ? adapters.profileProblem : undefined,
       };
-      const cause =
-        heldBack === "adapterUnsupported"
-          ? `${HELD_CAUSES[heldBack]} (${adapters.unsupported.join(", ")})`
-          : HELD_CAUSES[heldBack];
+      const cause = heldCause(heldBack, adapters);
       this.terminal.info(
         "dbtIntegrationSwitchHeld",
         `${binary.path} is dbt ${binary.version.join(".")}, but ${cause}: keeping ${mode} (dbt-core check: ${dbtCoreCheck}, adapter check: ${adapters.check})`,
@@ -289,6 +438,9 @@ export class IntegrationModeService {
         dbtCoreCheck,
         fusionAdapterCheck: adapters.check,
         adapterTypes,
+        ...(heldBack === "profileNotFound" && adapters.profileProblem
+          ? { profileCheck: adapters.profileProblem.check }
+          : {}),
       });
     }
     if (autoSwitched && binary) {
@@ -416,8 +568,10 @@ export class IntegrationModeService {
   }
 
   /**
-   * Whether dbt Fusion `version` accepts the adapter each project's profile
-   * uses, read from profiles.yml as dbt Fusion would find it.
+   * Whether the found dbt Fusion accepts the adapter of every dbt project in
+   * the window (`windowAdapterCheck`), and the first project whose profile is
+   * certainly missing. Each project's candidate adapters are the ones its
+   * profile uses, read from profiles.yml as dbt Fusion would find it.
    */
   private checkAdapters(
     projectRoots: string[],
@@ -427,15 +581,31 @@ export class IntegrationModeService {
     const checks: FusionAdapterCheck[] = [];
     const types = new Set<string>();
     const unsupported = new Set<string>();
+    const experimental = new Set<string>();
+    let profileProblem: ProfileProblem | undefined;
     for (const root of projectRoots) {
-      const candidates = this.profileAdapterTypes(root, env);
-      const check = projectAdapterCheck(candidates, version);
+      // dbt runs each project with its own workspace folder's environment.
+      const projectEnv = this.projectEnvironment(root, env);
+      const allowExperimental = experimentalAdaptersAllowed(projectEnv);
+      const { types: candidates, problem } = this.profileAdapterTypes(
+        root,
+        projectEnv,
+      );
+      profileProblem ??= problem;
+      const check = projectAdapterCheck(candidates, version, allowExperimental);
       checks.push(check);
       for (const type of candidates) {
         if (type !== undefined) {
           types.add(type);
           if (check === "unsupported") {
             unsupported.add(type);
+          }
+          if (
+            check === "experimental" &&
+            fusionAdapterSupport(type, version, allowExperimental) ===
+              "experimental"
+          ) {
+            experimental.add(type);
           }
         }
       }
@@ -444,43 +614,123 @@ export class IntegrationModeService {
       check: windowAdapterCheck(checks),
       types: [...types].sort(),
       unsupported: [...unsupported].sort(),
+      experimental: [...experimental].sort(),
+      profileProblem,
     };
+  }
+
+  /**
+   * The environment dbt runs a project with: its workspace folder's (that
+   * folder's `.env`), as `DBTProject` reads `DBT_PROFILES_DIR`; the window's
+   * when the project is in no folder.
+   */
+  private projectEnvironment(
+    projectRoot: string,
+    windowEnv: EnvironmentVariables,
+  ): EnvironmentVariables {
+    const folder = workspace.getWorkspaceFolder(Uri.file(projectRoot));
+    if (!folder) {
+      return windowEnv;
+    }
+    try {
+      return this.pythonEnvironment.getEnvironmentVariables(folder);
+    } catch {
+      return windowEnv;
+    }
   }
 
   /**
    * The adapter types a project may run with: its profile's default target's
    * type, or every output's when the default target cannot be told without
    * dbt. Empty when the profile cannot be read; `undefined` for an output
-   * whose type cannot be read.
+   * whose type cannot be read. `problem` is set only when the profile is
+   * certainly missing where dbt looks: a template, or a file that does not
+   * parse, is left to dbt.
    */
   private profileAdapterTypes(
     projectRoot: string,
     env: EnvironmentVariables,
-  ): (string | undefined)[] {
+  ): { types: (string | undefined)[]; problem?: ProfileProblem } {
     try {
-      const profileName = readAndParseProjectConfig(projectRoot)?.profile;
-      if (typeof profileName !== "string" || profileName.includes("{{")) {
-        return [];
+      const config: unknown = readAndParseProjectConfig(projectRoot);
+      if (
+        typeof config !== "object" ||
+        config === null ||
+        Array.isArray(config)
+      ) {
+        return { types: [] };
+      }
+      const profileName = (config as { profile?: unknown }).profile;
+      if (
+        profileName === undefined ||
+        profileName === null ||
+        profileName === ""
+      ) {
+        return {
+          types: [],
+          problem: { check: "noProfileName", projectRoot },
+        };
+      }
+      if (typeof profileName !== "string" || isTemplated(profileName)) {
+        return { types: [] };
       }
       const profilesFile = findProfilesFile(projectRoot, env);
       if (!profilesFile) {
-        return [];
+        return {
+          types: [],
+          problem: {
+            check: "noProfilesFile",
+            projectRoot,
+            searched: profilesSearched(projectRoot, env),
+            profile: profileName,
+          },
+        };
       }
-      const profile = resolveProfileTargets(
-        readFileSync(profilesFile, "utf8"),
-        profileName,
-        env,
-      );
-      if (profile.defaultTarget !== undefined) {
-        return [profile.adapterTypes[profile.defaultTarget]];
+      const profilesYaml = readFileSync(profilesFile, "utf8");
+      // The profile as its own key: a name like `__proto__` isn't a profile.
+      const document: unknown = parseYaml(profilesYaml);
+      const ownProfile =
+        isRecord(document) &&
+        Object.prototype.hasOwnProperty.call(document, profileName)
+          ? document[profileName]
+          : undefined;
+      const profile = resolveProfileTargets(profilesYaml, profileName, env);
+      if (!isRecord(ownProfile) || profile.unresolved === "no-profile") {
+        return {
+          types: [],
+          problem: {
+            check: "profileMissing",
+            projectRoot,
+            profilesFile,
+            profile: profileName,
+          },
+        };
       }
-      return profile.targets.map((target) => profile.adapterTypes[target]);
+      const types =
+        profile.defaultTarget !== undefined
+          ? [profile.adapterTypes[profile.defaultTarget]]
+          : profile.targets.map((target) => profile.adapterTypes[target]);
+      // Held only for a target we can name: any other template is dbt's to render.
+      const target = selectedTarget(ownProfile, env);
+      if (profile.unresolved === "unknown-target" && target !== undefined) {
+        return {
+          types,
+          problem: {
+            check: "targetMissing",
+            projectRoot,
+            profilesFile,
+            profile: profileName,
+            target,
+          },
+        };
+      }
+      return { types };
     } catch (error) {
       this.terminal.debug(
         "dbtIntegrationAdapterCheck",
         `Could not read the profile of ${projectRoot}: ${error}`,
       );
-      return [];
+      return { types: [] };
     }
   }
 
@@ -637,44 +887,235 @@ export class IntegrationModeService {
 
   /**
    * Tells the workspace once why a found dbt 2.x binary did not switch it,
-   * with a way to dbt Fusion. No-op unless the switch was held back.
+   * with a way to dbt Fusion. No-op unless the switch was held back, and
+   * after `notifyHeldWithoutDbtCore` told this window already.
    */
   async notifySwitchHeld(): Promise<void> {
     const held = this.switchHeld;
     if (
       !held ||
+      this.heldErrorShown ||
       !this.workspaceState ||
       this.workspaceState.get<boolean>(SWITCH_HELD_NOTIFIED_KEY, false)
     ) {
       return;
     }
     await this.workspaceState.update(SWITCH_HELD_NOTIFIED_KEY, true);
-    const because =
-      held.reason === "adapterUnsupported" &&
-      held.unsupportedAdapters.length > 0
-        ? unsupportedAdaptersPhrase(held.unsupportedAdapters)
-        : HELD_BECAUSE[held.reason];
-    const needs =
-      held.reason === "adapterUnsupported"
-        ? CORE_MODE_NEEDS[held.dbtCoreCheck]
-        : undefined;
+    // A detection during that write may have shown the hold as its error.
+    if (this.heldErrorShown) {
+      return;
+    }
+    const { text, actions } = heldMessage(held, false);
     const answer = await answerTo(
-      window.showInformationMessage(
-        `dbt Fusion ${held.binary.version.join(".")} was found at ${held.binary.path}, but this window keeps dbt Core mode because ${because}.` +
-          (needs ? ` ${needs}` : ""),
-        USE_FUSION,
-        DISMISS,
-      ),
+      window.showInformationMessage(text, ...actions, DISMISS),
     );
-    if (answer === USE_FUSION) {
-      this.telemetry.sendTelemetryEvent("dbtIntegrationUseFusion", {
-        reason: held.reason,
-        binaryVersion: held.binary.version.join("."),
-      });
-      // Explicit from here on, so the window reloads in fusion mode.
-      await workspace
-        .getConfiguration("dbt")
-        .update("dbtIntegration", "fusion", ConfigurationTarget.Workspace);
+    if (answer === CANCELED) {
+      return;
+    }
+    await this.answerHeld(held, answer, "notice");
+  }
+
+  /**
+   * In a held window where dbt Core mode cannot start (dbt-core is not
+   * detected), says why the window was not switched, as an error, in place
+   * of the general "dbt is not installed" one. False, showing nothing, when
+   * the window was not held or was held for having dbt-core: the caller
+   * shows its own error then.
+   */
+  async notifyHeldWithoutDbtCore(): Promise<boolean> {
+    const held = this.switchHeld;
+    if (!held || held.reason === "dbtCore") {
+      return false;
+    }
+    // Before the first await: the activation's notice checks it next.
+    this.heldErrorShown = true;
+    const { text, actions } = heldMessage(held, true);
+    const answer = await answerTo(window.showErrorMessage(text, ...actions));
+    if (answer !== CANCELED) {
+      await this.answerHeld(held, answer, "error");
+    }
+    return true;
+  }
+
+  private async answerHeld(
+    held: SwitchHeld,
+    choice: string | undefined,
+    shownAs: "notice" | "error",
+  ): Promise<void> {
+    const answers: Record<string, SwitchHeldAnswer> = {
+      [USE_FUSION]: "useFusion",
+      [SELECT_INTERPRETER]: "selectInterpreter",
+      [INSTALL_DBT_CORE]: "installDbtCore",
+      [OPEN_PROFILES]: "openFile",
+      [OPEN_PROJECT_FILE]: "openFile",
+      [OPEN_SETTINGS]: "openSetting",
+    };
+    const answer: SwitchHeldAnswer =
+      (choice !== undefined ? answers[choice] : undefined) ?? "dismissed";
+    this.telemetry.sendTelemetryEvent("dbtIntegrationSwitchHeldAnswer", {
+      reason: held.reason,
+      answer,
+      shownAs,
+      binaryVersion: held.binary.version.join("."),
+    });
+    switch (choice) {
+      case USE_FUSION:
+        // Explicit from here on, so the window reloads in fusion mode.
+        await workspace
+          .getConfiguration("dbt")
+          .update("dbtIntegration", "fusion", ConfigurationTarget.Workspace);
+        break;
+      case SELECT_INTERPRETER:
+        commands.executeCommand("python.setInterpreter");
+        break;
+      case INSTALL_DBT_CORE:
+        commands.executeCommand("dbtPowerUser.installDbt");
+        break;
+      case OPEN_PROFILES:
+        if (held.profileProblem?.profilesFile) {
+          await window.showTextDocument(
+            Uri.file(held.profileProblem.profilesFile),
+          );
+        }
+        break;
+      case OPEN_PROJECT_FILE:
+        if (held.profileProblem) {
+          await window.showTextDocument(
+            Uri.file(
+              path.join(held.profileProblem.projectRoot, DBT_PROJECT_FILE),
+            ),
+          );
+        }
+        break;
+      case OPEN_SETTINGS:
+        commands.executeCommand(
+          "workbench.action.openSettings",
+          terminalEnvSetting(),
+        );
+        break;
+    }
+  }
+}
+
+/**
+ * Why a held window was not switched, blocker first, and the buttons that
+ * fix it. `coreMissing`: dbt Core mode cannot start either (dbt-core is not
+ * detected), so the message also offers to install it where that helps.
+ */
+function heldMessage(
+  held: SwitchHeld,
+  coreMissing: boolean,
+): { text: string; actions: string[] } {
+  const fusion = `dbt Fusion ${held.binary.version.join(".")} (${held.binary.path})`;
+  const lead = (subject: string, blocker: string) =>
+    `Power User didn't switch ${subject} to ${fusion}: ${blocker}.`;
+  const needs = CORE_MODE_NEEDS[held.dbtCoreCheck];
+  const withNeeds = (text: string) => (needs ? `${text} ${needs}` : text);
+  const installOr = (...actions: string[]) =>
+    coreMissing ? [INSTALL_DBT_CORE, ...actions] : actions;
+  switch (held.reason) {
+    case "dbtCore":
+      return {
+        text: lead(
+          "this window",
+          "the selected interpreter has dbt-core, so the window keeps dbt Core mode",
+        ),
+        actions: [USE_FUSION],
+      };
+    case "adapterUnsupported":
+      return {
+        text: withNeeds(
+          lead(
+            "this window",
+            held.unsupportedAdapters.length > 0
+              ? adaptersPhrase(held.unsupportedAdapters, "does not support")
+              : "the dbt profile uses an adapter dbt Fusion does not support",
+          ),
+        ),
+        actions: installOr(USE_FUSION),
+      };
+    case "dbtLoom":
+      return {
+        text: withNeeds(
+          lead(
+            "this window",
+            "a dbt-loom config is present, which only dbt Core mode reads",
+          ),
+        ),
+        actions: installOr(USE_FUSION),
+      };
+    case "adapterExperimental": {
+      const types = held.experimentalAdapters;
+      const blocker =
+        types.length > 1
+          ? `the dbt profile targets use the ${listed(types)} adapters, which dbt Fusion runs only as experimental adapters`
+          : `the dbt profile uses the ${listed(types)} adapter, which dbt Fusion runs only as an experimental adapter`;
+      return {
+        text: withNeeds(
+          `${lead("this window", blocker)} To use dbt Fusion with it, add ${ALLOW_EXPERIMENTAL_ADAPTERS}=true to ${terminalEnvSetting()}, then reload the window.`,
+        ),
+        actions: installOr(OPEN_SETTINGS, USE_FUSION),
+      };
+    }
+    case "profileNotFound":
+      return profileMessage(held, lead, installOr);
+    case "dbtCoreUnknown":
+      return {
+        text: lead(
+          "this window",
+          "dbt-core could not be checked in the selected interpreter",
+        ),
+        actions: [SELECT_INTERPRETER, USE_FUSION],
+      };
+  }
+}
+
+function profileMessage(
+  held: SwitchHeld,
+  lead: (subject: string, blocker: string) => string,
+  installOr: (...actions: string[]) => string[],
+): { text: string; actions: string[] } {
+  const problem = held.profileProblem;
+  if (!problem) {
+    return {
+      text: lead("this window", "a project's dbt profile is missing"),
+      actions: installOr(USE_FUSION),
+    };
+  }
+  const project = path.basename(problem.projectRoot);
+  const bothNeed = "dbt Fusion and dbt Core both need";
+  switch (problem.check) {
+    case "noProfileName":
+      return {
+        text: `${lead(project, "its dbt_project.yml names no profile")} ${bothNeed} one: add a profile: line, then reload the window.`,
+        actions: [OPEN_PROJECT_FILE, USE_FUSION],
+      };
+    case "noProfilesFile": {
+      const searched = problem.searched ?? [];
+      const blocker =
+        searched.length === 0
+          ? "DBT_PROFILES_DIR is set but empty"
+          : searched.length === 1
+            ? `no profiles.yml in DBT_PROFILES_DIR (${searched[0]})`
+            : `no profiles.yml found (looked in ${listed(searched)})`;
+      return {
+        text: `${lead(project, blocker)} ${bothNeed} it: add the profile, then reload the window.`,
+        actions: installOr(USE_FUSION),
+      };
+    }
+    case "profileMissing":
+      return {
+        text: `${lead(project, `profile '${problem.profile}' is not in ${problem.profilesFile}`)} ${bothNeed} it: add it, then reload the window.`,
+        actions: [OPEN_PROFILES, USE_FUSION],
+      };
+    case "targetMissing": {
+      const target = problem.target
+        ? `target '${problem.target}'`
+        : "the target dbt selects";
+      return {
+        text: `${lead(project, `${target} is not in profile '${problem.profile}' (${problem.profilesFile})`)} Add it or select another target, then reload the window.`,
+        actions: [OPEN_PROFILES, USE_FUSION],
+      };
     }
   }
 }

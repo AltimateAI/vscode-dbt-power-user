@@ -7,6 +7,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import * as path from "path";
 import { commands, ConfigurationTarget, Uri, window, workspace } from "vscode";
+import { DBTClient } from "../../dbt_client";
 import {
   DbtCoreCheck,
   decideDbtIntegrationMode,
@@ -134,6 +135,8 @@ function service({
   // An override interpreter; without one, the extension's when it is there.
   pythonPath = undefined as string | undefined,
   env = { PATH: "/usr/bin" } as Record<string, string>,
+  // More variables per workspace folder path, as each folder's .env adds them.
+  folderEnv = {} as Record<string, Record<string, string>>,
 } = {}) {
   const telemetry = {
     sendTelemetryEvent: jest.fn(),
@@ -157,7 +160,8 @@ function service({
       pythonPath: pythonPath ?? (pythonExtensionAvailable ? extensionPath : ""),
       pythonPathFromOverride: pythonPath !== undefined,
       pythonExtensionAvailable,
-      getEnvironmentVariables: () => env,
+      getEnvironmentVariables: (folder?: { uri: { fsPath: string } }) =>
+        folder ? { ...env, ...folderEnv[folder.uri.fsPath] } : env,
     } as never,
     telemetry as never,
     terminal as never,
@@ -207,6 +211,8 @@ describe("decideDbtIntegrationMode", () => {
     pythonDbtCore: false,
     dbtLoom: false,
     fusionAdapterUnsupported: false,
+    fusionAdapterExperimental: false,
+    profileNotFound: false,
   };
   it.each([
     [{ value: "core", explicit: false }, onlyV2, "fusion", true],
@@ -243,6 +249,28 @@ describe("decideDbtIntegrationMode", () => {
     [{ fusionAdapterUnsupported: true, dbtLoom: true }, "adapterUnsupported"],
     [
       { pythonDbtCore: "unknown" as const, fusionAdapterUnsupported: true },
+      "adapterUnsupported",
+    ],
+    // A missing profile stops both modes, so it is named before the adapter
+    // and before a dbt-core check that could not tell.
+    [{ profileNotFound: true }, "profileNotFound"],
+    [{ fusionAdapterExperimental: true }, "adapterExperimental"],
+    [
+      { profileNotFound: true, fusionAdapterExperimental: true },
+      "profileNotFound",
+    ],
+    [
+      { pythonDbtCore: "unknown" as const, profileNotFound: true },
+      "profileNotFound",
+    ],
+    [
+      { pythonDbtCore: "unknown" as const, fusionAdapterExperimental: true },
+      "adapterExperimental",
+    ],
+    [{ pythonDbtCore: true, profileNotFound: true }, "dbtCore"],
+    [{ dbtLoom: true, profileNotFound: true }, "dbtLoom"],
+    [
+      { fusionAdapterUnsupported: true, profileNotFound: true },
       "adapterUnsupported",
     ],
   ])(
@@ -478,7 +506,7 @@ describe("IntegrationModeService.resolve", () => {
     expect(svc.autoSwitched).toBeUndefined();
     await svc.notifySwitchHeld();
     expect(shown()[0][0]).toContain(
-      "keeps dbt Core mode because the interpreter has dbt-core.",
+      "the selected interpreter has dbt-core, so the window keeps dbt Core mode.",
     );
   });
 
@@ -581,7 +609,7 @@ describe("IntegrationModeService.resolve when the dbt-core probe does not answer
     );
     await svc.notifySwitchHeld();
     expect(shown()[0][0]).toContain(
-      "keeps dbt Core mode because dbt-core could not be checked in the selected interpreter.",
+      ": dbt-core could not be checked in the selected interpreter.",
     );
   });
 
@@ -607,7 +635,7 @@ describe("IntegrationModeService.notifySwitchHeld", () => {
     await first.notifySwitchHeld();
     expect(shown()).toEqual([
       [
-        "dbt Fusion 2.0.9 was found at /home/user/.local/bin/dbt, but this window keeps dbt Core mode because the interpreter has dbt-core.",
+        "Power User didn't switch this window to dbt Fusion 2.0.9 (/home/user/.local/bin/dbt): the selected interpreter has dbt-core, so the window keeps dbt Core mode.",
         "Use dbt Fusion",
         "Dismiss",
       ],
@@ -630,7 +658,7 @@ describe("IntegrationModeService.notifySwitchHeld", () => {
     await svc.resolve(new FakeMemento() as never);
     await svc.notifySwitchHeld();
     expect(shown()[0][0]).toContain(
-      "keeps dbt Core mode because a dbt-loom config is present.",
+      "a dbt-loom config is present, which only dbt Core mode reads.",
     );
   });
 
@@ -647,8 +675,13 @@ describe("IntegrationModeService.notifySwitchHeld", () => {
       ConfigurationTarget.Workspace,
     );
     expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
-      "dbtIntegrationUseFusion",
-      { reason: "dbtCore", binaryVersion: "2.0.9" },
+      "dbtIntegrationSwitchHeldAnswer",
+      {
+        reason: "dbtCore",
+        answer: "useFusion",
+        shownAs: "notice",
+        binaryVersion: "2.0.9",
+      },
     );
     // The setting is now explicit and differs from the running mode.
     useSetting({ workspaceValue: "fusion" });
@@ -664,7 +697,7 @@ describe("IntegrationModeService.notifySwitchHeld", () => {
     await expect(svc.notifySwitchHeld()).resolves.toBeUndefined();
     expect(update).not.toHaveBeenCalled();
     expect(telemetry.sendTelemetryEvent).not.toHaveBeenCalledWith(
-      "dbtIntegrationUseFusion",
+      "dbtIntegrationSwitchHeldAnswer",
       expect.anything(),
     );
   });
@@ -682,6 +715,215 @@ describe("IntegrationModeService.notifySwitchHeld", () => {
     await switched.resolve(new FakeMemento() as never);
     await switched.notifySwitchHeld();
     expect(shown()).toHaveLength(1);
+  });
+});
+
+// A held window whose dbt Core mode can't start either (no dbt-core) used to
+// get the hold notice and, on top of it, "Please ensure dbt core cli is
+// installed.". Now the hold is that error: one message, the blocker first.
+describe("IntegrationModeService.notifyHeldWithoutDbtCore", () => {
+  const errors = () =>
+    (window.showErrorMessage as jest.Mock).mock.calls as unknown[][];
+
+  it("says why the window was held, as an error, and then shows no notice", async () => {
+    const { svc, telemetry } = service({ dbtCore: unknownBecause("failed") });
+    await svc.resolve(new FakeMemento() as never);
+    (window.showErrorMessage as jest.Mock).mockReturnValueOnce(
+      Promise.resolve("Select interpreter"),
+    );
+    await expect(svc.notifyHeldWithoutDbtCore()).resolves.toBe(true);
+    expect(errors()).toEqual([
+      [
+        "Power User didn't switch this window to dbt Fusion 2.0.9 (/home/user/.local/bin/dbt): dbt-core could not be checked in the selected interpreter.",
+        "Select interpreter",
+        "Use dbt Fusion",
+      ],
+    ]);
+    expect(commands.executeCommand).toHaveBeenCalledWith(
+      "python.setInterpreter",
+    );
+    expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+      "dbtIntegrationSwitchHeldAnswer",
+      {
+        reason: "dbtCoreUnknown",
+        answer: "selectInterpreter",
+        shownAs: "error",
+        binaryVersion: "2.0.9",
+      },
+    );
+    // The activation's notice comes after detection: the window was told.
+    await svc.notifySwitchHeld();
+    expect(shown()).toHaveLength(0);
+  });
+
+  it("takes an error VS Code cancels as no answer, not an error", async () => {
+    const { svc, telemetry } = service({ dbtCore: unknownBecause("failed") });
+    await svc.resolve(new FakeMemento() as never);
+    (window.showErrorMessage as jest.Mock).mockReturnValueOnce(
+      Promise.reject(canceled()),
+    );
+    await expect(svc.notifyHeldWithoutDbtCore()).resolves.toBe(true);
+    expect(commands.executeCommand).not.toHaveBeenCalled();
+    expect(telemetry.sendTelemetryEvent).not.toHaveBeenCalledWith(
+      "dbtIntegrationSwitchHeldAnswer",
+      expect.anything(),
+    );
+  });
+
+  it("is shown again on each detection, as the error it replaces was", async () => {
+    const { svc } = service({ env: { DBT_LOOM_CONFIG_PATH: "/etc/loom.yml" } });
+    await svc.resolve(new FakeMemento() as never);
+    await svc.notifyHeldWithoutDbtCore();
+    await svc.notifyHeldWithoutDbtCore();
+    expect(errors()).toHaveLength(2);
+    expect(errors()[0]).toEqual([
+      "Power User didn't switch this window to dbt Fusion 2.0.9 (/home/user/.local/bin/dbt): a dbt-loom config is present, which only dbt Core mode reads. dbt Core mode needs dbt-core, which the selected Python interpreter does not have.",
+      "Install dbt Core",
+      "Use dbt Fusion",
+    ]);
+  });
+
+  it("shows no notice when detection showed the error while the notice was being remembered", async () => {
+    const { svc } = service({ dbtCore: unknownBecause("timeout") });
+    const memento = new FakeMemento();
+    await svc.resolve(memento as never);
+    let remembered: () => void = () => undefined;
+    memento.update = () =>
+      new Promise<void>((resolve) => {
+        remembered = resolve;
+      });
+    const notice = svc.notifySwitchHeld();
+    await svc.notifyHeldWithoutDbtCore();
+    remembered();
+    await notice;
+    expect(errors()).toHaveLength(1);
+    expect(shown()).toHaveLength(0);
+  });
+
+  it("offers dbt Core with the experimental adapter's error", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "fusion-held-error-"));
+    try {
+      writeFileSync(
+        path.join(dir, "dbt_project.yml"),
+        'name: shop\nversion: "1.0"\nprofile: shop\n',
+      );
+      writeFileSync(
+        path.join(dir, "profiles.yml"),
+        JSON.stringify({
+          shop: { target: "dev", outputs: { dev: { type: "postgres" } } },
+        }),
+      );
+      (workspace as { workspaceFolders: unknown }).workspaceFolders = [
+        { uri: Uri.file(dir), name: "repo", index: 0 },
+      ];
+      const { svc } = service({
+        projectFiles: { [dir]: [path.join(dir, "dbt_project.yml")] },
+      });
+      await svc.resolve(new FakeMemento() as never);
+      await svc.notifyHeldWithoutDbtCore();
+      expect(errors()[0].slice(1)).toEqual([
+        "Install dbt Core",
+        "Open setting",
+        "Use dbt Fusion",
+      ]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("installs dbt Core on Install dbt Core", async () => {
+    const { svc } = service({ env: { DBT_LOOM_CONFIG_PATH: "/etc/loom.yml" } });
+    await svc.resolve(new FakeMemento() as never);
+    (window.showErrorMessage as jest.Mock).mockReturnValueOnce(
+      Promise.resolve("Install dbt Core"),
+    );
+    await svc.notifyHeldWithoutDbtCore();
+    expect(commands.executeCommand).toHaveBeenCalledWith(
+      "dbtPowerUser.installDbt",
+    );
+  });
+
+  it.each<[string, Parameters<typeof service>[0]]>([
+    ["switched", {}],
+    ["held for having dbt-core", { dbtCore: IMPORTABLE }],
+  ])(
+    "leaves the general error to the caller in a window %s",
+    async (_, options) => {
+      const { svc } = service(options);
+      await svc.resolve(new FakeMemento() as never);
+      await expect(svc.notifyHeldWithoutDbtCore()).resolves.toBe(false);
+      expect(errors()).toHaveLength(0);
+    },
+  );
+
+  it("shows the hold notice when dbt Core starts", async () => {
+    const { svc } = service({ dbtCore: unknownBecause("timeout") });
+    await svc.resolve(new FakeMemento() as never);
+    await svc.notifySwitchHeld();
+    expect(shown()).toEqual([
+      [
+        "Power User didn't switch this window to dbt Fusion 2.0.9 (/home/user/.local/bin/dbt): dbt-core could not be checked in the selected interpreter.",
+        "Select interpreter",
+        "Use dbt Fusion",
+        "Dismiss",
+      ],
+    ]);
+    expect(errors()).toHaveLength(0);
+  });
+});
+
+describe("DBTClient in a window held in dbt Core mode", () => {
+  afterEach(() => setEffectiveDbtIntegrationMode(undefined));
+
+  function client(held: boolean) {
+    const notice = {
+      notifyHeldWithoutDbtCore: jest.fn(() => Promise.resolve(held)),
+    };
+    const dbtClient = new DBTClient(
+      {
+        pythonPath: "/venv/bin/python",
+        isPython3: true,
+        pythonExtensionAvailable: true,
+      } as never,
+      jest.fn() as never,
+      notice,
+    );
+    (dbtClient as unknown as { _pythonInstalled: boolean })._pythonInstalled =
+      true;
+    (dbtClient as unknown as { _dbtInstalled: boolean })._dbtInstalled = false;
+    return { dbtClient, notice };
+  }
+
+  it.each(["core", "corecommand"])(
+    "shows why the window was held instead of 'install dbt Core' in %s mode",
+    async (mode) => {
+      setEffectiveDbtIntegrationMode(mode);
+      const { dbtClient, notice } = client(true);
+      await expect(
+        dbtClient.showErrorIfDbtOrPythonNotInstalled(),
+      ).resolves.toBe(false);
+      expect(notice.notifyHeldWithoutDbtCore).toHaveBeenCalledTimes(1);
+      expect(window.showErrorMessage).not.toHaveBeenCalled();
+    },
+  );
+
+  it("shows the general error when the window was not held", async () => {
+    setEffectiveDbtIntegrationMode("core");
+    const { dbtClient } = client(false);
+    await dbtClient.showErrorIfDbtOrPythonNotInstalled();
+    expect(window.showErrorMessage).toHaveBeenCalledWith(
+      "Please ensure dbt core cli is installed.",
+      "Install dbt core",
+      "Detect from terminal",
+      "Troubleshoot",
+    );
+  });
+
+  it("does not ask in fusion mode", async () => {
+    setEffectiveDbtIntegrationMode("fusion");
+    const { dbtClient, notice } = client(true);
+    await dbtClient.showErrorIfDbtOrPythonNotInstalled();
+    expect(notice.notifyHeldWithoutDbtCore).not.toHaveBeenCalled();
   });
 });
 
@@ -885,7 +1127,7 @@ describe("IntegrationModeService.resolve: the dbt-core check", () => {
     await svc.resolve(new FakeMemento() as never);
     await svc.notifySwitchHeld();
     expect(shown()[0][0]).toBe(
-      "dbt Fusion 2.0.9 was found at /home/user/.local/bin/dbt, but this window keeps dbt Core mode because dbt-core could not be checked in the selected interpreter.",
+      "Power User didn't switch this window to dbt Fusion 2.0.9 (/home/user/.local/bin/dbt): dbt-core could not be checked in the selected interpreter.",
     );
   });
 });
@@ -1109,9 +1351,11 @@ describe("fusionAdapterSupport", () => {
     ["duckdb", [2, 0, 0], "unconfirmed"],
     ["clickhouse", [2, 0, 5], "unconfirmed"],
     ["duckdb", [2, 0, 6], "supported"],
-    ["lakecompute", [2, 0, 12], "supported"],
+    // Only with DBT_ALLOW_EXPERIMENTAL_ADAPTERS, whatever the version.
+    ["lakecompute", [2, 0, 12], "experimental"],
     ["duckdb", [2, 1, 0], "supported"],
-    ["spark", [3], "supported"],
+    ["spark", [3], "experimental"],
+    ["postgres", [2, 0, 12], "experimental"],
     // An empty version is older than every entry.
     ["snowflake", [], "unconfirmed"],
     ["sqlserver", [2, 0, 12], "unsupported"],
@@ -1123,6 +1367,19 @@ describe("fusionAdapterSupport", () => {
   ])("%s on dbt Fusion %j is %s", (type, version, support) => {
     expect(fusionAdapterSupport(type, version)).toBe(support);
   });
+
+  it.each<[string, number[], string]>([
+    ["lakecompute", [2, 0, 12], "supported"],
+    ["spark", [3], "supported"],
+    ["fabric", [2, 0, 5], "unconfirmed"],
+    ["snowflake", [2, 0, 0], "supported"],
+    ["sqlserver", [2, 0, 12], "unsupported"],
+  ])(
+    "%s on dbt Fusion %j is %s with experimental adapters allowed",
+    (type, version, support) => {
+      expect(fusionAdapterSupport(type, version, true)).toBe(support);
+    },
+  );
 });
 
 describe("projectAdapterCheck and windowAdapterCheck", () => {
@@ -1212,7 +1469,7 @@ describe("IntegrationModeService.resolve: the adapter check", () => {
     );
     await svc.notifySwitchHeld();
     expect(shown()[0][0]).toBe(
-      "dbt Fusion 2.0.9 was found at /home/user/.local/bin/dbt, but this window keeps dbt Core mode because the dbt profile uses the sqlserver adapter, which dbt Fusion does not support. dbt Core mode needs dbt-core, which the selected Python interpreter does not have.",
+      "Power User didn't switch this window to dbt Fusion 2.0.9 (/home/user/.local/bin/dbt): the dbt profile uses the sqlserver adapter, which dbt Fusion does not support. dbt Core mode needs dbt-core, which the selected Python interpreter does not have.",
     );
   });
 
@@ -1361,7 +1618,7 @@ describe("IntegrationModeService.resolve: the adapter check", () => {
     );
     await svc.notifySwitchHeld();
     expect(shown()[0][0]).toContain(
-      "because the dbt profile targets use the athena and sqlserver adapters, which dbt Fusion does not support.",
+      ": the dbt profile targets use the athena and sqlserver adapters, which dbt Fusion does not support.",
     );
   });
 
@@ -1386,25 +1643,492 @@ describe("IntegrationModeService.resolve: the adapter check", () => {
     );
   });
 
-  it("switches, as before, when the profile cannot be read", async () => {
-    const empty = path.join(dir, "no-profiles");
-    mkdirSync(empty);
-    const root = project("shop");
-    const { svc, telemetry } = service({
-      projectFiles: projectsIn(root),
-      // No profiles.yml there, and dbt does not fall back from DBT_PROFILES_DIR.
-      env: { PATH: "/usr/bin", DBT_PROFILES_DIR: empty },
+  // dbt Fusion fails on a profile it can't find, and so does dbt Core: the
+  // window keeps dbt Core mode and says what is missing. Before, it switched,
+  // and 95% of such windows then failed to parse.
+  describe("a profile that is certainly missing", () => {
+    const heldFor = (telemetry: { sendTelemetryEvent: jest.Mock }) =>
+      expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+        "dbtIntegrationSwitchHeld",
+        expect.objectContaining({ reason: "profileNotFound" }),
+      );
+
+    it("holds when there is no profiles.yml where dbt looks, and names where it looked", async () => {
+      const empty = path.join(dir, "no-profiles");
+      mkdirSync(empty);
+      const root = project("shop");
+      const { svc, telemetry } = service({
+        projectFiles: projectsIn(root),
+        // dbt does not fall back from DBT_PROFILES_DIR to the project or ~/.dbt.
+        env: { PATH: "/usr/bin", DBT_PROFILES_DIR: empty },
+      });
+      await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
+        "core",
+      );
+      expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+        "dbtIntegrationSwitchHeld",
+        expect.objectContaining({
+          reason: "profileNotFound",
+          profileCheck: "noProfilesFile",
+          fusionAdapterCheck: "unknown",
+        }),
+      );
+      await svc.notifySwitchHeld();
+      expect(shown()[0]).toEqual([
+        `Power User didn't switch shop to dbt Fusion 2.0.9 (/home/user/.local/bin/dbt): no profiles.yml in DBT_PROFILES_DIR (${path.join(empty, "profiles.yml")}). dbt Fusion and dbt Core both need it: add the profile, then reload the window.`,
+        "Use dbt Fusion",
+        "Dismiss",
+      ]);
     });
-    await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
-      "fusion",
+
+    it("names the profile that is not in profiles.yml, and opens the file", async () => {
+      const root = project(
+        "shop",
+        profile("warehouse", "dev", { dev: { type: "snowflake" } }),
+      );
+      const { svc, telemetry } = service({ projectFiles: projectsIn(root) });
+      await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
+        "core",
+      );
+      expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+        "dbtIntegrationSwitchHeld",
+        expect.objectContaining({ profileCheck: "profileMissing" }),
+      );
+      (window.showInformationMessage as jest.Mock).mockReturnValueOnce(
+        Promise.resolve("Open profiles.yml"),
+      );
+      await svc.notifySwitchHeld();
+      const profilesFile = path.join(root, "profiles.yml");
+      expect(shown()[0]).toEqual([
+        `Power User didn't switch shop to dbt Fusion 2.0.9 (/home/user/.local/bin/dbt): profile 'shop' is not in ${profilesFile}. dbt Fusion and dbt Core both need it: add it, then reload the window.`,
+        "Open profiles.yml",
+        "Use dbt Fusion",
+        "Dismiss",
+      ]);
+      expect(window.showTextDocument).toHaveBeenCalledWith(
+        Uri.file(profilesFile),
+      );
+      expect(update).not.toHaveBeenCalled();
+    });
+
+    it("holds when dbt_project.yml names no profile", async () => {
+      const root = path.join(dir, "shop");
+      mkdirSync(root);
+      writeFileSync(
+        path.join(root, "dbt_project.yml"),
+        'name: shop\nversion: "1.0"\n',
+      );
+      const { svc, telemetry } = service({ projectFiles: projectsIn(root) });
+      await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
+        "core",
+      );
+      expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+        "dbtIntegrationSwitchHeld",
+        expect.objectContaining({ profileCheck: "noProfileName" }),
+      );
+      (window.showInformationMessage as jest.Mock).mockReturnValueOnce(
+        Promise.resolve("Open dbt_project.yml"),
+      );
+      await svc.notifySwitchHeld();
+      expect(shown()[0][0]).toContain(
+        "shop to dbt Fusion 2.0.9 (/home/user/.local/bin/dbt): its dbt_project.yml names no profile. dbt Fusion and dbt Core both need one: add a profile: line, then reload the window.",
+      );
+      expect(window.showTextDocument).toHaveBeenCalledWith(
+        Uri.file(path.join(root, "dbt_project.yml")),
+      );
+    });
+
+    it.each<[string, Record<string, string>, string]>([
+      ["the profile's target:", {}, "target 'prod'"],
+      ["DBT_TARGET", { DBT_TARGET: "qa" }, "target 'qa'"],
+    ])(
+      "holds when the target %s names is not in the profile",
+      async (_, extraEnv, named) => {
+        const root = project(
+          "shop",
+          profile("shop", "prod", { dev: { type: "snowflake" } }),
+        );
+        const { svc, telemetry } = service({
+          projectFiles: projectsIn(root),
+          env: { PATH: "/usr/bin", ...extraEnv },
+        });
+        await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
+          "core",
+        );
+        expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+          "dbtIntegrationSwitchHeld",
+          expect.objectContaining({
+            profileCheck: "targetMissing",
+            // The outputs dbt could have picked are still read.
+            adapterTypes: "snowflake",
+          }),
+        );
+        await svc.notifySwitchHeld();
+        expect(shown()[0][0]).toContain(
+          `: ${named} is not in profile 'shop' (${path.join(root, "profiles.yml")}). Add it or select another target, then reload the window.`,
+        );
+      },
     );
-    expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
-      "dbtIntegrationAutoSwitched",
-      expect.objectContaining({
-        fusionAdapterCheck: "unknown",
-        adapterTypes: "",
-      }),
+
+    // dbt resolves a target written as one env_var call from the same
+    // environment dbt Fusion runs with, so a name it doesn't define fails there too.
+    it("holds when a target written as env_var names an output the profile lacks, and names it", async () => {
+      const root = project(
+        "shop",
+        profile("shop", "{{ env_var('DEPLOY_TARGET') }}", {
+          dev: { type: "snowflake" },
+        }),
+      );
+      const { svc, telemetry } = service({
+        projectFiles: projectsIn(root),
+        env: { PATH: "/usr/bin", DEPLOY_TARGET: "prod" },
+      });
+      await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
+        "core",
+      );
+      expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+        "dbtIntegrationSwitchHeld",
+        expect.objectContaining({ profileCheck: "targetMissing" }),
+      );
+      await svc.notifySwitchHeld();
+      expect(shown()[0][0]).toContain(
+        ": target 'prod' is not in profile 'shop'",
+      );
+    });
+
+    it("switches when a target written as env_var names an output the profile has", async () => {
+      const root = project(
+        "shop",
+        profile("shop", "{{ env_var('DEPLOY_TARGET', 'dev') }}", {
+          dev: { type: "snowflake" },
+        }),
+      );
+      const { svc } = service({ projectFiles: projectsIn(root) });
+      await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
+        "fusion",
+      );
+    });
+
+    it("holds when dbt_project.yml names a profile that only looks present (__proto__)", async () => {
+      const root = path.join(dir, "shop");
+      mkdirSync(root);
+      writeFileSync(
+        path.join(root, "dbt_project.yml"),
+        'name: shop\nversion: "1.0"\nprofile: __proto__\n',
+      );
+      writeFileSync(
+        path.join(root, "profiles.yml"),
+        profile("shop", "dev", { dev: { type: "snowflake" } }),
+      );
+      const { svc, telemetry } = service({ projectFiles: projectsIn(root) });
+      await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
+        "core",
+      );
+      expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+        "dbtIntegrationSwitchHeld",
+        expect.objectContaining({ profileCheck: "profileMissing" }),
+      );
+    });
+
+    it.each([
+      ["a Jinja statement", "{% if true %}dev{% endif %}"],
+      ["a Jinja comment", "dev{# the default #}"],
+    ])(
+      "switches when the target is written with %s, which only dbt renders",
+      async (_, target) => {
+        const root = project(
+          "shop",
+          profile("shop", target, { dev: { type: "snowflake" } }),
+        );
+        const { svc } = service({ projectFiles: projectsIn(root) });
+        await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
+          "fusion",
+        );
+      },
     );
+
+    it("does not hold on a missing target when DBT_TARGET is null", async () => {
+      const root = project(
+        "shop",
+        profile("shop", "dev", { dev: { type: "snowflake" } }),
+      );
+      const { svc, telemetry } = service({
+        projectFiles: projectsIn(root),
+        env: { PATH: "/usr/bin", DBT_TARGET: null } as unknown as Record<
+          string,
+          string
+        >,
+      });
+      await svc.resolve(new FakeMemento() as never);
+      expect(telemetry.sendTelemetryEvent).not.toHaveBeenCalledWith(
+        "dbtIntegrationSwitchHeld",
+        expect.objectContaining({ profileCheck: "targetMissing" }),
+      );
+    });
+
+    it("switches when dbt_project.yml is a YAML list, not a mapping", async () => {
+      const root = path.join(dir, "shop");
+      mkdirSync(root);
+      writeFileSync(
+        path.join(root, "dbt_project.yml"),
+        "- name: shop\n- profile: shop\n",
+      );
+      writeFileSync(
+        path.join(root, "profiles.yml"),
+        profile("shop", "dev", { dev: { type: "snowflake" } }),
+      );
+      const { svc } = service({ projectFiles: projectsIn(root) });
+      await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
+        "fusion",
+      );
+    });
+
+    // dbt runs each project with its own folder's environment (.env), so a
+    // DBT_PROFILES_DIR set only in the second folder must be the one read.
+    it("reads each project's profile with its own workspace folder's environment", async () => {
+      const second = mkdtempSync(path.join(tmpdir(), "fusion-adapter-b-"));
+      const byFirstFolder = (
+        workspace.getWorkspaceFolder as jest.Mock
+      ).getMockImplementation();
+      try {
+        const profilesDir = path.join(second, "profiles");
+        mkdirSync(profilesDir);
+        writeFileSync(
+          path.join(profilesDir, "profiles.yml"),
+          profile("lake", "dev", { dev: { type: "snowflake" } }),
+        );
+        const shop = project(
+          "shop",
+          profile("shop", "dev", { dev: { type: "snowflake" } }),
+        );
+        const lake = path.join(second, "lake");
+        mkdirSync(lake);
+        writeFileSync(
+          path.join(lake, "dbt_project.yml"),
+          'name: lake\nversion: "1.0"\nprofile: lake\n',
+        );
+        const folders = [
+          { uri: Uri.file(dir), name: "repo", index: 0 },
+          { uri: Uri.file(second), name: "lake", index: 1 },
+        ];
+        (workspace as { workspaceFolders: unknown }).workspaceFolders = folders;
+        (workspace.getWorkspaceFolder as jest.Mock).mockImplementation(
+          (uri: unknown) =>
+            folders.find((folder) =>
+              (uri as { fsPath: string }).fsPath.startsWith(folder.uri.fsPath),
+            ),
+        );
+        const { svc, telemetry } = service({
+          projectFiles: {
+            [dir]: [path.join(shop, "dbt_project.yml")],
+            [second]: [path.join(lake, "dbt_project.yml")],
+          },
+          // Only lake's folder sets DBT_PROFILES_DIR. Read with the window's
+          // environment, lake has no profile (in its folder or ~/.dbt) and holds.
+          folderEnv: { [second]: { DBT_PROFILES_DIR: profilesDir } },
+        });
+        await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
+          "fusion",
+        );
+        expect(telemetry.sendTelemetryEvent).not.toHaveBeenCalledWith(
+          "dbtIntegrationSwitchHeld",
+          expect.anything(),
+        );
+      } finally {
+        (workspace.getWorkspaceFolder as jest.Mock).mockImplementation(
+          byFirstFolder!,
+        );
+        rmSync(second, { recursive: true, force: true });
+      }
+    });
+
+    it("names the missing profile before an adapter dbt Fusion runs only as experimental", async () => {
+      const shop = project(
+        "shop",
+        profile("shop", "dev", { dev: { type: "postgres" } }),
+      );
+      const lake = project("lake", profile("other", "dev", {}));
+      const { svc, telemetry } = service({
+        projectFiles: projectsIn(shop, lake),
+      });
+      await svc.resolve(new FakeMemento() as never);
+      heldFor(telemetry);
+      await svc.notifySwitchHeld();
+      expect(shown()[0][0]).toContain("profile 'lake' is not in");
+    });
+
+    it.each<[string, string, string]>([
+      [
+        "a templated profile name",
+        "profile: \"{{ env_var('DBT_PROFILE') }}\"\n",
+        profile("shop", "dev", { dev: { type: "snowflake" } }),
+      ],
+      [
+        "a templated target",
+        "profile: shop\n",
+        profile("shop", "{{ var('target') }}", {
+          dev: { type: "snowflake" },
+          prod: { type: "snowflake" },
+        }),
+      ],
+      [
+        "a profiles.yml that does not parse",
+        "profile: shop\n",
+        "shop: [unclosed\n",
+      ],
+    ])(
+      "still switches on %s, which only dbt can read",
+      async (_, profileLine, profilesYml) => {
+        const root = path.join(dir, "shop");
+        mkdirSync(root);
+        writeFileSync(
+          path.join(root, "dbt_project.yml"),
+          `name: shop\nversion: "1.0"\n${profileLine}`,
+        );
+        writeFileSync(path.join(root, "profiles.yml"), profilesYml);
+        const { svc, telemetry } = service({ projectFiles: projectsIn(root) });
+        await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
+          "fusion",
+        );
+        expect(telemetry.sendTelemetryEvent).not.toHaveBeenCalledWith(
+          "dbtIntegrationSwitchHeld",
+          expect.anything(),
+        );
+      },
+    );
+  });
+
+  // dbt Fusion refuses its experimental adapters (postgres, trino, spark,
+  // fabric, exasol, datafusion, lakecompute) unless
+  // DBT_ALLOW_EXPERIMENTAL_ADAPTERS is set. Before, they counted as
+  // supported: 34 of 36 such switched windows failed to parse.
+  describe("an adapter dbt Fusion runs only as experimental", () => {
+    const os =
+      process.platform === "win32"
+        ? "windows"
+        : process.platform === "darwin"
+          ? "osx"
+          : "linux";
+
+    it("holds, says how to allow it, and opens that setting", async () => {
+      const root = project(
+        "shop",
+        profile("shop", "dev", { dev: { type: "postgres" } }),
+      );
+      const { svc, telemetry } = service({ projectFiles: projectsIn(root) });
+      await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
+        "core",
+      );
+      expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+        "dbtIntegrationSwitchHeld",
+        expect.objectContaining({
+          reason: "adapterExperimental",
+          fusionAdapterCheck: "experimental",
+          adapterTypes: "postgres",
+        }),
+      );
+      (window.showInformationMessage as jest.Mock).mockReturnValueOnce(
+        Promise.resolve("Open setting"),
+      );
+      await svc.notifySwitchHeld();
+      expect(shown()[0]).toEqual([
+        `Power User didn't switch this window to dbt Fusion 2.0.9 (/home/user/.local/bin/dbt): the dbt profile uses the postgres adapter, which dbt Fusion runs only as an experimental adapter. To use dbt Fusion with it, add DBT_ALLOW_EXPERIMENTAL_ADAPTERS=true to terminal.integrated.env.${os}, then reload the window. dbt Core mode needs dbt-core, which the selected Python interpreter does not have.`,
+        "Open setting",
+        "Use dbt Fusion",
+        "Dismiss",
+      ]);
+      expect(commands.executeCommand).toHaveBeenCalledWith(
+        "workbench.action.openSettings",
+        `terminal.integrated.env.${os}`,
+      );
+      // Nothing is written for the user.
+      expect(update).not.toHaveBeenCalled();
+    });
+
+    it.each(["true", "TRUE", "1", "yes", "on"])(
+      "switches when DBT_ALLOW_EXPERIMENTAL_ADAPTERS is %s",
+      async (value) => {
+        const root = project(
+          "shop",
+          profile("shop", "dev", { dev: { type: "postgres" } }),
+        );
+        const { svc } = service({
+          projectFiles: projectsIn(root),
+          env: { PATH: "/usr/bin", DBT_ALLOW_EXPERIMENTAL_ADAPTERS: value },
+        });
+        await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
+          "fusion",
+        );
+      },
+    );
+
+    // dbt Fusion 2.0.12 refuses these.
+    it.each(["false", "0", "", "y", " true"])(
+      "still holds when DBT_ALLOW_EXPERIMENTAL_ADAPTERS is %j",
+      async (value) => {
+        const root = project(
+          "shop",
+          profile("shop", "dev", { dev: { type: "trino" } }),
+        );
+        const { svc } = service({
+          projectFiles: projectsIn(root),
+          env: { PATH: "/usr/bin", DBT_ALLOW_EXPERIMENTAL_ADAPTERS: value },
+        });
+        await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
+          "core",
+        );
+      },
+    );
+
+    // terminal.integrated.env can set a variable to null, which unsets it.
+    it("reads an opt-in of null as not set, without failing", async () => {
+      const shop = project(
+        "shop",
+        profile("shop", "dev", { dev: { type: "snowflake" } }),
+      );
+      const { svc } = service({
+        projectFiles: projectsIn(shop),
+        env: {
+          PATH: "/usr/bin",
+          DBT_ALLOW_EXPERIMENTAL_ADAPTERS: null,
+        } as unknown as Record<string, string>,
+      });
+      await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
+        "fusion",
+      );
+    });
+
+    it("holds when no target is runnable without the opt-in, and names only the experimental adapters", async () => {
+      const root = project(
+        "shop",
+        profile("shop", "{{ var('target') }}", {
+          a: { type: "sqlserver" },
+          b: { type: "fabric" },
+        }),
+      );
+      const { svc } = service({ projectFiles: projectsIn(root) });
+      await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
+        "core",
+      );
+      await svc.notifySwitchHeld();
+      expect(shown()[0][0]).toContain(
+        ": the dbt profile uses the fabric adapter, which dbt Fusion runs only as an experimental adapter.",
+      );
+    });
+
+    it("switches when one of a templated target's adapters runs without the opt-in", async () => {
+      const root = project(
+        "shop",
+        profile("shop", "{{ var('target') }}", {
+          a: { type: "snowflake" },
+          b: { type: "postgres" },
+        }),
+      );
+      const { svc } = service({ projectFiles: projectsIn(root) });
+      await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
+        "fusion",
+      );
+    });
   });
 
   it("switches when dbt_project.yml cannot be parsed", async () => {
@@ -1459,7 +2183,7 @@ describe("IntegrationModeService.resolve: the adapter check", () => {
     );
     await svc.notifySwitchHeld();
     expect(shown()[0][0]).toContain(
-      "because the dbt profile uses the athena adapter, which dbt Fusion does not support.",
+      ": the dbt profile uses the athena adapter, which dbt Fusion does not support.",
     );
   });
 });

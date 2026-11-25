@@ -169,6 +169,7 @@ export const window = {
   showInformationMessage: jest.fn().mockReturnValue(Promise.resolve()),
   showWarningMessage: jest.fn().mockReturnValue(Promise.resolve()),
   showErrorMessage: jest.fn().mockReturnValue(Promise.resolve()),
+  showTextDocument: jest.fn().mockReturnValue(Promise.resolve()),
   onDidChangeActiveTextEditor: jest
     .fn()
     .mockReturnValue({ dispose: jest.fn() }),

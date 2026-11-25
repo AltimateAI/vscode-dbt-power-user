@@ -81,11 +81,13 @@
         "title": "Altimate AI",
         "properties": {
           "dbt.altimateAiKey": {
+            "scope": "window",
             "type": "string",
             "displayName": "Altimate AI API Key",
             "markdownDescription": "Needed for features that require backend support. Sign up for a free Altimate AI account [here](https://app.myaltimate.com/register). API Key can be copied from Altimate AI UI (navigate to Settings->API Key)"
           },
           "dbt.altimateUrl": {
+            "scope": "window",
             "type": "string",
             "displayName": "Altimate API endpoint",
             "description": "Select Altimate API endpoint",
@@ -100,67 +102,80 @@
             "default": "https://api.myaltimate.com"
           },
           "dbt.altimateInstanceName": {
+            "scope": "window",
             "type": "string",
             "displayName": "Altimate AI Instance Name",
             "markdownDescription": "Needed for features that require backend support. Sign up for a free Altimate AI account [here](https://app.myaltimate.com/register). If your Altimate AI instance URL is https://betatest.app.myaltimate.com/, The instance name is betatest"
           },
           "dbt.enableMcpDataSourceQueryTools": {
+            "scope": "window",
             "type": "boolean",
             "description": "Enable data source query tools (EXECUTE_SQL_WITH_LIMIT and GET_COLUMN_VALUES)",
             "default": false
           },
           "dbt.mcpSslCertKeyPath": {
+            "scope": "window",
             "type": "string",
             "description": "Path to the SSL certificate key file for MCP server",
             "displayName": "MCP Server SSL Certificate Key Path",
             "default": ""
           },
           "dbt.mcpSslCertPath": {
+            "scope": "window",
             "type": "string",
             "description": "Path to the SSL certificate file for MCP server",
             "displayName": "MCP Server SSL Certificate Path",
             "default": ""
           },
           "dbt.enableNewLineagePanel": {
+            "scope": "window",
             "type": "boolean",
             "description": "Enable the new lineage panel in dbt."
           },
           "dbt.enableCollaboration": {
+            "scope": "window",
             "type": "boolean",
             "description": "Enable dbt docs collaboration.",
             "default": true
           },
           "dbt.showChangelogOnUpdate": {
+            "scope": "window",
             "type": "boolean",
             "description": "Show the What's New page automatically after the extension updates to a new minor or major version.",
             "default": true
           },
           "dbt.disableQueryHistory": {
+            "scope": "window",
             "type": "boolean",
             "description": "Disable Query history and bookmarks",
             "default": false
           },
           "dbt.enableNotebooks": {
+            "scope": "window",
             "type": "boolean",
             "description": "Enable Altimate notebooks feature",
             "default": true
           },
           "dbt.lineage.showSelectEdges": {
+            "scope": "window",
             "type": "boolean",
             "description": "Show select edges in lineage panel.",
             "default": true
           },
           "dbt.lineage.showNonSelectEdges": {
+            "scope": "window",
             "type": "boolean",
             "description": "Show non-select edges in lineage panel.",
             "default": false
           },
           "dbt.lineage.defaultExpansion": {
+            "scope": "window",
             "type": "number",
             "description": "By default how much lineage should expand.",
             "default": 1
           },
           "dbt.installDepsOnProjectInitialization": {
+            "scope": "resource",
             "type": "boolean",
             "description": "Install dbt deps on project initialization",
             "default": true
@@ -171,10 +186,12 @@
         "title": "Power User for dbt",
         "properties": {
           "dbt.unquotedCaseInsensitiveIdentifierRegex": {
+            "scope": "resource",
             "type": "string",
             "markdownDescription": "Regex to identify unquoted identifiers. Example: `^([_A-Z]+[_A-Z0-9$]*)$`"
           },
           "dbt.dbtIntegration": {
+            "scope": "window",
             "type": "string",
             "enum": [
               "core",
@@ -186,15 +203,18 @@
             "description": "Select dbt core or dbt cloud"
           },
           "dbt.dbtPythonPathOverride": {
+            "scope": "window",
             "type": "string",
             "description": "Path to a Python executable. Use this when the Python extension selects a different interpreter than the one where dbt is installed (e.g. dbt works in your terminal but not in the extension). You can set this manually or run the 'Detect Python from terminal' command to auto-detect it."
           },
           "dbt.dbtCustomRunnerImport": {
+            "scope": "resource",
             "type": "string",
             "description": "Python import string to import custom dbt runner. (Only supported for dbt core)",
             "default": "from dbt.cli.main import dbtRunner"
           },
           "dbt.allowListFolders": {
+            "scope": "resource",
             "type": "array",
             "items": {
               "type": "string"
@@ -203,6 +223,7 @@
             "description": "Define workspace-relative paths to include. Only projects within these folders will be built. If empty, no filtering is applied. The path should be relative to the workspace. Example: [folder1, folder2]"
           },
           "dbt.runModelCommandAdditionalParams": {
+            "scope": "resource",
             "type": "array",
             "items": {
               "type": "string"
@@ -211,6 +232,7 @@
             "description": "Add additional params to the dbt run model command. Ex: --select model1 --target prod needs to be added as four different entries \n--select \nmodel1 \n--target \nprod "
           },
           "dbt.buildModelCommandAdditionalParams": {
+            "scope": "resource",
             "type": "array",
             "items": {
               "type": "string"
@@ -219,12 +241,14 @@
             "description": "Add additional params to the dbt build model command. Ex: --select model1 --target prod needs to be added as four different entries \n--select \nmodel1 \n--target \nprod "
           },
           "dbt.queryLimit": {
+            "scope": "resource",
             "type": "integer",
             "description": "The maximum number of rows the `Preview SQL Query` command returns.",
             "default": 500,
             "minimum": 1
           },
           "dbt.perspectiveTheme": {
+            "scope": "window",
             "type": "string",
             "description": "Theme for perspective viewer in query results panel",
             "default": "Vintage",
@@ -239,22 +263,26 @@
             ]
           },
           "dbt.conversationsPollingInterval": {
+            "scope": "window",
             "type": "integer",
             "description": "Polling interval to fetch latest conversations (in seconds)",
             "default": 900,
             "minimum": 30
           },
           "dbt.queryTemplate": {
+            "scope": "resource",
             "type": "string",
             "description": "Override the default query template that is used by the `Preview SQL Query` command. Use this if your database has special syntax to limit query results",
             "default": "select * from ({query}\n) as query limit {limit}"
           },
           "dbt.queryScale": {
+            "scope": "window",
             "type": "string",
             "description": "Override the default scale of the result table that is used by the `Preview SQL Query` command.",
             "default": 1
           },
           "dbt.fileNameTemplateGenerateModel": {
+            "scope": "resource",
             "type": "string",
             "enum": [
               "{prefix}_{sourceName}_{tableName}",
@@ -266,15 +294,18 @@
             "description": "Set the naming template that is used when generating a model from a source yml file."
           },
           "dbt.prefixGenerateModel": {
+            "scope": "resource",
             "type": "string",
             "default": "base",
             "description": "Set the prefix that is used when generating a model from a source yml file."
           },
           "dbt.sqlFmtPath": {
+            "scope": "resource",
             "type": "string",
             "description": "Path to `sqlfmt`. If not set, it will look on your PATH"
           },
           "dbt.sqlFmtAdditionalParams": {
+            "scope": "resource",
             "type": "array",
             "items": {
               "type": "string"
@@ -283,6 +314,7 @@
             "description": "Add additional params to `sqlfmt`"
           },
           "dbt.disableDepthsCalculation": {
+            "scope": "resource",
             "type": "boolean",
             "description": "Disable DAG depth calculation and decoration",
             "default": false
@@ -1338,13 +1370,13 @@
     "@jupyterlab/coreutils": "^6.2.4",
     "@jupyterlab/nbformat": "^4.2.4",
     "@jupyterlab/services": "^7.0.0",
-    "@modelcontextprotocol/sdk": "^1.24.0",
+    "@modelcontextprotocol/sdk": "^1.32.0",
     "@nteract/messaging": "^7.0.20",
     "@types/express": "^5.0.0",
     "@vscode/chat-extension-utils": "^0.0.0-alpha.5",
     "@vscode/codicons": "^0.0.36",
     "@vscode/extension-telemetry": "0.9.7",
-    "@vscode/vsce": "^3.9.1",
+    "@vscode/vsce": "^4.0.0",
     "@vscode/webview-ui-toolkit": "^1.4.0",
     "dayjs": "^1.11.13",
     "express": "^5.1.0",
@@ -1356,11 +1388,10 @@
     "reflect-metadata": "^0.2.2",
     "semver": "^7.6.3",
     "which": "^6.0.1",
-    "ws": "^8.18.0",
+    "ws": "^8.21.0",
     "yaml": "^2.6.0",
     "zeromq": "^6.1.1",
-    "zod": "^3.25.28",
-    "zod-to-json-schema": "^3.25.2"
+    "zod": "^4.6.6"
   },
   "lint-staged": {
     "**/webview_panels/**/*.{ts,tsx}": [

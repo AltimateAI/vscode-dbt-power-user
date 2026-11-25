@@ -1,28 +1,11 @@
 import { CommandProcessResult } from "@altimateai/dbt-integration";
-import { ToolSchema } from "@modelcontextprotocol/sdk/types.js";
 import { inject } from "inversify";
 import { Disposable, Uri, workspace } from "vscode";
 import { z } from "zod";
-import { zodToJsonSchema } from "zod-to-json-schema";
-import { z as z4 } from "zod/v4";
 import { DBTProjectContainer } from "../dbt_client/dbtProjectContainer";
 import { DBTProject, DBTTerminal } from "../modules";
+import { toToolInput } from "./toolInput";
 import { McpTool } from "./types";
-
-const ToolInputSchema = ToolSchema.shape.inputSchema;
-type ToolInput = z4.infer<typeof ToolInputSchema>;
-
-/** Convert Zod schema to JSON Schema without `$schema` meta-field.
- *  The default `jsonSchema7` target includes `"$schema": "http://json-schema.org/draft-07/schema#"`
- *  which Gemini's tool-calling API rejects as an unsupported property. Using `openApi3`
- *  produces an identical schema structure minus the `$schema` field.  */
-const zodToJsonSchemaAny = zodToJsonSchema as (
-  schema: unknown,
-  options?: unknown,
-) => unknown;
-function toToolInput(schema: z.ZodSchema<unknown>): ToolInput {
-  return zodToJsonSchemaAny(schema, { target: "openApi3" }) as ToolInput;
-}
 
 const BaseSchema = z.object({});
 const BaseProjectRootSchema = BaseSchema.extend({ projectRoot: z.string() });

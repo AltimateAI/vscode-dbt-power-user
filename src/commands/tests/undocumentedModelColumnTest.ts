@@ -46,12 +46,20 @@ export class UndocumentedModelColumnTest implements AltimateScanStep {
         const modelDict =
           altimateCatalog[projectName + projectRootUri][modelKey];
         const existingColumnsLowered = Object.keys(value.columns).map((key) =>
-          getColumnNameByCase(key, project.getAdapterType()),
+          getColumnNameByCase(
+            key,
+            project.getAdapterType(),
+            project.projectRoot,
+          ),
         );
         for (const column of modelDict) {
           if (
             !existingColumnsLowered.includes(
-              getColumnNameByCase(column.column_name, project.getAdapterType()),
+              getColumnNameByCase(
+                column.column_name,
+                project.getAdapterType(),
+                project.projectRoot,
+              ),
             )
           ) {
             if (!value.path) {
