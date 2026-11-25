@@ -487,3 +487,21 @@ export function resolveSettingsVariables(
 
   return value;
 }
+
+/**
+ * Whether `child` is `parent` or a path inside it. Case is ignored on Windows
+ * and macOS, whose file systems usually ignore it: a file opened through
+ * other folder casing (`c:\users\me\repo` for `C:\Users\Me\repo`) is the
+ * same file there.
+ */
+export function isPathInside(child: string, parent: string): boolean {
+  const ignoreCase =
+    process.platform === "win32" || process.platform === "darwin";
+  const fold = (p: string) => (ignoreCase ? p.toLowerCase() : p);
+  const file = fold(child);
+  // Without trailing separators, so a folder given as `/repo/` still matches
+  // `/repo` itself. A root (`/`, `C:\`) becomes empty or `C:`, and every
+  // path under it still starts with that plus a separator.
+  const folder = fold(parent).replace(/[\\/]+$/, "");
+  return file === folder || file.startsWith(folder + path.sep);
+}

@@ -73,6 +73,7 @@ import {
   extendErrorWithSupportLinks,
   getColumnNameByCase,
   getProjectRelativePath,
+  isPathInside,
   resolveSettingsVariables,
 } from "../utils";
 import { ValidationProvider } from "../validation_provider";
@@ -932,10 +933,7 @@ export class DBTProject implements Disposable {
   }
 
   contains(uri: Uri) {
-    return (
-      uri.fsPath === this.projectRoot.fsPath ||
-      uri.fsPath.startsWith(this.projectRoot.fsPath + path.sep)
-    );
+    return isPathInside(uri.fsPath, this.projectRoot.fsPath);
   }
 
   async runModel(runModelParams: RunModelParams) {

@@ -292,12 +292,15 @@ export class DBTProjectContainer implements Disposable {
         uri = selectedProject.uri;
       }
     }
-    this.findDBTProject(uri)?.executeSQLOnQueryPanel(
-      query,
-      modelName,
-      previewMode,
-      uri,
-    );
+    const project = this.findDBTProject(uri);
+    if (project === undefined) {
+      // Execute did nothing at all here: no panel, no message.
+      window.showWarningMessage(
+        `Can't execute the query: ${basename(uri.fsPath)} isn't in a dbt project Power User has loaded. If its project is still loading, try again once it's ready.`,
+      );
+      return;
+    }
+    project.executeSQLOnQueryPanel(query, modelName, previewMode, uri);
   }
 
   runModel(modelPath: Uri, type?: RunModelType) {
