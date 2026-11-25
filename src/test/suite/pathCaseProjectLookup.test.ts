@@ -94,6 +94,19 @@ describe("isPathInside", () => {
     expect(isPathInside(ROOT, ROOT + path.sep)).toBe(true);
     expect(isPathInside(MODEL, path.sep)).toBe(true);
   });
+
+  // Where "/" separates, a backslash is part of a folder's name, not a
+  // separator to drop.
+  (path.sep === "/" ? it : it.skip)(
+    "keeps a folder name that ends with a backslash",
+    () => {
+      onPlatform("linux");
+      const folder = path.join(path.sep, "a", "odd\\");
+      expect(isPathInside(path.join(folder, "models", "x.sql"), folder)).toBe(
+        true,
+      );
+    },
+  );
 });
 
 describe("which project a file opened through other folder casing belongs to", () => {
@@ -116,6 +129,26 @@ describe("which project a file opened through other folder casing belongs to", (
 
   it("still holds the exact casing", () => {
     expect(project(ROOT).contains(uri(MODEL))).toBe(true);
+  });
+
+  it.each<NodeJS.Platform>(["win32", "darwin"])(
+    "finds the model's manifest node too (%s)",
+    (platform) => {
+      onPlatform(platform);
+      const jaffle = project(ROOT) as any;
+      const node = { name: "customers", path: MODEL };
+      jaffle._manifestCacheEvent = { nodeMetaMap: { nodes: () => [node] } };
+      expect(jaffle.findNodeForFile(OTHER_CASE_MODEL)).toBe(node);
+    },
+  );
+
+  it("keeps the node lookup case-sensitive on Linux", () => {
+    onPlatform("linux");
+    const jaffle = project(ROOT) as any;
+    const node = { name: "customers", path: MODEL };
+    jaffle._manifestCacheEvent = { nodeMetaMap: { nodes: () => [node] } };
+    expect(jaffle.findNodeForFile(OTHER_CASE_MODEL)).toBeUndefined();
+    expect(jaffle.findNodeForFile(MODEL)).toBe(node);
   });
 });
 

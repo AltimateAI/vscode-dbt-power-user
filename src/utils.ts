@@ -489,19 +489,26 @@ export function resolveSettingsVariables(
 }
 
 /**
- * Whether `child` is `parent` or a path inside it. Case is ignored on Windows
- * and macOS, whose file systems usually ignore it: a file opened through
- * other folder casing (`c:\users\me\repo` for `C:\Users\Me\repo`) is the
- * same file there.
+ * Whether paths that differ only in case name the same file here: on Windows
+ * and macOS, whose file systems usually ignore case.
+ */
+export function pathsIgnoreCase(): boolean {
+  return process.platform === "win32" || process.platform === "darwin";
+}
+
+/**
+ * Whether `child` is `parent` or a path inside it. Case is ignored where
+ * `pathsIgnoreCase()`: a file opened through other folder casing
+ * (`c:\users\me\repo` for `C:\Users\Me\repo`) is the same file there.
  */
 export function isPathInside(child: string, parent: string): boolean {
-  const ignoreCase =
-    process.platform === "win32" || process.platform === "darwin";
-  const fold = (p: string) => (ignoreCase ? p.toLowerCase() : p);
+  const fold = (p: string) => (pathsIgnoreCase() ? p.toLowerCase() : p);
   const file = fold(child);
   // Without trailing separators, so a folder given as `/repo/` still matches
   // `/repo` itself. A root (`/`, `C:\`) becomes empty or `C:`, and every
-  // path under it still starts with that plus a separator.
-  const folder = fold(parent).replace(/[\\/]+$/, "");
+  // path under it still starts with that plus a separator. Only the
+  // platform's separator: elsewhere a backslash is part of a name.
+  const trailing = path.sep === "\\" ? /\\+$/ : /\/+$/;
+  const folder = fold(parent).replace(trailing, "");
   return file === folder || file.startsWith(folder + path.sep);
 }

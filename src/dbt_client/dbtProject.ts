@@ -74,6 +74,7 @@ import {
   getColumnNameByCase,
   getProjectRelativePath,
   isPathInside,
+  pathsIgnoreCase,
   resolveSettingsVariables,
 } from "../utils";
 import { ValidationProvider } from "../validation_provider";
@@ -124,14 +125,12 @@ interface JsonObj {
 /**
  * `NodeMetaData.path` is the project root joined with the node's relative
  * path, which makes it comparable to a document path once both are normalized
- * — case included, on the platform where case does not distinguish files.
+ * — case included, on the platforms where case does not distinguish files.
  */
 const isSameFile = (left: string, right: string) => {
   const a = path.normalize(left);
   const b = path.normalize(right);
-  return process.platform === "win32"
-    ? a.toLowerCase() === b.toLowerCase()
-    : a === b;
+  return pathsIgnoreCase() ? a.toLowerCase() === b.toLowerCase() : a === b;
 };
 
 export class DBTProject implements Disposable {
