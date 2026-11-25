@@ -1116,13 +1116,19 @@ function heldMessage(
     case "profileNotFound":
       return profileMessage(held, lead, installOr);
     case "dbtCoreUnknown":
+      // A failed import names its error, and reinstalling dbt-core
+      // (`--force-reinstall`, with its dependencies) can repair it.
+      if (held.dbtCoreDetail) {
+        return {
+          text: `${lead("this window", `importing dbt-core in the selected interpreter fails: ${held.dbtCoreDetail.trim().replace(/\.+$/, "")}`)} Fix or reinstall dbt-core, select another interpreter, or use dbt Fusion.`,
+          actions: installOr(SELECT_INTERPRETER, USE_FUSION),
+        };
+      }
       return {
-        text: held.dbtCoreDetail
-          ? `${lead("this window", `importing dbt-core in the selected interpreter fails: ${held.dbtCoreDetail.replace(/\.$/, "")}`)} Fix or reinstall dbt-core, select another interpreter, or use dbt Fusion.`
-          : lead(
-              "this window",
-              "dbt-core could not be checked in the selected interpreter",
-            ),
+        text: lead(
+          "this window",
+          "dbt-core could not be checked in the selected interpreter",
+        ),
         actions: [SELECT_INTERPRETER, USE_FUSION],
       };
   }
