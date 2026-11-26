@@ -15,7 +15,10 @@ import { VSCodeCommands } from "./commands";
 import { CommentProviders } from "./comment_provider";
 import { ContentProviders } from "./content_provider";
 import { DBTProjectContainer } from "./dbt_client/dbtProjectContainer";
-import { readConfiguredDbtIntegration } from "./dbt_client/integrationMode";
+import {
+  getDbtIntegrationMode,
+  readConfiguredDbtIntegration,
+} from "./dbt_client/integrationMode";
 import { IntegrationModeService } from "./dbt_client/integrationModeService";
 import { DefinitionProviders } from "./definition_provider";
 import { DocumentFormattingEditProviders } from "./document_formatting_edit_provider";
@@ -249,9 +252,32 @@ export class DBTPowerUserExtension implements Disposable {
       });
       try {
         // Before detection: the mode decides which dbt is looked for.
-        await this.integrationModeService.resolve(context.workspaceState);
+        await this.integrationModeService.resolve(
+          context.workspaceState,
+          context.globalState,
+        );
       } catch (error) {
         this.telemetry.sendTelemetryError("dbtIntegrationModeError", error);
+      }
+      if (["core", "corecommand"].includes(getDbtIntegrationMode())) {
+        // A project that read dbt 1.x shows dbt Core works on this machine:
+        // other windows aren't switched to dbt Fusion for a while.
+        context.subscriptions.push(
+          this.dbtProjectContainer.onProjectRebuildManifestStatusChange(
+            ({ project, inProgress }) => {
+              if (!inProgress && project.getDBTVersion()?.[0] === 1) {
+                void this.integrationModeService
+                  .dbtCoreWorked()
+                  .catch((error) =>
+                    this.telemetry.sendTelemetryError(
+                      "dbtIntegrationDbtCoreWorkedError",
+                      error,
+                    ),
+                  );
+              }
+            },
+          ),
+        );
       }
       if (this.integrationModeService.autoSwitched) {
         // Subscribed before the projects start, so each one's first rebuild is seen.

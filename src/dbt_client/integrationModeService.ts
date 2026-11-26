@@ -10,7 +10,7 @@ import {
   readAndParseProjectConfig,
   resolveProfileTargets,
 } from "@altimateai/dbt-integration";
-import { existsSync, readFileSync } from "fs";
+import { existsSync, readFileSync, statSync } from "fs";
 import { homedir } from "os";
 import * as path from "path";
 import {
@@ -27,9 +27,15 @@ import { parse as parseYaml } from "yaml";
 import { TelemetryService } from "../telemetry";
 import { PROJECT_EXCLUDE_PATTERN } from "./dbtWorkspaceFolder";
 import {
+  FusionTrialOutcome,
+  FusionTrialResult,
+  runFusionTrial,
+} from "./fusionTrial";
+import {
   ALLOW_EXPERIMENTAL_ADAPTERS,
-  AUTO_SWITCH_PAUSED,
+  DBT_CORE_RECENT_MS,
   DbtCoreCheck,
+  DbtIntegrationFacts,
   decideDbtIntegrationMode,
   experimentalAdaptersAllowed,
   FusionAdapterCheck,
@@ -39,6 +45,8 @@ import {
   pythonDbtCoreFromCheck,
   readConfiguredDbtIntegration,
   setEffectiveDbtIntegrationMode,
+  SWITCH_GATE,
+  SwitchGate,
   SwitchHeldReason,
   windowAdapterCheck,
 } from "./integrationMode";
@@ -56,6 +64,14 @@ export const SWITCH_HELD_NOTIFIED_KEY = "dbtPowerUser.fusionSwitchHeldNotified";
  * could not parse a project in an automatically switched window. */
 export const PARSE_FAILED_OFFERED_KEY =
   "dbtPowerUser.fusionAutoSwitchParseFailedOffered";
+/** globalState key: when a dbt Core mode window last read dbt 1.x on this machine. */
+export const DBT_CORE_WORKED_KEY = "dbtPowerUser.dbtCoreWorkedAt";
+/** workspaceState key: the last trial parse of a dbt Fusion binary (`RememberedTrial`). */
+export const FUSION_TRIAL_KEY = "dbtPowerUser.fusionTrial";
+/** A failed trial is tried again after a day: the project or setup may be fixed. */
+const FAILED_TRIAL_RETRY_MS = 24 * 60 * 60 * 1000;
+/** `dbtCoreWorked` writes at most once an hour. */
+const DBT_CORE_WORKED_EVERY_MS = 60 * 60 * 1000;
 
 const OPEN_SETTINGS = "Open setting";
 const USE_FUSION = "Use dbt Fusion";
@@ -66,6 +82,7 @@ const OPEN_PROFILES = "Open profiles.yml";
 const OPEN_PROJECT_FILE = "Open dbt_project.yml";
 const SWITCH_BACK = "Switch back to dbt Core";
 const KEEP_FUSION = "Keep dbt Fusion";
+const RELOAD_WITH_FUSION = "Reload with dbt Fusion";
 const DBT_LOOM_CONFIG = "dbt_loom.config.yml";
 /**
  * Why the window was switched, and what dbt Core mode would need, for the
@@ -97,7 +114,20 @@ const HELD_CAUSES: Record<SwitchHeldReason, string> = {
     "dbt Fusion runs the profile's adapter only as an experimental one",
   dbtCoreUnknown: "dbt-core could not be checked in the selected interpreter",
   fusionOffered: "Power User doesn't switch to dbt Fusion on its own",
+  dbtCoreRecent: "dbt Core worked on this machine in the last 7 days",
+  fusionTrialFailed: "it failed its trial parse of the window's projects",
+  fusionTrial: "it hasn't parsed the window's projects in a trial yet",
 };
+/**
+ * Holds told nothing where dbt Core mode works: the window runs as the user
+ * set it up. Where it can't start, `notifyHeldWithoutDbtCore` says why.
+ */
+const QUIET_WHERE_CORE_WORKS = new Set<SwitchHeldReason>([
+  "dbtCoreRecent",
+  "fusionOffered",
+  "fusionTrialFailed",
+  "fusionTrial",
+]);
 /**
  * For a window held for its adapter: what dbt Core mode, which it keeps,
  * still needs when the selected interpreter cannot run it.
@@ -264,6 +294,28 @@ export interface AutoSwitch {
   fusionAdapterCheck: FusionAdapterCheck;
 }
 
+/** What shows that dbt Core worked recently, for a "dbtCoreRecent" hold. */
+export interface DbtCoreEvidence {
+  /** A dbt Core mode window's record, or dbt Core's own partial parse file. */
+  source: "record" | "partialParse";
+  ageMs: number;
+  /** The project whose partial parse file it is. */
+  project?: string;
+}
+
+/** A trial parse of one dbt Fusion binary, remembered per workspace. */
+export interface RememberedTrial {
+  path: string;
+  version: string;
+  outcome: FusionTrialOutcome;
+  at: number;
+  /** The names of the projects tried, in order. */
+  projects: string[];
+  /** The project that did not parse, and dbt Fusion's first error there. */
+  failedProject?: string;
+  firstError?: string;
+}
+
 export interface SwitchHeld {
   reason: SwitchHeldReason;
   binary: DbtV2Binary;
@@ -275,6 +327,10 @@ export interface SwitchHeld {
   experimentalAdapters: string[];
   /** What is missing, for "profileNotFound". */
   profileProblem?: ProfileProblem;
+  /** For "dbtCoreRecent". */
+  dbtCoreEvidence?: DbtCoreEvidence;
+  /** The trial's result, for "fusionTrialFailed" and a finished "fusionTrial". */
+  trial?: RememberedTrial;
 }
 
 /** How the user answered a hold message, for telemetry. */
@@ -285,6 +341,7 @@ type SwitchHeldAnswer =
   | "openFile"
   | "openSetting"
   | "fixPython"
+  | "reloadWithFusion"
   | "dismissed";
 
 /** How the user answered the offer to switch back to dbt Core. */
@@ -322,6 +379,7 @@ export interface IntegrationModeProbes {
   probeDbtCore: typeof probePythonDbtCore;
   /** The `dbt_project.yml` files under a workspace folder, as discovery finds them. */
   findProjectFiles: (folder: WorkspaceFolder) => Thenable<Uri[]>;
+  runTrial: typeof runFusionTrial;
 }
 
 const findProjectFiles = (folder: WorkspaceFolder) =>
@@ -337,9 +395,11 @@ const findProjectFiles = (folder: WorkspaceFolder) =>
  * cannot run in dbt Core mode (no dbt-core in the selected interpreter, no
  * dbt-loom config). Tells each project about an automatic switch once, and
  * the workspace once why a found binary did not switch it; after a switch,
- * offers dbt Core once when dbt Fusion cannot parse a project. While
- * `AUTO_SWITCH_PAUSED`, such a window keeps its mode and, where dbt Core mode
- * cannot start, is offered dbt Fusion.
+ * offers dbt Core once when dbt Fusion cannot parse a project. A window
+ * switches only through its gate (`SWITCH_GATE`): with "trial", to a dbt
+ * Fusion that parsed its projects in a background trial run while the window
+ * keeps dbt Core mode; with "paused", never. Where dbt Core mode cannot start,
+ * the window is offered dbt Fusion, with the trial's result.
  */
 export class IntegrationModeService {
   private autoSwitch?: AutoSwitch;
@@ -352,6 +412,12 @@ export class IntegrationModeService {
   private rebuildsRunning = new Map<string, number>();
   /** `notifyHeldWithoutDbtCore` told this window why it was held. */
   private heldErrorShown = false;
+  private globalState?: Memento;
+  /** The trial parse running in this window, for a "fusionTrial" hold. */
+  private trial?: {
+    controller: AbortController;
+    done: Promise<RememberedTrial | undefined>;
+  };
 
   constructor(
     private pythonEnvironment: PythonEnvironment,
@@ -361,22 +427,31 @@ export class IntegrationModeService {
       findBinary: findDbtV2Binary,
       probeDbtCore: probePythonDbtCore,
       findProjectFiles,
+      runTrial: runFusionTrial,
     },
     private probeTimeoutMs = DBT_CORE_PROBE_TIMEOUT_MS,
-    /** A window that would switch is held for "fusionOffered" instead. */
-    private autoSwitchPaused = AUTO_SWITCH_PAUSED,
+    /** "none": a window nothing holds switches without a trial. */
+    private switchGate: SwitchGate | "none" = SWITCH_GATE,
   ) {}
 
   get autoSwitched(): AutoSwitch | undefined {
     return this.autoSwitch;
   }
 
-  async resolve(workspaceState: Memento): Promise<string> {
+  async resolve(
+    workspaceState: Memento,
+    globalState?: Memento,
+  ): Promise<string> {
     this.workspaceState = workspaceState;
+    this.globalState = globalState;
     let configured = readConfiguredDbtIntegration();
     let binary: DbtV2Binary | undefined;
     let dbtCoreCheck: DbtCoreCheck = "noInterpreter";
     let dbtLoom = false;
+    let projectRoots: string[] = [];
+    let env: EnvironmentVariables = {};
+    let dbtCoreEvidence: DbtCoreEvidence | undefined;
+    let remembered: RememberedTrial | undefined;
     let adapters: AdapterFindings = {
       check: "noProjects",
       types: [],
@@ -385,7 +460,7 @@ export class IntegrationModeService {
     };
     if (!configured.explicit) {
       await this.pythonEnvironment.initialize();
-      const env = this.pythonEnvironment.getEnvironmentVariables();
+      env = this.pythonEnvironment.getEnvironmentVariables();
       // The selected interpreter, or `dbt.dbtPythonPathOverride` without the
       // Python extension; empty when there is no interpreter at all.
       const pythonPath = this.pythonEnvironment.pythonPath || undefined;
@@ -399,11 +474,13 @@ export class IntegrationModeService {
       });
       if (binary) {
         dbtCoreCheck = await this.checkDbtCore(pythonPath, fromOverride, env);
-        const projectRoots = await this.listProjectRoots();
+        projectRoots = await this.listProjectRoots();
         dbtLoom =
           Boolean(env.DBT_LOOM_CONFIG_PATH) ||
           this.dbtLoomConfigured(projectRoots);
         adapters = this.checkAdapters(projectRoots, env, binary.version);
+        dbtCoreEvidence = this.dbtCoreRecently(projectRoots, env);
+        remembered = this.rememberedTrial(binary);
       }
       // A setting made explicit while the probes ran wins over their result.
       configured = readConfiguredDbtIntegration();
@@ -418,7 +495,8 @@ export class IntegrationModeService {
         fusionAdapterUnsupported: adapters.check === "unsupported",
         fusionAdapterExperimental: adapters.check === "experimental",
         profileNotFound: adapters.profileProblem !== undefined,
-        autoSwitchPaused: this.autoSwitchPaused,
+        dbtCoreRecent: dbtCoreEvidence !== undefined,
+        fusionGate: this.fusionGate(remembered),
       },
     );
     // Adapter names as telemetry sees them; anything else a profile holds is "other".
@@ -436,6 +514,9 @@ export class IntegrationModeService {
         experimentalAdapters: adapters.experimental,
         profileProblem:
           heldBack === "profileNotFound" ? adapters.profileProblem : undefined,
+        dbtCoreEvidence:
+          heldBack === "dbtCoreRecent" ? dbtCoreEvidence : undefined,
+        trial: heldBack === "fusionTrialFailed" ? remembered : undefined,
       };
       const cause = heldCause(heldBack, adapters);
       this.terminal.info(
@@ -453,7 +534,16 @@ export class IntegrationModeService {
         ...(heldBack === "profileNotFound" && adapters.profileProblem
           ? { profileCheck: adapters.profileProblem.check }
           : {}),
+        ...(heldBack === "dbtCoreRecent" && dbtCoreEvidence
+          ? { dbtCoreEvidence: dbtCoreEvidence.source }
+          : {}),
+        ...(heldBack === "fusionTrialFailed" && remembered
+          ? { trialOutcome: remembered.outcome }
+          : {}),
       });
+      if (heldBack === "fusionTrial" && projectRoots.length > 0) {
+        this.startTrial(binary, projectRoots, env, dbtCoreCheck);
+      }
     }
     if (autoSwitched && binary) {
       this.autoSwitch = {
@@ -479,9 +569,187 @@ export class IntegrationModeService {
         dbtCoreCheck,
         fusionAdapterCheck: adapters.check,
         adapterTypes,
+        trial: remembered?.outcome === "parsed" ? "parsed" : "none",
       });
     }
     return mode;
+  }
+
+  /**
+   * Whether dbt Core worked on this machine within `DBT_CORE_RECENT_MS`: a
+   * dbt Core mode window's record (`dbtCoreWorked`), else the partial parse
+   * file dbt Core writes in a project's target path (dbt Fusion doesn't).
+   */
+  private dbtCoreRecently(
+    projectRoots: string[],
+    env: EnvironmentVariables,
+  ): DbtCoreEvidence | undefined {
+    const now = Date.now();
+    const recent = (at: number) => Math.abs(now - at) <= DBT_CORE_RECENT_MS;
+    const recorded = this.globalState?.get<unknown>(DBT_CORE_WORKED_KEY);
+    if (typeof recorded === "number" && recent(recorded)) {
+      return { source: "record", ageMs: now - recorded };
+    }
+    for (const root of projectRoots) {
+      const file = path.join(
+        this.targetPath(root, this.projectEnvironment(root, env)),
+        "partial_parse.msgpack",
+      );
+      try {
+        const { mtimeMs } = statSync(file);
+        if (recent(mtimeMs)) {
+          return {
+            source: "partialParse",
+            ageMs: now - mtimeMs,
+            project: path.basename(root),
+          };
+        }
+      } catch {
+        // No partial parse file: dbt Core hasn't parsed this project here.
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * A project's target path as dbt Core resolves it: `DBT_TARGET_PATH`, else
+   * dbt_project.yml's `target-path` when it is a plain value, else `target`.
+   */
+  private targetPath(projectRoot: string, env: EnvironmentVariables): string {
+    let target: unknown = env.DBT_TARGET_PATH;
+    if (typeof target !== "string" || target === "") {
+      try {
+        const config: unknown = readAndParseProjectConfig(projectRoot);
+        target = isRecord(config) ? config["target-path"] : undefined;
+      } catch {
+        target = undefined;
+      }
+    }
+    return path.resolve(
+      projectRoot,
+      typeof target === "string" && target !== "" && !isTemplated(target)
+        ? target
+        : "target",
+    );
+  }
+
+  /** The workspace's last trial of this binary, when it is the same binary and version. */
+  private rememberedTrial(binary: DbtV2Binary): RememberedTrial | undefined {
+    const trial = this.workspaceState?.get<RememberedTrial>(FUSION_TRIAL_KEY);
+    return trial?.path === binary.path &&
+      trial.version === binary.version.join(".")
+      ? trial
+      : undefined;
+  }
+
+  private fusionGate(
+    remembered: RememberedTrial | undefined,
+  ): DbtIntegrationFacts["fusionGate"] {
+    switch (this.switchGate) {
+      case "none":
+        return undefined;
+      case "paused":
+        return "paused";
+      case "trial":
+        if (remembered?.outcome === "parsed") {
+          return "trialPassed";
+        }
+        return remembered && Date.now() - remembered.at < FAILED_TRIAL_RETRY_MS
+          ? "trialFailed"
+          : "notTried";
+    }
+  }
+
+  /**
+   * Runs dbt Fusion's parse on the window's projects in the background,
+   * without writing into them, and remembers the result for this binary:
+   * the next window switches only if it parsed. Canceled when dbt Core
+   * works in this window.
+   */
+  private startTrial(
+    binary: DbtV2Binary,
+    projectRoots: string[],
+    env: EnvironmentVariables,
+    dbtCoreCheck: DbtCoreCheck,
+  ): void {
+    const controller = new AbortController();
+    const version = binary.version.join(".");
+    const done = this.probes
+      .runTrial({
+        binary: binary.path,
+        projectRoots,
+        envFor: (root) => this.projectEnvironment(root, env),
+        signal: controller.signal,
+      })
+      .then(async (result: FusionTrialResult) => {
+        const failed = result.failed;
+        this.terminal.info(
+          "dbtIntegrationFusionTrial",
+          `Trial parse of ${projectRoots.length} project(s) with ${binary.path} (dbt ${version}): ${result.outcome}` +
+            (failed?.firstError
+              ? ` in ${path.basename(failed.root)}: ${failed.firstError}`
+              : ""),
+          false,
+        );
+        this.telemetry.sendTelemetryEvent(
+          "dbtIntegrationFusionTrial",
+          {
+            outcome: result.outcome,
+            binaryVersion: version,
+            binaryLocation: binary.location,
+            dbtCoreCheck,
+            ...(failed?.firstErrorCode
+              ? { firstErrorCode: failed.firstErrorCode }
+              : {}),
+          },
+          {
+            durationMs: result.durationMs,
+            errorCount: failed?.errorCount ?? 0,
+            projects: projectRoots.length,
+          },
+        );
+        if (result.outcome === "canceled") {
+          return undefined;
+        }
+        const trial: RememberedTrial = {
+          path: binary.path,
+          version,
+          outcome: result.outcome,
+          at: Date.now(),
+          projects: projectRoots.map((root) => path.basename(root)),
+          failedProject: failed ? path.basename(failed.root) : undefined,
+          firstError: failed?.firstError,
+        };
+        await this.workspaceState?.update(FUSION_TRIAL_KEY, trial);
+        return trial;
+      })
+      .catch((error) => {
+        this.telemetry.sendTelemetryError(
+          "dbtIntegrationFusionTrialError",
+          error,
+        );
+        return undefined;
+      });
+    this.trial = { controller, done };
+  }
+
+  /**
+   * A dbt Core mode window read dbt 1.x: remembers it for the machine, so
+   * other windows aren't switched for `DBT_CORE_RECENT_MS`, and stops this
+   * window's trial, which dbt Core working makes moot.
+   */
+  async dbtCoreWorked(): Promise<void> {
+    this.trial?.controller.abort();
+    const last = this.globalState?.get<unknown>(DBT_CORE_WORKED_KEY);
+    const now = Date.now();
+    if (
+      typeof last === "number" &&
+      now - last >= 0 &&
+      now - last < DBT_CORE_WORKED_EVERY_MS
+    ) {
+      return;
+    }
+    await this.globalState?.update(DBT_CORE_WORKED_KEY, now);
   }
 
   /**
@@ -835,10 +1103,15 @@ export class IntegrationModeService {
       return;
     }
     this.firstRebuildSettled.add(root);
-    if (
-      errorCount === 0 ||
-      this.workspaceState.get<boolean>(PARSE_FAILED_OFFERED_KEY, false)
-    ) {
+    if (errorCount === 0) {
+      return;
+    }
+    // The trial this switch rested on no longer holds: the next window tries
+    // dbt Fusion again before switching.
+    if (this.workspaceState.get(FUSION_TRIAL_KEY) !== undefined) {
+      await this.workspaceState.update(FUSION_TRIAL_KEY, undefined);
+    }
+    if (this.workspaceState.get<boolean>(PARSE_FAILED_OFFERED_KEY, false)) {
       return;
     }
     // Remembered before the warning is shown, so another project failing
@@ -909,7 +1182,7 @@ export class IntegrationModeService {
     const held = this.switchHeld;
     if (
       !held ||
-      held.reason === "fusionOffered" ||
+      QUIET_WHERE_CORE_WORKS.has(held.reason) ||
       this.heldErrorShown ||
       !this.workspaceState ||
       this.workspaceState.get<boolean>(SWITCH_HELD_NOTIFIED_KEY, false)
@@ -976,12 +1249,37 @@ export class IntegrationModeService {
     }
     // Before the first await: the activation's notice checks it next.
     this.heldErrorShown = true;
-    const { text, actions } = heldMessage(held, true);
-    const answer = await answerTo(window.showErrorMessage(text, ...actions));
+    const trial = held.reason === "fusionTrial" ? this.trial : undefined;
+    if (trial) {
+      // The trial can take minutes: this error is claimed now and shown with
+      // its result. A canceled trial means dbt Core works after all.
+      void trial.done
+        .then((result) =>
+          result ? this.showHeld({ ...held, trial: result }) : undefined,
+        )
+        .catch((error) =>
+          this.telemetry.sendTelemetryError(
+            "dbtIntegrationFusionTrialNoticeError",
+            error,
+          ),
+        );
+      return true;
+    }
+    await this.showHeld(held);
+    return true;
+  }
+
+  /** Shows a held window's message where dbt Core mode cannot start. */
+  private async showHeld(held: SwitchHeld): Promise<void> {
+    const { text, actions, info } = heldMessage(held, true);
+    const answer = await answerTo(
+      info
+        ? window.showInformationMessage(text, ...actions)
+        : window.showErrorMessage(text, ...actions),
+    );
     if (answer !== CANCELED) {
       await this.answerHeld(held, answer, "error");
     }
-    return true;
   }
 
   private async answerHeld(
@@ -996,6 +1294,7 @@ export class IntegrationModeService {
       [OPEN_PROFILES]: "openFile",
       [OPEN_PROJECT_FILE]: "openFile",
       [OPEN_SETTINGS]: "openSetting",
+      [RELOAD_WITH_FUSION]: "reloadWithFusion",
     };
     const answer: SwitchHeldAnswer =
       (choice !== undefined ? answers[choice] : undefined) ?? "dismissed";
@@ -1040,6 +1339,10 @@ export class IntegrationModeService {
           terminalEnvSetting(),
         );
         break;
+      case RELOAD_WITH_FUSION:
+        // The trial passed and is remembered: the reloaded window switches.
+        commands.executeCommand("workbench.action.reloadWindow");
+        break;
     }
   }
 }
@@ -1057,7 +1360,7 @@ function fusionLabel(binary: DbtV2Binary): string {
 function heldMessage(
   held: SwitchHeld,
   coreMissing: boolean,
-): { text: string; actions: string[] } {
+): { text: string; actions: string[]; info?: boolean } {
   const fusion = fusionLabel(held.binary);
   const lead = (subject: string, blocker: string) =>
     `Power User didn't switch ${subject} to ${fusion}: ${blocker}.`;
@@ -1120,10 +1423,77 @@ function heldMessage(
         actions: [SELECT_INTERPRETER, USE_FUSION],
       };
     case "fusionOffered":
+      return offerFusion();
+    case "dbtCoreRecent": {
+      const evidence = held.dbtCoreEvidence;
+      const blocker =
+        evidence?.source === "partialParse" && evidence.project
+          ? `dbt Core parsed ${evidence.project} in the last 7 days`
+          : "dbt Core ran on this machine in the last 7 days";
       return {
-        text: `${withNeeds(`${fusion} is on your path.`)} Install dbt Core, or use dbt Fusion for this workspace.`,
+        text: withNeeds(
+          lead("this window", `${blocker}, so the window keeps dbt Core mode`),
+        ),
+        actions: coreMissing
+          ? [SELECT_INTERPRETER, INSTALL_DBT_CORE, USE_FUSION]
+          : [USE_FUSION],
+      };
+    }
+    case "fusionTrial":
+    case "fusionTrialFailed": {
+      const trial = held.trial;
+      if (!trial) {
+        return offerFusion();
+      }
+      if (trial.outcome === "parsed") {
+        return {
+          text: `${withNeeds(`${fusion} parsed ${projectsPhrase(trial.projects)}.`)} Reload the window to use dbt Fusion.`,
+          actions: [RELOAD_WITH_FUSION, INSTALL_DBT_CORE],
+          info: true,
+        };
+      }
+      return {
+        text: `${withNeeds(`${fusion} is on your path, but ${trialBlocker(trial)}.`)} Install dbt Core, or use dbt Fusion anyway.`,
         actions: installOr(USE_FUSION),
       };
+    }
+  }
+
+  function offerFusion() {
+    return {
+      text: `${withNeeds(`${fusion} is on your path.`)} Install dbt Core, or use dbt Fusion for this workspace.`,
+      actions: installOr(USE_FUSION),
+    };
+  }
+}
+
+/** "jaffle_shop", "a and b", or "4 dbt projects". */
+function projectsPhrase(projects: string[]): string {
+  return projects.length > 3
+    ? `${projects.length} dbt projects`
+    : listed(projects);
+}
+
+/** Why a trial didn't pass, after "dbt Fusion … is on your path, but". */
+function trialBlocker(trial: RememberedTrial): string {
+  const project = trial.failedProject ?? projectsPhrase(trial.projects);
+  switch (trial.outcome) {
+    case "parseErrors":
+      return trial.firstError
+        ? `it couldn't parse ${project}: ${trial.firstError.trim().replace(/\.+$/, "")}`
+        : `it couldn't parse ${project}`;
+    case "timeout":
+      return `its parse of ${project} didn't finish in time`;
+    case "unsupportedFlags":
+      return "this build is too old for Power User to try it on your projects (update it with dbt system update)";
+    case "packagesMissing":
+      // A failed install says why; without an error, a local package kept it
+      // from being tried outside the project.
+      return trial.firstError
+        ? `Power User couldn't install ${project}'s dbt packages to try it: ${trial.firstError.trim().replace(/\.+$/, "")}`
+        : `Power User couldn't try it on ${project}, which uses a local dbt package`;
+    default:
+      return "it couldn't be started";
   }
 }
 

@@ -295,36 +295,57 @@ export interface DbtIntegrationFacts {
    */
   profileNotFound: boolean;
   /**
-   * Power User does not switch to dbt Fusion on its own
-   * (`AUTO_SWITCH_PAUSED`): a window no other reason holds is held for this.
+   * dbt Core worked on this machine recently (`DBT_CORE_RECENT_MS`): a
+   * Core-mode window read dbt 1.x, or dbt Core parsed one of the projects. The
+   * dbt-core check then most likely looked at another interpreter than the
+   * one dbt Core runs with.
    */
-  autoSwitchPaused?: boolean;
+  dbtCoreRecent?: boolean;
+  /**
+   * What a window no other reason holds needs before it switches
+   * (`SWITCH_GATE`):
+   * - "paused": it never switches; it is offered dbt Fusion.
+   * - "trialPassed": this dbt Fusion parsed the window's projects in a trial.
+   * - "trialFailed": it did not, recently.
+   * - "notTried": no trial of this dbt Fusion yet.
+   * Undefined: it switches without a trial.
+   */
+  fusionGate?: "paused" | "trialPassed" | "trialFailed" | "notTried";
 }
 
+/** How long a window that ran dbt Core keeps others from switching. */
+export const DBT_CORE_RECENT_MS = 7 * 24 * 60 * 60 * 1000;
+
 /**
- * Power User does not switch to dbt Fusion on its own: most switched projects
- * failed dbt Fusion's first parse. A window it would have switched keeps its
- * mode, and where dbt Core mode cannot start it is offered dbt Fusion.
+ * How a window that would switch to dbt Fusion is gated: "trial" switches
+ * only to a dbt Fusion that parsed its projects in a background trial;
+ * "paused" never switches and offers dbt Fusion instead. Most windows switched
+ * without a trial failed dbt Fusion's first parse.
  */
-export const AUTO_SWITCH_PAUSED = true;
+export type SwitchGate = "trial" | "paused";
+export const SWITCH_GATE: SwitchGate = "trial";
 
 /**
  * Why a found dbt 2.x binary did not switch the window: dbt-core imports in
- * the interpreter, a project's adapter is one dbt Fusion does not accept, a
- * dbt-loom config is present, a project's profile is missing, a project's
- * adapters are ones dbt Fusion runs only as experimental, or the dbt-core
- * check could not tell (unknown counts as "may have dbt-core", so the window
- * is held), or, with nothing else holding it, the switch is paused. Checked
- * in this order; the first that applies is the reason.
+ * the interpreter, dbt Core worked on the machine recently, a project's
+ * adapter is one dbt Fusion does not accept, a dbt-loom config is present, a
+ * project's profile is missing, a project's adapters are ones dbt Fusion runs
+ * only as experimental, or the dbt-core check could not tell (unknown counts
+ * as "may have dbt-core", so the window is held). With nothing else holding
+ * it: the switch is paused, this dbt Fusion failed its trial, or it has not
+ * been tried. Checked in this order; the first that applies is the reason.
  */
 export type SwitchHeldReason =
   | "dbtCore"
+  | "dbtCoreRecent"
   | "adapterUnsupported"
   | "dbtLoom"
   | "profileNotFound"
   | "adapterExperimental"
   | "dbtCoreUnknown"
-  | "fusionOffered";
+  | "fusionOffered"
+  | "fusionTrialFailed"
+  | "fusionTrial";
 
 /** The hold reasons in the order they are checked; the first that holds is the reason. */
 const HOLD_ORDER: [
@@ -332,12 +353,15 @@ const HOLD_ORDER: [
   (facts: DbtIntegrationFacts) => boolean,
 ][] = [
   ["dbtCore", (facts) => facts.pythonDbtCore === true],
+  ["dbtCoreRecent", (facts) => facts.dbtCoreRecent === true],
   ["adapterUnsupported", (facts) => facts.fusionAdapterUnsupported],
   ["dbtLoom", (facts) => facts.dbtLoom],
   ["profileNotFound", (facts) => facts.profileNotFound],
   ["adapterExperimental", (facts) => facts.fusionAdapterExperimental],
   ["dbtCoreUnknown", (facts) => facts.pythonDbtCore === "unknown"],
-  ["fusionOffered", (facts) => facts.autoSwitchPaused === true],
+  ["fusionOffered", (facts) => facts.fusionGate === "paused"],
+  ["fusionTrialFailed", (facts) => facts.fusionGate === "trialFailed"],
+  ["fusionTrial", (facts) => facts.fusionGate === "notTried"],
 ];
 
 /**
@@ -349,8 +373,9 @@ const HOLD_ORDER: [
  * A missing profile comes before an adapter dbt Fusion runs only as
  * experimental and before a dbt-core check that could not tell: it stops both
  * modes. An importable dbt-core, an unsupported adapter and a dbt-loom config
- * come first, as before. While the switch is paused, a window that would
- * switch is held for "fusionOffered" instead.
+ * come first, as before, with dbt Core having worked recently right after an
+ * importable dbt-core. A window nothing else holds switches only through its
+ * gate (`fusionGate`).
  */
 export function decideDbtIntegrationMode(
   configured: ConfiguredDbtIntegration,
