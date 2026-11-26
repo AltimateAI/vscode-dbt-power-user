@@ -1362,13 +1362,13 @@ export class IntegrationModeService {
       // The trial can take minutes: this error is claimed now and shown with
       // its result. A canceled trial means dbt Core works after all.
       void trial.done
-        .then((result) =>
+        .then(() =>
           // dbt Core may have started working while the result was saved,
           // or a later error told the window already.
-          // Without a result (it couldn't be saved, or the trial failed to
-          // run), the error is shown without it.
+          // With the result known in this window, saved or not; without one
+          // when the trial failed to run.
           !trial.controller.signal.aborted && shown === this.heldErrors
-            ? this.showHeld({ ...held, trial: result ?? trial.result })
+            ? this.showHeld({ ...held, trial: trial.result })
             : undefined,
         )
         .catch((error) =>

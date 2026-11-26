@@ -398,8 +398,8 @@ describe("runFusionTrial", () => {
     );
 
     expect(result.outcome).toBe("parsed");
-    expect(groupKill).not.toHaveBeenCalled();
-    expect(calls[0].child.kill).not.toHaveBeenCalled();
+    // What it started may still hold its output: killed all the same.
+    expectKilled(calls[0].child);
   });
 
   it("reports a timeout, not a start failure, when the kill itself fails", async () => {

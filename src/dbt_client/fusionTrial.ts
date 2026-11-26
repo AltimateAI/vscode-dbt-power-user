@@ -387,13 +387,13 @@ function runFusion(
       }
       // Before the kill: a kill that fails emits "error" too.
       stopping = true;
-      // It exited already, and only its output is still closing: that's
-      // its result.
+      killTree(child, spawnProcess);
+      // It exited already, and only its output is still closing (a process
+      // it started may hold it, killed above): that's its result.
       if (child.exitCode !== null) {
         exited(child.exitCode);
         return;
       }
-      killTree(child, spawnProcess);
       if (child.signalCode !== null) {
         finish(end);
         return;
