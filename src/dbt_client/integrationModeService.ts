@@ -28,6 +28,7 @@ import { TelemetryService } from "../telemetry";
 import { PROJECT_EXCLUDE_PATTERN } from "./dbtWorkspaceFolder";
 import {
   ALLOW_EXPERIMENTAL_ADAPTERS,
+  AUTO_SWITCH_PAUSED,
   DbtCoreCheck,
   decideDbtIntegrationMode,
   experimentalAdaptersAllowed,
@@ -91,6 +92,7 @@ const HELD_CAUSES: Record<SwitchHeldReason, string> = {
   adapterExperimental:
     "dbt Fusion runs the profile's adapter only as an experimental one",
   dbtCoreUnknown: "dbt-core could not be checked in the selected interpreter",
+  fusionOffered: "Power User doesn't switch to dbt Fusion on its own",
 };
 /**
  * For a window held for its adapter: what dbt Core mode, which it keeps,
@@ -330,7 +332,9 @@ const findProjectFiles = (folder: WorkspaceFolder) =>
  * cannot run in dbt Core mode (no dbt-core in the selected interpreter, no
  * dbt-loom config). Tells each project about an automatic switch once, and
  * the workspace once why a found binary did not switch it; after a switch,
- * offers dbt Core once when dbt Fusion cannot parse a project.
+ * offers dbt Core once when dbt Fusion cannot parse a project. While
+ * `AUTO_SWITCH_PAUSED`, such a window keeps its mode and, where dbt Core mode
+ * cannot start, is offered dbt Fusion.
  */
 export class IntegrationModeService {
   private autoSwitch?: AutoSwitch;
@@ -354,6 +358,8 @@ export class IntegrationModeService {
       findProjectFiles,
     },
     private probeTimeoutMs = DBT_CORE_PROBE_TIMEOUT_MS,
+    /** A window that would switch is held for "fusionOffered" instead. */
+    private autoSwitchPaused = AUTO_SWITCH_PAUSED,
   ) {}
 
   get autoSwitched(): AutoSwitch | undefined {
@@ -407,6 +413,7 @@ export class IntegrationModeService {
         fusionAdapterUnsupported: adapters.check === "unsupported",
         fusionAdapterExperimental: adapters.check === "experimental",
         profileNotFound: adapters.profileProblem !== undefined,
+        autoSwitchPaused: this.autoSwitchPaused,
       },
     );
     // Adapter names as telemetry sees them; anything else a profile holds is "other".
@@ -888,12 +895,16 @@ export class IntegrationModeService {
   /**
    * Tells the workspace once why a found dbt 2.x binary did not switch it,
    * with a way to dbt Fusion. No-op unless the switch was held back, and
-   * after `notifyHeldWithoutDbtCore` told this window already.
+   * after `notifyHeldWithoutDbtCore` told this window already. A window held
+   * only because the switch is paused hears nothing here: dbt Core mode
+   * works or, when it can't start, `notifyHeldWithoutDbtCore` offers dbt
+   * Fusion.
    */
   async notifySwitchHeld(): Promise<void> {
     const held = this.switchHeld;
     if (
       !held ||
+      held.reason === "fusionOffered" ||
       this.heldErrorShown ||
       !this.workspaceState ||
       this.workspaceState.get<boolean>(SWITCH_HELD_NOTIFIED_KEY, false)
@@ -1066,6 +1077,11 @@ function heldMessage(
           "dbt-core could not be checked in the selected interpreter",
         ),
         actions: [SELECT_INTERPRETER, USE_FUSION],
+      };
+    case "fusionOffered":
+      return {
+        text: `${withNeeds(`${fusion} is on your path.`)} Install dbt Core, or use dbt Fusion for this workspace.`,
+        actions: installOr(USE_FUSION),
       };
   }
 }

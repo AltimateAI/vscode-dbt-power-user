@@ -9,7 +9,9 @@ import * as path from "path";
 import { commands, ConfigurationTarget, Uri, window, workspace } from "vscode";
 import { DBTClient } from "../../dbt_client";
 import {
+  AUTO_SWITCH_PAUSED,
   DbtCoreCheck,
+  DbtIntegrationFacts,
   decideDbtIntegrationMode,
   FusionAdapterCheck,
   fusionAdapterSupport,
@@ -137,6 +139,9 @@ function service({
   env = { PATH: "/usr/bin" } as Record<string, string>,
   // More variables per workspace folder path, as each folder's .env adds them.
   folderEnv = {} as Record<string, Record<string, string>>,
+  // Off, so the switch's own rules can be tested; "shipped" takes the
+  // service's default, as the extension constructs it.
+  autoSwitchPaused = false as boolean | "shipped",
 } = {}) {
   const telemetry = {
     sendTelemetryEvent: jest.fn(),
@@ -167,6 +172,7 @@ function service({
     terminal as never,
     { findBinary, probeDbtCore, findProjectFiles } as never,
     probeTimeoutMs,
+    autoSwitchPaused === "shipped" ? undefined : autoSwitchPaused,
   );
   return {
     svc,
@@ -2185,5 +2191,186 @@ describe("IntegrationModeService.resolve: the adapter check", () => {
     expect(shown()[0][0]).toContain(
       ": the dbt profile uses the athena adapter, which dbt Fusion does not support.",
     );
+  });
+});
+
+/**
+ * Power User doesn't switch to dbt Fusion on its own: most switched projects
+ * failed dbt Fusion's first parse. A window it would have switched (a dbt 2.x
+ * binary found, no dbt-core in the selected interpreter, nothing else holding
+ * it) keeps dbt Core mode. Where dbt Core mode can't start, the error that
+ * replaces "dbt is not installed" offers dbt Fusion; where it works, nothing
+ * is shown. The other holds, an explicit dbt Fusion mode and detection are as
+ * before.
+ */
+describe("while the automatic switch to dbt Fusion is paused", () => {
+  const errors = () =>
+    (window.showErrorMessage as jest.Mock).mock.calls as unknown[][];
+  const pausedFacts: DbtIntegrationFacts = {
+    dbtV2Found: true,
+    pythonDbtCore: false,
+    dbtLoom: false,
+    fusionAdapterUnsupported: false,
+    fusionAdapterExperimental: false,
+    profileNotFound: false,
+    autoSwitchPaused: true,
+  };
+
+  it("is paused in the shipped build", () => {
+    expect(AUTO_SWITCH_PAUSED).toBe(true);
+  });
+
+  it("holds a window the rules would switch for fusionOffered", () => {
+    expect(
+      decideDbtIntegrationMode({ value: "core", explicit: false }, pausedFacts),
+    ).toEqual({ mode: "core", autoSwitched: false, heldBack: "fusionOffered" });
+    expect(
+      decideDbtIntegrationMode(
+        { value: "corecommand", explicit: false },
+        pausedFacts,
+      ),
+    ).toEqual({
+      mode: "corecommand",
+      autoSwitched: false,
+      heldBack: "fusionOffered",
+    });
+  });
+
+  it("keeps the other holds' reasons, and leaves an explicit mode and a window without dbt 2.x alone", () => {
+    const decide = (facts: Partial<DbtIntegrationFacts>) =>
+      decideDbtIntegrationMode(
+        { value: "core", explicit: false },
+        { ...pausedFacts, ...facts },
+      ).heldBack;
+    expect(decide({ pythonDbtCore: true })).toBe("dbtCore");
+    expect(decide({ pythonDbtCore: "unknown" })).toBe("dbtCoreUnknown");
+    expect(decide({ dbtLoom: true })).toBe("dbtLoom");
+    expect(decide({ fusionAdapterUnsupported: true })).toBe(
+      "adapterUnsupported",
+    );
+    expect(decide({ fusionAdapterExperimental: true })).toBe(
+      "adapterExperimental",
+    );
+    expect(decide({ profileNotFound: true })).toBe("profileNotFound");
+    expect(
+      decideDbtIntegrationMode(
+        { value: "fusion", explicit: true },
+        pausedFacts,
+      ),
+    ).toEqual({ mode: "fusion", autoSwitched: false });
+    expect(
+      decideDbtIntegrationMode(
+        { value: "core", explicit: false },
+        { ...pausedFacts, dbtV2Found: false },
+      ),
+    ).toEqual({ mode: "core", autoSwitched: false });
+  });
+
+  it.each<[string, Parameters<typeof service>[0], DbtCoreCheck]>([
+    ["no dbt-core in the interpreter", {}, "notInstalled"],
+    [
+      "no interpreter",
+      { pythonExtensionAvailable: false, extensionPath: "" },
+      "noInterpreter",
+    ],
+  ])(
+    "keeps dbt Core mode with dbt Fusion found and %s",
+    async (_case, options, dbtCoreCheck) => {
+      const { svc, telemetry, terminal } = service({
+        ...options,
+        autoSwitchPaused: "shipped",
+      });
+
+      await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
+        "core",
+      );
+
+      expect(getDbtIntegrationMode()).toBe("core");
+      expect(svc.autoSwitched).toBeUndefined();
+      expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+        "dbtIntegrationSwitchHeld",
+        expect.objectContaining({
+          reason: "fusionOffered",
+          binaryVersion: "2.0.9",
+          dbtCoreCheck,
+        }),
+      );
+      expect(telemetry.sendTelemetryEvent).not.toHaveBeenCalledWith(
+        "dbtIntegrationAutoSwitched",
+        expect.anything(),
+      );
+      expect(telemetry.setTelemetryCustomAttribute).not.toHaveBeenCalled();
+      expect(terminal.info).toHaveBeenCalledWith(
+        "dbtIntegrationSwitchHeld",
+        `/home/user/.local/bin/dbt is dbt 2.0.9, but Power User doesn't switch to dbt Fusion on its own: keeping core (dbt-core check: ${dbtCoreCheck}, adapter check: noProjects)`,
+        false,
+      );
+    },
+  );
+
+  it('offers dbt Fusion in the error that replaces "dbt is not installed", and Use dbt Fusion sets it for the workspace', async () => {
+    const { svc, telemetry } = service({ autoSwitchPaused: "shipped" });
+    await svc.resolve(new FakeMemento() as never);
+    (window.showErrorMessage as jest.Mock).mockReturnValueOnce(
+      Promise.resolve("Use dbt Fusion"),
+    );
+
+    await expect(svc.notifyHeldWithoutDbtCore()).resolves.toBe(true);
+
+    expect(errors()).toEqual([
+      [
+        "dbt Fusion 2.0.9 (/home/user/.local/bin/dbt) is on your path. dbt Core mode needs dbt-core, which the selected Python interpreter does not have. Install dbt Core, or use dbt Fusion for this workspace.",
+        "Install dbt Core",
+        "Use dbt Fusion",
+      ],
+    ]);
+    expect(update).toHaveBeenCalledWith(
+      "dbtIntegration",
+      "fusion",
+      ConfigurationTarget.Workspace,
+    );
+    expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+      "dbtIntegrationSwitchHeldAnswer",
+      {
+        reason: "fusionOffered",
+        answer: "useFusion",
+        shownAs: "error",
+        binaryVersion: "2.0.9",
+      },
+    );
+  });
+
+  it("says what dbt Core mode needs when there is no interpreter", async () => {
+    const { svc } = service({
+      pythonExtensionAvailable: false,
+      extensionPath: "",
+      autoSwitchPaused: "shipped",
+    });
+    await svc.resolve(new FakeMemento() as never);
+
+    await svc.notifyHeldWithoutDbtCore();
+
+    expect(errors()[0][0]).toBe(
+      "dbt Fusion 2.0.9 (/home/user/.local/bin/dbt) is on your path. dbt Core mode needs a Python interpreter with dbt-core. Install dbt Core, or use dbt Fusion for this workspace.",
+    );
+  });
+
+  it("shows nothing where dbt Core mode works, and never the switch's notices", async () => {
+    const { svc } = service({ autoSwitchPaused: "shipped" });
+    const memento = new FakeMemento();
+    await svc.resolve(memento as never);
+
+    await svc.notifySwitchHeld();
+    await svc.notifyProjects([{ root: "/work/jaffle", name: "jaffle" }]);
+    await svc.rebuildStatusChanged({
+      root: "/work/jaffle",
+      name: "jaffle",
+      inProgress: false,
+      errorCount: 3,
+    });
+
+    expect(shown()).toHaveLength(0);
+    expect(window.showWarningMessage).not.toHaveBeenCalled();
+    expect(memento.keys()).toEqual([]);
   });
 });
