@@ -453,10 +453,12 @@ describe("runFusionTrial", () => {
       projectRoots: [root],
       envFor: () => env,
       spawnProcess: stubborn,
-      projectTimeoutMs: 20,
+      // Long enough for the scratch setup on a slow runner, so the run starts.
+      projectTimeoutMs: 500,
     });
 
     expect(result.outcome).toBe("timeout");
+    expect(calls).toHaveLength(1);
     expect(Date.now() - started).toBeLessThan(5_000);
     expectScratchOnly([root]);
   });
