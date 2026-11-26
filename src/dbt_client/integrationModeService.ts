@@ -42,7 +42,11 @@ import {
   SwitchHeldReason,
   windowAdapterCheck,
 } from "./integrationMode";
-import { isInterpreterPath, PythonEnvironment } from "./pythonEnvironment";
+import {
+  FusionOffer,
+  isInterpreterPath,
+  PythonEnvironment,
+} from "./pythonEnvironment";
 
 /** workspaceState key: the project roots already told about the switch. */
 export const AUTO_SWITCH_NOTIFIED_KEY = "dbtPowerUser.fusionAutoSwitchNotified";
@@ -280,6 +284,7 @@ type SwitchHeldAnswer =
   | "installDbtCore"
   | "openFile"
   | "openSetting"
+  | "fixPython"
   | "dismissed";
 
 /** How the user answered the offer to switch back to dbt Core. */
@@ -927,6 +932,37 @@ export class IntegrationModeService {
   }
 
   /**
+   * In a held window without a usable Python (no Python extension, no
+   * interpreter, or one that no longer exists), dbt Fusion for the Python
+   * error to offer next to its own fix: dbt Fusion runs without Python, while
+   * installing dbt Core needs an interpreter. Undefined, offering nothing,
+   * when the window was not held or was held for having dbt-core. The
+   * Python error stands for the hold's message, so no notice follows it.
+   */
+  fusionWithoutPython(): FusionOffer | undefined {
+    const held = this.switchHeld;
+    if (!held || held.reason === "dbtCore") {
+      return undefined;
+    }
+    this.heldErrorShown = true;
+    return {
+      fusion: fusionLabel(held.binary),
+      answered: async (answer) => {
+        if (answer === "useFusion") {
+          await this.answerHeld(held, USE_FUSION, "pythonError");
+          return;
+        }
+        this.telemetry.sendTelemetryEvent("dbtIntegrationSwitchHeldAnswer", {
+          reason: held.reason,
+          answer,
+          shownAs: "pythonError",
+          binaryVersion: held.binary.version.join("."),
+        });
+      },
+    };
+  }
+
+  /**
    * In a held window where dbt Core mode cannot start (dbt-core is not
    * detected), says why the window was not switched, as an error, in place
    * of the general "dbt is not installed" one. False, showing nothing, when
@@ -951,7 +987,7 @@ export class IntegrationModeService {
   private async answerHeld(
     held: SwitchHeld,
     choice: string | undefined,
-    shownAs: "notice" | "error",
+    shownAs: "notice" | "error" | "pythonError",
   ): Promise<void> {
     const answers: Record<string, SwitchHeldAnswer> = {
       [USE_FUSION]: "useFusion",
@@ -1008,6 +1044,11 @@ export class IntegrationModeService {
   }
 }
 
+/** "dbt Fusion 2.0.12 (/home/me/.local/bin/dbt)" */
+function fusionLabel(binary: DbtV2Binary): string {
+  return `dbt Fusion ${binary.version.join(".")} (${binary.path})`;
+}
+
 /**
  * Why a held window was not switched, blocker first, and the buttons that
  * fix it. `coreMissing`: dbt Core mode cannot start either (dbt-core is not
@@ -1017,7 +1058,7 @@ function heldMessage(
   held: SwitchHeld,
   coreMissing: boolean,
 ): { text: string; actions: string[] } {
-  const fusion = `dbt Fusion ${held.binary.version.join(".")} (${held.binary.path})`;
+  const fusion = fusionLabel(held.binary);
   const lead = (subject: string, blocker: string) =>
     `Power User didn't switch ${subject} to ${fusion}: ${blocker}.`;
   const needs = CORE_MODE_NEEDS[held.dbtCoreCheck];

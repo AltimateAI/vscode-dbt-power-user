@@ -16,6 +16,37 @@ import {
   WorkspaceFolder,
 } from "vscode";
 
+/**
+ * dbt Fusion, offered by a Python error in a window held in dbt Core mode with
+ * a dbt Fusion binary found: it runs without the Python that is missing.
+ */
+export interface FusionOffer {
+  /** "dbt Fusion 2.0.12 (~/.local/bin/dbt)" */
+  fusion: string;
+  /** Records the answer to the error that offered it, and uses dbt Fusion when chosen. */
+  answered(answer: "useFusion" | "fixPython" | "dismissed"): Promise<void>;
+}
+
+export const USE_DBT_FUSION = "Use dbt Fusion";
+
+/** A Python error's message ending in the dbt Fusion alternative: "…, or use dbt Fusion 2.0.12 (…), which …". */
+export function withFusionOffer(message: string, offer?: FusionOffer): string {
+  return offer
+    ? `${message.replace(/\.$/, "")}, or use ${offer.fusion}, which is on your path and runs without Python.`
+    : message;
+}
+
+/** The button the user chose, as `FusionOffer.answered` takes it. */
+export function fusionOfferAnswer(
+  answer: string | undefined,
+): "useFusion" | "fixPython" | "dismissed" {
+  return answer === USE_DBT_FUSION
+    ? "useFusion"
+    : answer !== undefined
+      ? "fixPython"
+      : "dismissed";
+}
+
 export enum PythonInterpreterPromptAnswer {
   SELECT = "Select Python interpreter",
   DETECT = "Detect from terminal",
@@ -181,10 +212,14 @@ export class PythonEnvironment {
   /**
    * Tells the user the interpreter doesn't exist (a deleted or moved virtual
    * environment, or a command that isn't on the PATH) and offers a way to pick
-   * another, once per interpreter. Picking one fires `onPythonEnvironmentChanged`,
-   * which re-initializes the projects.
+   * another, once per interpreter, and dbt Fusion when `fusion` offers it.
+   * Picking one fires `onPythonEnvironmentChanged`, which re-initializes the
+   * projects.
    */
-  async showInterpreterNotFound(interpreterPath: string): Promise<void> {
+  async showInterpreterNotFound(
+    interpreterPath: string,
+    fusion?: FusionOffer,
+  ): Promise<void> {
     if (this.reportedMissingInterpreters.has(interpreterPath)) {
       return;
     }
@@ -196,9 +231,14 @@ export class PythonEnvironment {
       this.getResolvedConfigValue("dbtPythonPathOverride") === interpreterPath
     ) {
       const answer = await window.showErrorMessage(
-        `The Python interpreter ${interpreterPath} set in dbt.dbtPythonPathOverride was not found. Change the setting to an interpreter that exists.`,
+        withFusionOffer(
+          `The Python interpreter ${interpreterPath} set in dbt.dbtPythonPathOverride was not found. Change the setting to an interpreter that exists.`,
+          fusion,
+        ),
         PythonInterpreterPromptAnswer.OPEN_SETTING,
+        ...(fusion ? [USE_DBT_FUSION] : []),
       );
+      await fusion?.answered(fusionOfferAnswer(answer));
       if (answer === PythonInterpreterPromptAnswer.OPEN_SETTING) {
         commands.executeCommand(
           "workbench.action.openSettings",
@@ -211,6 +251,7 @@ export class PythonEnvironment {
       this._pythonExtensionAvailable
         ? `The selected Python interpreter ${interpreterPath} was not found. It may have been moved or deleted. Select another interpreter to use dbt.`
         : `The Python interpreter ${interpreterPath} was not found, and the Python extension, which selects interpreters, is not installed. Install it, or set dbt.dbtPythonPathOverride to an interpreter that exists.`,
+      fusion,
     );
   }
 
@@ -218,15 +259,23 @@ export class PythonEnvironment {
    * Shows `message` with the ways to get an interpreter. With the Python
    * extension: its picker, or detection from the terminal. Without it the
    * picker (`python.setInterpreter`) does not exist, so: install the
-   * extension, or open `dbt.dbtPythonPathOverride`.
+   * extension, or open `dbt.dbtPythonPathOverride`. And dbt Fusion, when
+   * `fusion` offers it.
    */
-  async promptForInterpreter(message: string): Promise<void> {
+  async promptForInterpreter(
+    message: string,
+    fusion?: FusionOffer,
+  ): Promise<void> {
+    const text = withFusionOffer(message, fusion);
+    const useFusion = fusion ? [USE_DBT_FUSION] : [];
     if (!this._pythonExtensionAvailable) {
       const answer = await window.showErrorMessage(
-        message,
+        text,
         PythonInterpreterPromptAnswer.INSTALL,
         PythonInterpreterPromptAnswer.OPEN_SETTING,
+        ...useFusion,
       );
+      await fusion?.answered(fusionOfferAnswer(answer));
       if (answer === PythonInterpreterPromptAnswer.INSTALL) {
         await this.installPythonExtension();
       } else if (answer === PythonInterpreterPromptAnswer.OPEN_SETTING) {
@@ -238,10 +287,12 @@ export class PythonEnvironment {
       return;
     }
     const answer = await window.showErrorMessage(
-      message,
+      text,
       PythonInterpreterPromptAnswer.SELECT,
       PythonInterpreterPromptAnswer.DETECT,
+      ...useFusion,
     );
+    await fusion?.answered(fusionOfferAnswer(answer));
     if (answer === PythonInterpreterPromptAnswer.SELECT) {
       commands.executeCommand("python.setInterpreter");
     } else if (answer === PythonInterpreterPromptAnswer.DETECT) {
