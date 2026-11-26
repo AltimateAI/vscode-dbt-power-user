@@ -224,6 +224,29 @@ describe("DBTWorkspaceFolder: projects start a few at a time", () => {
     expect(created).toEqual([projectRoot("a"), projectRoot("c")]);
   });
 
+  it("never queues a package written into a waiting project's packages path", async () => {
+    const folder = makeFolder(["a", "b"], new ProjectStartQueue(1));
+    // b installs its packages in a custom folder, which only its
+    // dbt_project.yml names.
+    writeFileSync(
+      path.join(projectRoot("b"), "dbt_project.yml"),
+      'name: b\nversion: "1.0"\nprofile: b\npackages-install-path: vendor\n',
+    );
+
+    const discovered = folder.discoverProjects();
+    await settle();
+    // `dbt deps`, run for b while it waits, writes a package.
+    const pkg = path.join(projectRoot("b"), "vendor", "dbt_utils");
+    mkdirSync(pkg, { recursive: true });
+    writeFileSync(path.join(pkg, "dbt_project.yml"), "name: dbt_utils\n");
+    onCreate!({ fsPath: path.join(pkg, "dbt_project.yml") });
+    await finish("a");
+    await finish("b");
+    await discovered;
+
+    expect(created).toEqual([projectRoot("a"), projectRoot("b")]);
+  });
+
   it("queues a project the watcher finds behind those already waiting", async () => {
     const folder = makeFolder(["a", "b"], new ProjectStartQueue(1));
 

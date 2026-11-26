@@ -441,7 +441,7 @@ export class DBTWorkspaceFolder implements Disposable {
   }
 
   private knownPackagesInstallPaths(): string[] {
-    return this.dbtProjects.map((project) => {
+    const registered = this.dbtProjects.map((project) => {
       // `getPackageInstallPath()` stays undefined until a project finishes
       // initializing, and `dbt deps` writes each package's `dbt_project.yml`
       // during that window — so a watcher event arriving mid-initialization
@@ -452,5 +452,11 @@ export class DBTWorkspaceFolder implements Disposable {
         resolvePackagesInstallPath(project.projectRoot.fsPath)
       );
     });
+    // A project waiting in the start queue isn't registered yet, but a
+    // `dbt deps` run meanwhile still writes into its packages path.
+    const waiting = [...this.waitingToStart].map((root) =>
+      resolvePackagesInstallPath(root),
+    );
+    return [...registered, ...waiting];
   }
 }
