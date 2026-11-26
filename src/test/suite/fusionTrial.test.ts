@@ -546,8 +546,9 @@ describe("runFusionTrial", () => {
 
   it("counts the projects not reached in the total time as timed out", async () => {
     const roots = ["one", "two", "three"].map((name) => makeProject(name));
+    // Long enough for the first project's scratch setup on a slow runner.
     const result = await trial(roots, () => ({ hang: true }), {
-      totalTimeoutMs: 50,
+      totalTimeoutMs: 500,
     });
 
     expect(result.outcome).toBe("timeout");
@@ -651,8 +652,9 @@ describe("runFusionTrial", () => {
 
     it("reports a deps that times out as timeout", async () => {
       const root = makeProject("shop", { "packages.yml": PACKAGES_YML });
+      // Long enough to copy the package files on a slow runner first.
       const result = await trial([root], () => ({ hang: true }), {
-        projectTimeoutMs: 50,
+        projectTimeoutMs: 500,
       });
 
       expect(result.outcome).toBe("timeout");
