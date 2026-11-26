@@ -2609,8 +2609,9 @@ export class DBTProject implements Disposable {
         }
       } finally {
         this.runningCommands.delete(abortController);
+        // Even when showing the progress throws, the queue moves on.
+        this.queueStates.set(queueName, false);
       }
-      this.queueStates.set(queueName, false);
       this.pickCommandToRun(queueName);
     }
   }

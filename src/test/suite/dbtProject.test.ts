@@ -1612,6 +1612,30 @@ describe("DBTProject Test Suite", () => {
       await waitFor(() => second.run.finished);
     });
 
+    it("keeps the queue going when showing a command's progress fails", async () => {
+      withProgress.mockImplementationOnce(() =>
+        Promise.reject(new Error("progress failed")),
+      );
+      const first = longCommand("orders+");
+      (dbtProject as any).queues.get("all").push({
+        command: first.command.execute,
+        statusMessage: "dbt run --select orders+",
+        focus: true,
+        showProgress: true,
+      });
+      await expect((dbtProject as any).pickCommandToRun("all")).rejects.toThrow(
+        "progress failed",
+      );
+
+      const second = longCommand("customers");
+      queue(second.command);
+      await waitFor(() => second.run.shown);
+
+      expect(second.run.started).toBe(true);
+      pty!.close();
+      await waitFor(() => second.run.finished);
+    });
+
     it("opens a new terminal for the next command after it was closed", async () => {
       await tasksTerminal.show(true);
       const closed = jest.fn();
