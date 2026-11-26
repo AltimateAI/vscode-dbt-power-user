@@ -294,7 +294,19 @@ export interface DbtIntegrationFacts {
    * template, YAML that does not parse) does not count.
    */
   profileNotFound: boolean;
+  /**
+   * Power User does not switch to dbt Fusion on its own
+   * (`AUTO_SWITCH_PAUSED`): a window no other reason holds is held for this.
+   */
+  autoSwitchPaused?: boolean;
 }
+
+/**
+ * Power User does not switch to dbt Fusion on its own: most switched projects
+ * failed dbt Fusion's first parse. A window it would have switched keeps its
+ * mode, and where dbt Core mode cannot start it is offered dbt Fusion.
+ */
+export const AUTO_SWITCH_PAUSED = true;
 
 /**
  * Why a found dbt 2.x binary did not switch the window: dbt-core imports in
@@ -302,7 +314,8 @@ export interface DbtIntegrationFacts {
  * dbt-loom config is present, a project's profile is missing, a project's
  * adapters are ones dbt Fusion runs only as experimental, or the dbt-core
  * check could not tell (unknown counts as "may have dbt-core", so the window
- * is held). Checked in this order; the first that applies is the reason.
+ * is held), or, with nothing else holding it, the switch is paused. Checked
+ * in this order; the first that applies is the reason.
  */
 export type SwitchHeldReason =
   | "dbtCore"
@@ -310,7 +323,8 @@ export type SwitchHeldReason =
   | "dbtLoom"
   | "profileNotFound"
   | "adapterExperimental"
-  | "dbtCoreUnknown";
+  | "dbtCoreUnknown"
+  | "fusionOffered";
 
 /** The hold reasons in the order they are checked; the first that holds is the reason. */
 const HOLD_ORDER: [
@@ -323,6 +337,7 @@ const HOLD_ORDER: [
   ["profileNotFound", (facts) => facts.profileNotFound],
   ["adapterExperimental", (facts) => facts.fusionAdapterExperimental],
   ["dbtCoreUnknown", (facts) => facts.pythonDbtCore === "unknown"],
+  ["fusionOffered", (facts) => facts.autoSwitchPaused === true],
 ];
 
 /**
@@ -334,7 +349,8 @@ const HOLD_ORDER: [
  * A missing profile comes before an adapter dbt Fusion runs only as
  * experimental and before a dbt-core check that could not tell: it stops both
  * modes. An importable dbt-core, an unsupported adapter and a dbt-loom config
- * come first, as before.
+ * come first, as before. While the switch is paused, a window that would
+ * switch is held for "fusionOffered" instead.
  */
 export function decideDbtIntegrationMode(
   configured: ConfiguredDbtIntegration,

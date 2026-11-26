@@ -28,6 +28,7 @@ import { TelemetryService } from "../telemetry";
 import { PROJECT_EXCLUDE_PATTERN } from "./dbtWorkspaceFolder";
 import {
   ALLOW_EXPERIMENTAL_ADAPTERS,
+  AUTO_SWITCH_PAUSED,
   DbtCoreCheck,
   decideDbtIntegrationMode,
   experimentalAdaptersAllowed,
@@ -41,7 +42,11 @@ import {
   SwitchHeldReason,
   windowAdapterCheck,
 } from "./integrationMode";
-import { isInterpreterPath, PythonEnvironment } from "./pythonEnvironment";
+import {
+  FusionOffer,
+  isInterpreterPath,
+  PythonEnvironment,
+} from "./pythonEnvironment";
 
 /** workspaceState key: the project roots already told about the switch. */
 export const AUTO_SWITCH_NOTIFIED_KEY = "dbtPowerUser.fusionAutoSwitchNotified";
@@ -91,6 +96,7 @@ const HELD_CAUSES: Record<SwitchHeldReason, string> = {
   adapterExperimental:
     "dbt Fusion runs the profile's adapter only as an experimental one",
   dbtCoreUnknown: "dbt-core could not be checked in the selected interpreter",
+  fusionOffered: "Power User doesn't switch to dbt Fusion on its own",
 };
 /**
  * For a window held for its adapter: what dbt Core mode, which it keeps,
@@ -278,6 +284,7 @@ type SwitchHeldAnswer =
   | "installDbtCore"
   | "openFile"
   | "openSetting"
+  | "fixPython"
   | "dismissed";
 
 /** How the user answered the offer to switch back to dbt Core. */
@@ -330,7 +337,9 @@ const findProjectFiles = (folder: WorkspaceFolder) =>
  * cannot run in dbt Core mode (no dbt-core in the selected interpreter, no
  * dbt-loom config). Tells each project about an automatic switch once, and
  * the workspace once why a found binary did not switch it; after a switch,
- * offers dbt Core once when dbt Fusion cannot parse a project.
+ * offers dbt Core once when dbt Fusion cannot parse a project. While
+ * `AUTO_SWITCH_PAUSED`, such a window keeps its mode and, where dbt Core mode
+ * cannot start, is offered dbt Fusion.
  */
 export class IntegrationModeService {
   private autoSwitch?: AutoSwitch;
@@ -354,6 +363,8 @@ export class IntegrationModeService {
       findProjectFiles,
     },
     private probeTimeoutMs = DBT_CORE_PROBE_TIMEOUT_MS,
+    /** A window that would switch is held for "fusionOffered" instead. */
+    private autoSwitchPaused = AUTO_SWITCH_PAUSED,
   ) {}
 
   get autoSwitched(): AutoSwitch | undefined {
@@ -407,6 +418,7 @@ export class IntegrationModeService {
         fusionAdapterUnsupported: adapters.check === "unsupported",
         fusionAdapterExperimental: adapters.check === "experimental",
         profileNotFound: adapters.profileProblem !== undefined,
+        autoSwitchPaused: this.autoSwitchPaused,
       },
     );
     // Adapter names as telemetry sees them; anything else a profile holds is "other".
@@ -888,12 +900,16 @@ export class IntegrationModeService {
   /**
    * Tells the workspace once why a found dbt 2.x binary did not switch it,
    * with a way to dbt Fusion. No-op unless the switch was held back, and
-   * after `notifyHeldWithoutDbtCore` told this window already.
+   * after `notifyHeldWithoutDbtCore` told this window already. A window held
+   * only because the switch is paused hears nothing here: dbt Core mode
+   * works or, when it can't start, `notifyHeldWithoutDbtCore` offers dbt
+   * Fusion.
    */
   async notifySwitchHeld(): Promise<void> {
     const held = this.switchHeld;
     if (
       !held ||
+      held.reason === "fusionOffered" ||
       this.heldErrorShown ||
       !this.workspaceState ||
       this.workspaceState.get<boolean>(SWITCH_HELD_NOTIFIED_KEY, false)
@@ -913,6 +929,37 @@ export class IntegrationModeService {
       return;
     }
     await this.answerHeld(held, answer, "notice");
+  }
+
+  /**
+   * In a held window without a usable Python (no Python extension, no
+   * interpreter, or one that no longer exists), dbt Fusion for the Python
+   * error to offer next to its own fix: dbt Fusion runs without Python, while
+   * installing dbt Core needs an interpreter. Undefined, offering nothing,
+   * when the window was not held or was held for having dbt-core. The
+   * Python error stands for the hold's message, so no notice follows it.
+   */
+  fusionWithoutPython(): FusionOffer | undefined {
+    const held = this.switchHeld;
+    if (!held || held.reason === "dbtCore") {
+      return undefined;
+    }
+    this.heldErrorShown = true;
+    return {
+      fusion: fusionLabel(held.binary),
+      answered: async (answer) => {
+        if (answer === "useFusion") {
+          await this.answerHeld(held, USE_FUSION, "pythonError");
+          return;
+        }
+        this.telemetry.sendTelemetryEvent("dbtIntegrationSwitchHeldAnswer", {
+          reason: held.reason,
+          answer,
+          shownAs: "pythonError",
+          binaryVersion: held.binary.version.join("."),
+        });
+      },
+    };
   }
 
   /**
@@ -940,7 +987,7 @@ export class IntegrationModeService {
   private async answerHeld(
     held: SwitchHeld,
     choice: string | undefined,
-    shownAs: "notice" | "error",
+    shownAs: "notice" | "error" | "pythonError",
   ): Promise<void> {
     const answers: Record<string, SwitchHeldAnswer> = {
       [USE_FUSION]: "useFusion",
@@ -997,6 +1044,11 @@ export class IntegrationModeService {
   }
 }
 
+/** "dbt Fusion 2.0.12 (/home/me/.local/bin/dbt)" */
+function fusionLabel(binary: DbtV2Binary): string {
+  return `dbt Fusion ${binary.version.join(".")} (${binary.path})`;
+}
+
 /**
  * Why a held window was not switched, blocker first, and the buttons that
  * fix it. `coreMissing`: dbt Core mode cannot start either (dbt-core is not
@@ -1006,7 +1058,7 @@ function heldMessage(
   held: SwitchHeld,
   coreMissing: boolean,
 ): { text: string; actions: string[] } {
-  const fusion = `dbt Fusion ${held.binary.version.join(".")} (${held.binary.path})`;
+  const fusion = fusionLabel(held.binary);
   const lead = (subject: string, blocker: string) =>
     `Power User didn't switch ${subject} to ${fusion}: ${blocker}.`;
   const needs = CORE_MODE_NEEDS[held.dbtCoreCheck];
@@ -1066,6 +1118,11 @@ function heldMessage(
           "dbt-core could not be checked in the selected interpreter",
         ),
         actions: [SELECT_INTERPRETER, USE_FUSION],
+      };
+    case "fusionOffered":
+      return {
+        text: `${withNeeds(`${fusion} is on your path.`)} Install dbt Core, or use dbt Fusion for this workspace.`,
+        actions: installOr(USE_FUSION),
       };
   }
 }
