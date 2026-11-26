@@ -30,6 +30,8 @@ interface Script {
   exitCode?: number;
   /** Never exits on its own. */
   hang?: boolean;
+  /** Exits with its code, but its output never closes (a child holds it). */
+  exitOnly?: boolean;
   /** Fails to start. */
   error?: NodeJS.ErrnoException;
 }
@@ -43,23 +45,41 @@ interface Call {
   scratchExisted: boolean;
 }
 
+let nextPid = 4242;
+
 class FakeChild extends EventEmitter {
   stdout = new EventEmitter();
   stderr = new EventEmitter();
-  pid = 4242;
+  pid = nextPid++;
   exitCode: number | null = null;
   signalCode: string | null = null;
-  kill = jest.fn((signal?: string) => {
-    if (this.exitCode !== null || this.signalCode !== null) {
+  private signaled = false;
+  kill = jest.fn((signal?: string) => this.receive(signal ?? "SIGTERM"));
+  /** A signal, sent to it or to its process group: like Node, `signalCode` is set when it exits. */
+  receive = (signal: string): boolean => {
+    if (this.exitCode !== null || this.signaled) {
       return false;
     }
-    this.signalCode = signal ?? "SIGTERM";
+    this.signaled = true;
     setImmediate(() => {
-      this.emit("exit", null, this.signalCode);
-      this.emit("close", null, this.signalCode);
+      this.signalCode = signal;
+      this.emit("exit", null, signal);
+      this.emit("close", null, signal);
     });
     return true;
-  });
+  };
+}
+
+/** Kills of process groups (`process.kill(-pid)`), delivered to the fake child that leads the group. */
+let groupKill: jest.SpyInstance;
+
+/** The run was killed with its process tree, as this platform does it. */
+function expectKilled(child: FakeChild): void {
+  if (process.platform === "win32") {
+    expect(child.kill).toHaveBeenCalledWith("SIGKILL");
+  } else {
+    expect(groupKill).toHaveBeenCalledWith(-child.pid, "SIGKILL");
+  }
 }
 
 let calls: Call[];
@@ -96,10 +116,19 @@ function fakeSpawn(script: (args: string[]) => Script): SpawnProcess {
       }
       child.exitCode = run.exitCode ?? 0;
       child.emit("exit", child.exitCode, null);
-      child.emit("close", child.exitCode, null);
+      if (!run.exitOnly) {
+        child.emit("close", child.exitCode, null);
+      }
     });
     return child as unknown as ChildProcess;
   };
+}
+
+/** Resolves once the trial has started its first process (scratch setup can be slow). */
+async function firstSpawn(): Promise<void> {
+  for (let i = 0; i < 1000 && calls.length === 0; i++) {
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
 }
 
 /** A `--log-format json` line as Fusion 2.0.12 writes it. */
@@ -203,9 +232,21 @@ function expectScratchOnly(roots: string[]) {
 beforeEach(() => {
   calls = [];
   workspace = mkdtempSync(path.join(tmpdir(), "fusion-trial-test-"));
+  // Never a real process group: a fake child stands for each.
+  groupKill = jest
+    .spyOn(process, "kill")
+    .mockImplementation((pid: number, signal?: string | number) => {
+      const call = calls.find((c) => c.child.pid === -pid);
+      if (!call) {
+        throw Object.assign(new Error("kill ESRCH"), { code: "ESRCH" });
+      }
+      call.child.receive(String(signal));
+      return true;
+    });
 });
 
 afterEach(() => {
+  groupKill.mockRestore();
   rmSync(workspace, { recursive: true, force: true });
 });
 
@@ -329,12 +370,67 @@ describe("runFusionTrial", () => {
 
   it("kills a run that passes its time limit", async () => {
     const root = makeProject("shop");
+    // Long enough for the scratch setup on a slow runner to finish first.
     const result = await trial([root], () => ({ hang: true }), {
-      projectTimeoutMs: 50,
+      projectTimeoutMs: 500,
     });
 
     expect(result.outcome).toBe("timeout");
-    expect(calls[0].child.kill).toHaveBeenCalledWith("SIGKILL");
+    expectKilled(calls[0].child);
+    expectScratchOnly([root]);
+  });
+
+  it("starts each run in its own process group on macOS and Linux", async () => {
+    const root = makeProject("shop");
+    await trial([root], () => ({}));
+    expect(calls[0].options.detached).toBe(process.platform !== "win32");
+  });
+
+  it("keeps the result of a run that exited at its time limit while its output was closing", async () => {
+    const root = makeProject("shop");
+    const result = await trial(
+      [root],
+      () => ({
+        stdout: [logLine("info", "Running with dbt=2.0.12", "A001")],
+        exitOnly: true,
+      }),
+      { projectTimeoutMs: 500 },
+    );
+
+    expect(result.outcome).toBe("parsed");
+    expect(groupKill).not.toHaveBeenCalled();
+    expect(calls[0].child.kill).not.toHaveBeenCalled();
+  });
+
+  it("reports a timeout, not a start failure, when the kill itself fails", async () => {
+    const root = makeProject("shop");
+    const spawnProcess = fakeSpawn(() => ({ hang: true }));
+    const unkillable: SpawnProcess = (command, args, options) => {
+      const child = spawnProcess(
+        command,
+        args,
+        options,
+      ) as unknown as FakeChild;
+      const denied = () => {
+        child.emit(
+          "error",
+          Object.assign(new Error("kill EPERM"), { code: "EPERM" }),
+        );
+        return false;
+      };
+      child.kill = jest.fn(denied);
+      child.receive = denied;
+      return child as unknown as ChildProcess;
+    };
+    const result = await runFusionTrial({
+      binary: BINARY,
+      projectRoots: [root],
+      envFor: () => env,
+      spawnProcess: unkillable,
+      projectTimeoutMs: 500,
+    });
+
+    expect(result.outcome).toBe("timeout");
     expectScratchOnly([root]);
   });
 
@@ -348,6 +444,7 @@ describe("runFusionTrial", () => {
         options,
       ) as unknown as FakeChild;
       child.kill = jest.fn(() => true);
+      child.receive = () => true;
       return child as unknown as ChildProcess;
     };
     const started = Date.now();
@@ -370,12 +467,12 @@ describe("runFusionTrial", () => {
     const done = trial([root], () => ({ hang: true }), {
       signal: controller.signal,
     });
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await firstSpawn();
     controller.abort();
     const result = await done;
 
     expect(result.outcome).toBe("canceled");
-    expect(calls[0].child.kill).toHaveBeenCalledWith("SIGKILL");
+    expectKilled(calls[0].child);
     expectScratchOnly([root]);
   });
 

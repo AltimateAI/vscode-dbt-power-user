@@ -70,6 +70,21 @@ export function isPowerUserRejection(reason: unknown): boolean {
   );
 }
 
+/**
+ * A project's dbt major version, undefined when its reader throws: this
+ * runs inside the container's rebuild event, whose other listeners and
+ * bookkeeping must still run.
+ */
+function dbtMajorVersion(project: {
+  getDBTVersion(): number[] | undefined;
+}): number | undefined {
+  try {
+    return project.getDBTVersion()?.[0];
+  } catch {
+    return undefined;
+  }
+}
+
 export class DBTPowerUserExtension implements Disposable {
   static DBT_SQL_SELECTOR = [
     { language: "jinja-sql", scheme: "file" },
@@ -265,7 +280,7 @@ export class DBTPowerUserExtension implements Disposable {
         context.subscriptions.push(
           this.dbtProjectContainer.onProjectRebuildManifestStatusChange(
             ({ project, inProgress }) => {
-              if (!inProgress && project.getDBTVersion()?.[0] === 1) {
+              if (!inProgress && dbtMajorVersion(project) === 1) {
                 void this.integrationModeService
                   .dbtCoreWorked()
                   .catch((error) =>

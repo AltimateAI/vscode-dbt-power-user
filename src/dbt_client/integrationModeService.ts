@@ -245,7 +245,9 @@ function renderEnvVars(
   const rendered = value.replace(
     ENV_VAR_CALL,
     (_call, _quote, name: string, _quote2, fallback: string | undefined) => {
-      const resolved = env[name] !== undefined ? env[name] : fallback;
+      // A variable set to null in terminal.integrated.env is unset.
+      const value: unknown = env[name];
+      const resolved = typeof value === "string" ? value : fallback;
       unset ||= resolved === undefined;
       return resolved ?? "";
     },
@@ -479,10 +481,7 @@ export class IntegrationModeService {
   private heldErrors = 0;
   private globalState?: Memento;
   /** The trial parse running in this window, for a "fusionTrial" hold. */
-  private trial?: {
-    controller: AbortController;
-    done: Promise<RememberedTrial | undefined>;
-  };
+  private trial?: WindowTrial;
 
   constructor(
     private pythonEnvironment: PythonEnvironment,
@@ -761,7 +760,8 @@ export class IntegrationModeService {
   ): void {
     const controller = new AbortController();
     const version = binary.version.join(".");
-    const done = this.probes
+    const entry: WindowTrial = { controller, done: Promise.resolve(undefined) };
+    entry.done = this.probes
       .runTrial({
         binary: binary.path,
         projectRoots,
@@ -810,6 +810,8 @@ export class IntegrationModeService {
           failedProject: failed ? path.basename(failed.root) : undefined,
           firstError: failed?.firstError,
         };
+        // Known in this window even if saving it fails.
+        entry.result = trial;
         await this.workspaceState?.update(FUSION_TRIAL_KEY, trial);
         return trial;
       })
@@ -820,7 +822,7 @@ export class IntegrationModeService {
         );
         return undefined;
       });
-    this.trial = { controller, done };
+    this.trial = entry;
   }
 
   /**
@@ -1310,10 +1312,21 @@ export class IntegrationModeService {
     }
     this.heldErrorShown = true;
     this.heldErrors++;
+    // This window's trial may have finished: a failure rules dbt Fusion out.
+    const trial =
+      held.reason === "fusionTrial" ? this.trial?.result : undefined;
+    const fusionRuns =
+      FUSION_WITHOUT_PYTHON.has(held.reason) &&
+      (trial === undefined || trial.outcome === "parsed");
     return {
-      ...(FUSION_WITHOUT_PYTHON.has(held.reason)
+      ...(fusionRuns
         ? { fusion: fusionLabel(held.binary) }
-        : { reason: heldMessage(held, "pythonError").text }),
+        : {
+            reason: heldMessage(
+              { ...held, trial: trial ?? held.trial },
+              "pythonError",
+            ).text,
+          }),
       answered: async (answer) => {
         if (answer === "useFusion") {
           await this.answerHeld(held, USE_FUSION, "pythonError");
@@ -1352,10 +1365,10 @@ export class IntegrationModeService {
         .then((result) =>
           // dbt Core may have started working while the result was saved,
           // or a later error told the window already.
-          result &&
-          !trial.controller.signal.aborted &&
-          shown === this.heldErrors
-            ? this.showHeld({ ...held, trial: result })
+          // Without a result (it couldn't be saved, or the trial failed to
+          // run), the error is shown without it.
+          !trial.controller.signal.aborted && shown === this.heldErrors
+            ? this.showHeld({ ...held, trial: result ?? trial.result })
             : undefined,
         )
         .catch((error) =>
@@ -1586,6 +1599,15 @@ function trialMessage(
         : `${blocker} Install dbt Core, or use dbt Fusion anyway.`,
     actions: installOr(USE_FUSION),
   };
+}
+
+/** A trial parse started in this window. */
+interface WindowTrial {
+  controller: AbortController;
+  /** Its result once remembered; undefined when canceled or not saved. */
+  done: Promise<RememberedTrial | undefined>;
+  /** Its result as soon as it's known, saved or not. */
+  result?: RememberedTrial;
 }
 
 /** "jaffle_shop", "a and b", or "4 dbt projects". */

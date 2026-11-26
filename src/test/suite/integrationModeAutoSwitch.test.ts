@@ -151,6 +151,7 @@ function service({
 } = {}) {
   const telemetry = {
     sendTelemetryEvent: jest.fn(),
+    sendTelemetryError: jest.fn(),
     setTelemetryCustomAttribute: jest.fn(),
   };
   const findBinary = jest.fn(() => Promise.resolve(binary ?? undefined));
@@ -2830,6 +2831,23 @@ describe("the safe switch to dbt Fusion", () => {
       expect(held(telemetry)).toMatchObject({ reason: "dbtCoreRecent" });
     });
 
+    it("takes an env_var's default for a variable unset with null in terminal.integrated.env", async () => {
+      writeFileSync(
+        path.join(root, "dbt_project.yml"),
+        "name: jaffle\nversion: \"1.0\"\nprofile: jaffle\ntarget-path: \"build/{{ env_var('BUILD_ENV', 'dev') }}\"\n",
+      );
+      mkdirSync(path.join(root, "build", "dev"), { recursive: true });
+      writeFileSync(
+        path.join(root, "build", "dev", "partial_parse.msgpack"),
+        "",
+      );
+      const { svc, telemetry } = shipped({
+        env: { PATH: "/usr/bin", BUILD_ENV: null as unknown as string },
+      });
+      await svc.resolve(new FakeMemento() as never);
+      expect(held(telemetry)).toMatchObject({ reason: "dbtCoreRecent" });
+    });
+
     it("lets a partial parse file older than 7 days go to the trial", async () => {
       mkdirSync(path.join(root, "target"));
       const file = path.join(root, "target", "partial_parse.msgpack");
@@ -3365,8 +3383,11 @@ describe("the safe switch to dbt Fusion", () => {
     );
 
     /** A shipped service whose trial finishes when `finish` is called. */
-    const pendingTrial = async () => {
-      const made = shipped();
+    const pendingTrial = async (
+      memento: FakeMemento = new FakeMemento(),
+      options: Parameters<typeof service>[0] = {},
+    ) => {
+      const made = shipped(options);
       let finish!: (result: FusionTrialResult) => void;
       made.runTrial.mockImplementation(
         () =>
@@ -3374,7 +3395,7 @@ describe("the safe switch to dbt Fusion", () => {
             finish = resolve;
           }),
       );
-      await made.svc.resolve(new FakeMemento() as never);
+      await made.svc.resolve(memento as never);
       return { ...made, finish: (result: FusionTrialResult) => finish(result) };
     };
     const settled = async () => {
@@ -3396,6 +3417,61 @@ describe("the safe switch to dbt Fusion", () => {
 
       expect(errors()).toHaveLength(0);
       expect(shown()).toHaveLength(0);
+    });
+
+    it("gives a Python error after this window's trial failed its reason, and no Use dbt Fusion", async () => {
+      const made = await pendingTrial(new FakeMemento(), noPython);
+      made.finish(failed());
+      await settled();
+
+      expect(made.svc.heldWithoutPython()).toEqual({
+        reason: `${FUSION} is on your path, but it couldn't parse jaffle: Environment variable 'DUCKDB_PATH' not found.`,
+        answered: expect.any(Function),
+      });
+    });
+
+    it("still offers dbt Fusion to a Python error after this window's trial passed", async () => {
+      const made = await pendingTrial(new FakeMemento(), noPython);
+      made.finish(parsed());
+      await settled();
+
+      expect(made.svc.heldWithoutPython()).toMatchObject({ fusion: FUSION });
+    });
+
+    it("shows the trial's result where dbt Core mode can't start even when saving it fails", async () => {
+      class UnsavedTrial extends FakeMemento {
+        update(key: string, value: unknown) {
+          return key === FUSION_TRIAL_KEY
+            ? Promise.reject(new Error("storage closed"))
+            : super.update(key, value);
+        }
+      }
+      const made = await pendingTrial(new UnsavedTrial());
+      await made.svc.notifyHeldWithoutDbtCore();
+
+      made.finish(failed());
+      await settled();
+
+      expect(errors()).toHaveLength(1);
+      expect(errors()[0][0]).toContain("couldn't parse jaffle");
+    });
+
+    it("shows the hold where dbt Core mode can't start when the trial itself fails to run", async () => {
+      const made = shipped();
+      made.runTrial.mockImplementation(() =>
+        Promise.reject(new Error("runner crashed")),
+      );
+      await made.svc.resolve(new FakeMemento() as never);
+      await made.svc.notifyHeldWithoutDbtCore();
+      await settled();
+
+      expect(errors()).toEqual([
+        [
+          `${FUSION} is on your path. dbt Core mode needs dbt-core, which the selected Python interpreter does not have. Install dbt Core, or use dbt Fusion for this workspace.`,
+          "Install dbt Core",
+          "Use dbt Fusion",
+        ],
+      ]);
     });
 
     it("shows a trial's result once when the window was detected twice while it ran", async () => {

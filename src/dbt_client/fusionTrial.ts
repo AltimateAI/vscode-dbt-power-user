@@ -353,6 +353,9 @@ function runFusion(
         env,
         stdio: ["ignore", "pipe", "pipe"],
         windowsHide: true,
+        // Its own process group on macOS and Linux, so a timeout or cancel
+        // kills the processes it started too.
+        detached: process.platform !== "win32",
       });
     } catch (error) {
       resolve({ kind: "spawnError", message: messageOf(error) });
@@ -360,6 +363,7 @@ function runFusion(
     }
     const output = new FusionOutputReader();
     let settled = false;
+    let stopping = false;
     let graceTimer: NodeJS.Timeout | undefined;
     const finish = (end: RunEnd) => {
       if (settled) {
@@ -371,14 +375,26 @@ function runFusion(
       options.signal?.removeEventListener("abort", onAbort);
       resolve(end);
     };
+    const exited = (exitCode: number | null) => {
+      output.end();
+      finish({ kind: "exited", exitCode, output: output.result() });
+    };
     // Killed: done once the process exits, or after a grace period if it
     // doesn't, so a stuck process can't hold the trial up.
     const stop = (end: RunEnd) => {
-      if (settled || graceTimer) {
+      if (settled || stopping) {
+        return;
+      }
+      // Before the kill: a kill that fails emits "error" too.
+      stopping = true;
+      // It exited already, and only its output is still closing: that's
+      // its result.
+      if (child.exitCode !== null) {
+        exited(child.exitCode);
         return;
       }
       killTree(child, spawnProcess);
-      if (child.exitCode !== null || child.signalCode !== null) {
+      if (child.signalCode !== null) {
         finish(end);
         return;
       }
@@ -391,22 +407,35 @@ function runFusion(
 
     child.stdout?.on("data", (chunk: Buffer) => output.stdout(chunk));
     child.stderr?.on("data", (chunk: Buffer) => output.stderr(chunk));
-    // Only a process that failed to start emits "error" before it is killed.
-    child.once("error", (error) =>
-      finish({ kind: "spawnError", message: messageOf(error) }),
-    );
-    child.once("close", (exitCode: number | null) => {
-      if (graceTimer) {
-        return;
+    // Before a stop, "error" means the process failed to start. After one,
+    // a kill failed: the stop's own outcome stands.
+    child.once("error", (error) => {
+      if (!stopping) {
+        finish({ kind: "spawnError", message: messageOf(error) });
       }
-      output.end();
-      finish({ kind: "exited", exitCode, output: output.result() });
+    });
+    child.once("close", (exitCode: number | null) => {
+      if (!stopping) {
+        exited(exitCode);
+      }
     });
   });
 }
 
-// On Windows a process's children outlive it unless the tree is killed.
+/**
+ * Kills a run and the processes it started (`dbt deps` may start git). On
+ * Windows a process's children outlive it unless the tree is killed. On
+ * macOS and Linux the run has its own process group, killed as one.
+ */
 function killTree(child: ChildProcess, spawnProcess: SpawnProcess): void {
+  if (process.platform !== "win32" && child.pid !== undefined) {
+    try {
+      process.kill(-child.pid, "SIGKILL");
+      return;
+    } catch {
+      // No such group: kill the process itself.
+    }
+  }
   try {
     if (process.platform === "win32" && child.pid !== undefined) {
       spawnProcess("taskkill", ["/pid", String(child.pid), "/T", "/F"], {
