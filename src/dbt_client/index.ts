@@ -6,12 +6,12 @@ import { commands, Disposable, EventEmitter, window } from "vscode";
 import { DBTInstallationVerificationEvent } from "./dbtVersionEvent";
 import { getDbtIntegrationMode } from "./integrationMode";
 import {
-  FusionOffer,
-  fusionOfferAnswer,
+  fusionButton,
+  HeldNote,
+  heldNoteAnswer,
   PythonEnvironment,
   PythonInterpreterPromptAnswer,
-  USE_DBT_FUSION,
-  withFusionOffer,
+  withHeldNote,
 } from "./pythonEnvironment";
 
 const INSTALL_PYTHON_EXTENSION = "Install Python extension";
@@ -111,10 +111,11 @@ export interface HeldSwitchNotice {
   /** Shows why the window was held, as an error; false when it shows nothing. */
   notifyHeldWithoutDbtCore(): Promise<boolean>;
   /**
-   * In a window held with a dbt Fusion binary found, dbt Fusion for the
-   * Python errors to offer; undefined when they offer nothing.
+   * In a window held with a dbt Fusion binary found, what the Python errors
+   * add: dbt Fusion to offer, or the hold's reason. Undefined when they add
+   * nothing.
    */
-  fusionWithoutPython(): FusionOffer | undefined;
+  heldWithoutPython(): HeldNote | undefined;
 }
 
 export class DBTClient implements Disposable {
@@ -206,7 +207,7 @@ export class DBTClient implements Disposable {
       if (!this.shownError) {
         this.shownError = true;
         await this.promptToInstallPythonExtension(
-          this.heldSwitchNotice?.fusionWithoutPython(),
+          this.heldSwitchNotice?.heldWithoutPython(),
         );
       }
       return false;
@@ -215,9 +216,9 @@ export class DBTClient implements Disposable {
       if (!this.shownError) {
         // We don't want to flood the user with errors
         this.shownError = true;
-        // A window held with dbt Fusion found also offers it: it runs
-        // without Python.
-        const fusion = this.heldSwitchNotice?.fusionWithoutPython();
+        // A window held with dbt Fusion found also offers it, as it runs
+        // without Python, or says why the window was held.
+        const held = this.heldSwitchNotice?.heldWithoutPython();
         // A path that no longer exists, typically a deleted or moved virtual
         // environment. A bare command such as `python` is left to the general
         // message: it may be on the PATH.
@@ -228,22 +229,22 @@ export class DBTClient implements Disposable {
         ) {
           await this.pythonEnvironment.showInterpreterNotFound(
             pythonPath,
-            fusion,
+            held,
           );
           return false;
         }
         const answer = await window.showErrorMessage(
-          fusion
-            ? withFusionOffer(
+          held
+            ? withHeldNote(
                 "No Python interpreter is selected or Python is not installed. Select one.",
-                fusion,
+                held,
               )
             : "No Python interpreter is selected or Python is not installed",
           PythonInterpreterPromptAnswer.SELECT,
           PythonInterpreterPromptAnswer.DETECT,
-          ...(fusion ? [USE_DBT_FUSION] : []),
+          ...fusionButton(held),
         );
-        await fusion?.answered(fusionOfferAnswer(answer));
+        await held?.answered(heldNoteAnswer(answer));
         if (answer === PythonInterpreterPromptAnswer.SELECT) {
           commands.executeCommand("python.setInterpreter");
         } else if (answer === PythonInterpreterPromptAnswer.DETECT) {
@@ -268,7 +269,7 @@ export class DBTClient implements Disposable {
     return this.showErrorIfDbtIsNotInstalled();
   }
 
-  private async promptToInstallPythonExtension(fusion?: FusionOffer) {
+  private async promptToInstallPythonExtension(held?: HeldNote) {
     // Name the runner for the mode in use: dbt Core (core and corecommand)
     // keeps its wording; cloud mode names the dbt Cloud CLI.
     const runner =
@@ -276,17 +277,17 @@ export class DBTClient implements Disposable {
         ? "The dbt Cloud CLI runs"
         : "dbt Core runs";
     const answer = await window.showErrorMessage(
-      fusion
-        ? withFusionOffer(
+      held
+        ? withHeldNote(
             `${runner} through the Python extension, which is not installed. Install it.`,
-            fusion,
+            held,
           )
         : `${runner} through the Python extension, which is not installed. Install it, or switch dbt.dbtIntegration to fusion to use dbt Fusion without Python.`,
       INSTALL_PYTHON_EXTENSION,
-      ...(fusion ? [USE_DBT_FUSION] : []),
+      ...fusionButton(held),
       TROUBLESHOOT,
     );
-    await fusion?.answered(fusionOfferAnswer(answer));
+    await held?.answered(heldNoteAnswer(answer));
     if (answer === INSTALL_PYTHON_EXTENSION) {
       await commands.executeCommand(
         "workbench.extensions.installExtension",

@@ -51,7 +51,7 @@ import {
   windowAdapterCheck,
 } from "./integrationMode";
 import {
-  FusionOffer,
+  HeldNote,
   isInterpreterPath,
   PythonEnvironment,
 } from "./pythonEnvironment";
@@ -126,6 +126,18 @@ const QUIET_WHERE_CORE_WORKS = new Set<SwitchHeldReason>([
   "dbtCoreRecent",
   "fusionOffered",
   "fusionTrialFailed",
+  "fusionTrial",
+]);
+/**
+ * Holds that say nothing against dbt Fusion in this window: without a usable
+ * Python, the Python error offers dbt Fusion for them. Every other hold says
+ * dbt Fusion would fail as well (its adapter, profile, dbt-loom config or
+ * trial), or that dbt Core worked here recently, so the Python error gives
+ * the hold's reason instead.
+ */
+const FUSION_WITHOUT_PYTHON = new Set<SwitchHeldReason>([
+  "fusionOffered",
+  "dbtCoreUnknown",
   "fusionTrial",
 ]);
 /**
@@ -1266,7 +1278,7 @@ export class IntegrationModeService {
     if (this.heldErrorShown) {
       return;
     }
-    const { text, actions } = heldMessage(held, false);
+    const { text, actions } = heldMessage(held, "notice");
     const answer = await answerTo(
       window.showInformationMessage(text, ...actions, DISMISS),
     );
@@ -1278,20 +1290,23 @@ export class IntegrationModeService {
 
   /**
    * In a held window without a usable Python (no Python extension, no
-   * interpreter, or one that no longer exists), dbt Fusion for the Python
-   * error to offer next to its own fix: dbt Fusion runs without Python, while
-   * installing dbt Core needs an interpreter. Undefined, offering nothing,
+   * interpreter, or one that no longer exists), what the Python error adds
+   * next to its own fix, in place of Install dbt Core, which needs an
+   * interpreter: dbt Fusion, which runs without Python, where nothing speaks
+   * against it, and otherwise the hold's reason. Undefined, adding nothing,
    * when the window was not held or was held for having dbt-core. The
    * Python error stands for the hold's message, so no notice follows it.
    */
-  fusionWithoutPython(): FusionOffer | undefined {
+  heldWithoutPython(): HeldNote | undefined {
     const held = this.switchHeld;
     if (!held || held.reason === "dbtCore") {
       return undefined;
     }
     this.heldErrorShown = true;
     return {
-      fusion: fusionLabel(held.binary),
+      ...(FUSION_WITHOUT_PYTHON.has(held.reason)
+        ? { fusion: fusionLabel(held.binary) }
+        : { reason: heldMessage(held, "pythonError").text }),
       answered: async (answer) => {
         if (answer === "useFusion") {
           await this.answerHeld(held, USE_FUSION, "pythonError");
@@ -1346,7 +1361,7 @@ export class IntegrationModeService {
 
   /** Shows a held window's message where dbt Core mode cannot start. */
   private async showHeld(held: SwitchHeld): Promise<void> {
-    const { text, actions, info } = heldMessage(held, true);
+    const { text, actions, info } = heldMessage(held, "error");
     const answer = await answerTo(
       info
         ? window.showInformationMessage(text, ...actions)
@@ -1429,17 +1444,23 @@ function fusionLabel(binary: DbtV2Binary): string {
 
 /**
  * Why a held window was not switched, blocker first, and the buttons that
- * fix it. `coreMissing`: dbt Core mode cannot start either (dbt-core is not
- * detected), so the message also offers to install it where that helps.
+ * fix it, shown as:
+ * - `notice`: dbt Core mode works;
+ * - `error`: dbt Core mode cannot start either (dbt-core is not detected),
+ *   so the message also offers to install it where that helps;
+ * - `pythonError`: the reason alone, after a Python error that says what
+ *   dbt Core mode needs. Its actions are not shown.
  */
 function heldMessage(
   held: SwitchHeld,
-  coreMissing: boolean,
+  shownAs: "notice" | "error" | "pythonError",
 ): { text: string; actions: string[]; info?: boolean } {
+  const coreMissing = shownAs === "error";
   const fusion = fusionLabel(held.binary);
   const lead = (subject: string, blocker: string) =>
     `Power User didn't switch ${subject} to ${fusion}: ${blocker}.`;
-  const needs = CORE_MODE_NEEDS[held.dbtCoreCheck];
+  const needs =
+    shownAs === "pythonError" ? undefined : CORE_MODE_NEEDS[held.dbtCoreCheck];
   const withNeeds = (text: string) => (needs ? `${text} ${needs}` : text);
   const installOr = (...actions: string[]) =>
     coreMissing ? [INSTALL_DBT_CORE, ...actions] : actions;
@@ -1527,8 +1548,14 @@ function heldMessage(
           info: true,
         };
       }
+      const blocker = withNeeds(
+        `${fusion} is on your path, but ${trialBlocker(trial)}.`,
+      );
       return {
-        text: `${withNeeds(`${fusion} is on your path, but ${trialBlocker(trial)}.`)} Install dbt Core, or use dbt Fusion anyway.`,
+        text:
+          shownAs === "pythonError"
+            ? blocker
+            : `${blocker} Install dbt Core, or use dbt Fusion anyway.`,
         actions: installOr(USE_FUSION),
       };
     }

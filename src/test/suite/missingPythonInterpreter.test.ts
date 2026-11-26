@@ -232,6 +232,54 @@ describe("PythonEnvironment.showInterpreterNotFound with dbt Fusion offered", ()
   });
 });
 
+/**
+ * Where dbt Fusion would fail on the window as well, the hold's reason
+ * follows the interpreter's guidance, without Use dbt Fusion.
+ */
+describe("PythonEnvironment.showInterpreterNotFound with a hold's reason", () => {
+  const PROFILE =
+    "Power User didn't switch shop to dbt Fusion 2.0.12 (/home/user/.local/bin/dbt): no profiles.yml found (looked in /home/user/.dbt and /work/shop). dbt Fusion and dbt Core both need it: add the profile, then reload the window.";
+
+  beforeEach(() => setOverride(""));
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("adds it to a selected interpreter that was moved or deleted", async () => {
+    const held = {
+      reason: PROFILE,
+      answered: jest.fn(() => Promise.resolve()),
+    };
+
+    await makeEnvironment().showInterpreterNotFound(MISSING, held);
+
+    expect(window.showErrorMessage).toHaveBeenCalledWith(
+      `The selected Python interpreter ${MISSING} was not found. It may have been moved or deleted. Select another interpreter to use dbt. ${PROFILE}`,
+      "Select Python interpreter",
+      "Detect from terminal",
+    );
+    expect(held.answered).toHaveBeenCalledWith("dismissed");
+  });
+
+  it("adds it to an override that names a missing interpreter", async () => {
+    setOverride("/gone/venv/bin/python");
+    const held = {
+      reason: PROFILE,
+      answered: jest.fn(() => Promise.resolve()),
+    };
+
+    await makeEnvironment().showInterpreterNotFound(
+      "/gone/venv/bin/python",
+      held,
+    );
+
+    expect(window.showErrorMessage).toHaveBeenCalledWith(
+      `The Python interpreter /gone/venv/bin/python set in dbt.dbtPythonPathOverride was not found. Change the setting to an interpreter that exists. ${PROFILE}`,
+      "Open setting",
+    );
+  });
+});
+
 describe("DBTClient when the Python interpreter is missing", () => {
   afterEach(() => {
     jest.clearAllMocks();

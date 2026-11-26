@@ -17,27 +17,41 @@ import {
 } from "vscode";
 
 /**
- * dbt Fusion, offered by a Python error in a window held in dbt Core mode with
- * a dbt Fusion binary found: it runs without the Python that is missing.
+ * What a Python error adds in a window held in dbt Core mode with a dbt
+ * Fusion binary found. Where nothing speaks against dbt Fusion, it offers
+ * dbt Fusion, which runs without the Python that is missing. Otherwise it
+ * gives the hold's reason: dbt Fusion would fail on the window as well, or
+ * dbt Core worked here recently.
  */
-export interface FusionOffer {
-  /** "dbt Fusion 2.0.12 (~/.local/bin/dbt)" */
-  fusion: string;
-  /** Records the answer to the error that offered it, and uses dbt Fusion when chosen. */
+export interface HeldNote {
+  /** Offered with Use dbt Fusion: "dbt Fusion 2.0.12 (~/.local/bin/dbt)". */
+  fusion?: string;
+  /** Why the window was held, when dbt Fusion is not offered. */
+  reason?: string;
+  /** Records the answer to the error that carried it, and uses dbt Fusion when chosen. */
   answered(answer: "useFusion" | "fixPython" | "dismissed"): Promise<void>;
 }
 
 export const USE_DBT_FUSION = "Use dbt Fusion";
 
-/** A Python error's message ending in the dbt Fusion alternative: "…, or use dbt Fusion 2.0.12 (…), which …". */
-export function withFusionOffer(message: string, offer?: FusionOffer): string {
-  return offer
-    ? `${message.replace(/\.$/, "")}, or use ${offer.fusion}, which is on your path and runs without Python.`
-    : message;
+/**
+ * A Python error's message with what `note` adds: "…, or use dbt Fusion
+ * 2.0.12 (…), which …", or the hold's reason after it.
+ */
+export function withHeldNote(message: string, note?: HeldNote): string {
+  if (note?.fusion) {
+    return `${message.replace(/\.$/, "")}, or use ${note.fusion}, which is on your path and runs without Python.`;
+  }
+  return note?.reason ? `${message} ${note.reason}` : message;
 }
 
-/** The button the user chose, as `FusionOffer.answered` takes it. */
-export function fusionOfferAnswer(
+/** The Use dbt Fusion button, where `note` offers dbt Fusion. */
+export function fusionButton(note?: HeldNote): string[] {
+  return note?.fusion ? [USE_DBT_FUSION] : [];
+}
+
+/** The button the user chose, as `HeldNote.answered` takes it. */
+export function heldNoteAnswer(
   answer: string | undefined,
 ): "useFusion" | "fixPython" | "dismissed" {
   return answer === USE_DBT_FUSION
@@ -212,13 +226,13 @@ export class PythonEnvironment {
   /**
    * Tells the user the interpreter doesn't exist (a deleted or moved virtual
    * environment, or a command that isn't on the PATH) and offers a way to pick
-   * another, once per interpreter, and dbt Fusion when `fusion` offers it.
+   * another, once per interpreter, with what `held` adds in a held window.
    * Picking one fires `onPythonEnvironmentChanged`, which re-initializes the
    * projects.
    */
   async showInterpreterNotFound(
     interpreterPath: string,
-    fusion?: FusionOffer,
+    held?: HeldNote,
   ): Promise<void> {
     if (this.reportedMissingInterpreters.has(interpreterPath)) {
       return;
@@ -231,14 +245,14 @@ export class PythonEnvironment {
       this.getResolvedConfigValue("dbtPythonPathOverride") === interpreterPath
     ) {
       const answer = await window.showErrorMessage(
-        withFusionOffer(
+        withHeldNote(
           `The Python interpreter ${interpreterPath} set in dbt.dbtPythonPathOverride was not found. Change the setting to an interpreter that exists.`,
-          fusion,
+          held,
         ),
         PythonInterpreterPromptAnswer.OPEN_SETTING,
-        ...(fusion ? [USE_DBT_FUSION] : []),
+        ...fusionButton(held),
       );
-      await fusion?.answered(fusionOfferAnswer(answer));
+      await held?.answered(heldNoteAnswer(answer));
       if (answer === PythonInterpreterPromptAnswer.OPEN_SETTING) {
         commands.executeCommand(
           "workbench.action.openSettings",
@@ -251,7 +265,7 @@ export class PythonEnvironment {
       this._pythonExtensionAvailable
         ? `The selected Python interpreter ${interpreterPath} was not found. It may have been moved or deleted. Select another interpreter to use dbt.`
         : `The Python interpreter ${interpreterPath} was not found, and the Python extension, which selects interpreters, is not installed. Install it, or set dbt.dbtPythonPathOverride to an interpreter that exists.`,
-      fusion,
+      held,
     );
   }
 
@@ -259,15 +273,12 @@ export class PythonEnvironment {
    * Shows `message` with the ways to get an interpreter. With the Python
    * extension: its picker, or detection from the terminal. Without it the
    * picker (`python.setInterpreter`) does not exist, so: install the
-   * extension, or open `dbt.dbtPythonPathOverride`. And dbt Fusion, when
-   * `fusion` offers it.
+   * extension, or open `dbt.dbtPythonPathOverride`. And what `held` adds in
+   * a held window.
    */
-  async promptForInterpreter(
-    message: string,
-    fusion?: FusionOffer,
-  ): Promise<void> {
-    const text = withFusionOffer(message, fusion);
-    const useFusion = fusion ? [USE_DBT_FUSION] : [];
+  async promptForInterpreter(message: string, held?: HeldNote): Promise<void> {
+    const text = withHeldNote(message, held);
+    const useFusion = fusionButton(held);
     if (!this._pythonExtensionAvailable) {
       const answer = await window.showErrorMessage(
         text,
@@ -275,7 +286,7 @@ export class PythonEnvironment {
         PythonInterpreterPromptAnswer.OPEN_SETTING,
         ...useFusion,
       );
-      await fusion?.answered(fusionOfferAnswer(answer));
+      await held?.answered(heldNoteAnswer(answer));
       if (answer === PythonInterpreterPromptAnswer.INSTALL) {
         await this.installPythonExtension();
       } else if (answer === PythonInterpreterPromptAnswer.OPEN_SETTING) {
@@ -292,7 +303,7 @@ export class PythonEnvironment {
       PythonInterpreterPromptAnswer.DETECT,
       ...useFusion,
     );
-    await fusion?.answered(fusionOfferAnswer(answer));
+    await held?.answered(heldNoteAnswer(answer));
     if (answer === PythonInterpreterPromptAnswer.SELECT) {
       commands.executeCommand("python.setInterpreter");
     } else if (answer === PythonInterpreterPromptAnswer.DETECT) {
