@@ -217,6 +217,30 @@ function profilesSearched(
 const SINGLE_ENV_VAR =
   /^\{\{\s*env_var\(\s*(['"])([^'"]+)\1\s*(?:,\s*(['"])([^'"]*)\3\s*)?\)\s*\}\}$/;
 
+/** Each `{{ env_var('NAME') }}` or `{{ env_var('NAME', 'default') }}` in a value. */
+const ENV_VAR_CALL =
+  /\{\{\s*env_var\(\s*(['"])([^'"]+)\1\s*(?:,\s*(['"])([^'"]*)\3\s*)?\)\s*\}\}/g;
+
+/**
+ * `value` with its `env_var` calls rendered as dbt renders them; undefined
+ * when one names a variable that is not set and has no default.
+ */
+function renderEnvVars(
+  value: string,
+  env: EnvironmentVariables,
+): string | undefined {
+  let unset = false;
+  const rendered = value.replace(
+    ENV_VAR_CALL,
+    (_call, _quote, name: string, _quote2, fallback: string | undefined) => {
+      const resolved = env[name] !== undefined ? env[name] : fallback;
+      unset ||= resolved === undefined;
+      return resolved ?? "";
+    },
+  );
+  return unset ? undefined : rendered;
+}
+
 /** Jinja dbt renders before it reads a value: an expression, a statement or a comment. */
 const isTemplated = (value: string) => /\{[{%#]/.test(value);
 
@@ -271,6 +295,17 @@ function heldCause(
   }
 }
 
+/** A hold's own telemetry properties: what was missing, what showed dbt Core worked, the trial. */
+function heldDetails(held: SwitchHeld): Record<string, string> {
+  return {
+    ...(held.profileProblem ? { profileCheck: held.profileProblem.check } : {}),
+    ...(held.dbtCoreEvidence
+      ? { dbtCoreEvidence: held.dbtCoreEvidence.source }
+      : {}),
+    ...(held.trial ? { trialOutcome: held.trial.outcome } : {}),
+  };
+}
+
 /** What an adapter type looks like, for telemetry. */
 const ADAPTER_NAME = /^[A-Za-z0-9_-]{1,40}$/;
 
@@ -301,6 +336,18 @@ export interface DbtCoreEvidence {
   ageMs: number;
   /** The project whose partial parse file it is. */
   project?: string;
+}
+
+/** What `resolve` found about a window with a dbt 2.x binary. */
+interface SwitchFindings {
+  binary: DbtV2Binary;
+  dbtCoreCheck: DbtCoreCheck;
+  adapters: AdapterFindings;
+  adapterTypes: string;
+  dbtCoreEvidence?: DbtCoreEvidence;
+  remembered?: RememberedTrial;
+  projectRoots: string[];
+  env: EnvironmentVariables;
 }
 
 /** A trial parse of one dbt Fusion binary, remembered per workspace. */
@@ -499,80 +546,98 @@ export class IntegrationModeService {
         fusionGate: this.fusionGate(remembered),
       },
     );
-    // Adapter names as telemetry sees them; anything else a profile holds is "other".
-    const adapterTypes = adapters.types
-      .map((type) => (ADAPTER_NAME.test(type) ? type : "other"))
-      .join(",");
     setEffectiveDbtIntegrationMode(mode);
-    if (heldBack && binary) {
-      this.switchHeld = {
-        reason: heldBack,
+    if (binary) {
+      const found: SwitchFindings = {
         binary,
         dbtCoreCheck,
-        fusionAdapterCheck: adapters.check,
-        unsupportedAdapters: adapters.unsupported,
-        experimentalAdapters: adapters.experimental,
-        profileProblem:
-          heldBack === "profileNotFound" ? adapters.profileProblem : undefined,
-        dbtCoreEvidence:
-          heldBack === "dbtCoreRecent" ? dbtCoreEvidence : undefined,
-        trial: heldBack === "fusionTrialFailed" ? remembered : undefined,
+        adapters,
+        // Adapter names as telemetry sees them; anything else a profile holds is "other".
+        adapterTypes: adapters.types
+          .map((type) => (ADAPTER_NAME.test(type) ? type : "other"))
+          .join(","),
+        dbtCoreEvidence,
+        remembered,
+        projectRoots,
+        env,
       };
-      const cause = heldCause(heldBack, adapters);
-      this.terminal.info(
-        "dbtIntegrationSwitchHeld",
-        `${binary.path} is dbt ${binary.version.join(".")}, but ${cause}: keeping ${mode} (dbt-core check: ${dbtCoreCheck}, adapter check: ${adapters.check})`,
-        false,
-      );
-      this.telemetry.sendTelemetryEvent("dbtIntegrationSwitchHeld", {
-        reason: heldBack,
-        binaryVersion: binary.version.join("."),
-        binaryLocation: binary.location,
-        dbtCoreCheck,
-        fusionAdapterCheck: adapters.check,
-        adapterTypes,
-        ...(heldBack === "profileNotFound" && adapters.profileProblem
-          ? { profileCheck: adapters.profileProblem.check }
-          : {}),
-        ...(heldBack === "dbtCoreRecent" && dbtCoreEvidence
-          ? { dbtCoreEvidence: dbtCoreEvidence.source }
-          : {}),
-        ...(heldBack === "fusionTrialFailed" && remembered
-          ? { trialOutcome: remembered.outcome }
-          : {}),
-      });
-      if (heldBack === "fusionTrial" && projectRoots.length > 0) {
-        this.startTrial(binary, projectRoots, env, dbtCoreCheck);
+      if (heldBack) {
+        this.hold(heldBack, mode, found);
+      }
+      if (autoSwitched) {
+        this.switched(configured.value, mode, found);
       }
     }
-    if (autoSwitched && binary) {
-      this.autoSwitch = {
-        from: configured.value,
-        binary,
-        dbtCoreCheck,
-        fusionAdapterCheck: adapters.check,
-      };
-      this.terminal.info(
-        "dbtIntegrationAutoSwitched",
-        `dbt.dbtIntegration is not set and ${binary.path} is dbt ${binary.version.join(".")}: using dbt Fusion (dbt-core check: ${dbtCoreCheck}, adapter check: ${adapters.check})`,
-        false,
-      );
-      this.telemetry.setTelemetryCustomAttribute(
-        "dbtIntegrationAutoSwitched",
-        "fusion",
-      );
-      this.telemetry.sendTelemetryEvent("dbtIntegrationAutoSwitched", {
-        from: configured.value,
-        to: mode,
-        binaryVersion: binary.version.join("."),
-        binaryLocation: binary.location,
-        dbtCoreCheck,
-        fusionAdapterCheck: adapters.check,
-        adapterTypes,
-        trial: remembered?.outcome === "parsed" ? "parsed" : "none",
-      });
-    }
     return mode;
+  }
+
+  /** Keeps the window's mode for `reason`: logs, counts, and starts the trial. */
+  private hold(
+    reason: SwitchHeldReason,
+    mode: string,
+    found: SwitchFindings,
+  ): void {
+    const { binary, dbtCoreCheck, adapters, dbtCoreEvidence, remembered } =
+      found;
+    this.switchHeld = {
+      reason,
+      binary,
+      dbtCoreCheck,
+      fusionAdapterCheck: adapters.check,
+      unsupportedAdapters: adapters.unsupported,
+      experimentalAdapters: adapters.experimental,
+      profileProblem:
+        reason === "profileNotFound" ? adapters.profileProblem : undefined,
+      dbtCoreEvidence: reason === "dbtCoreRecent" ? dbtCoreEvidence : undefined,
+      trial: reason === "fusionTrialFailed" ? remembered : undefined,
+    };
+    this.terminal.info(
+      "dbtIntegrationSwitchHeld",
+      `${binary.path} is dbt ${binary.version.join(".")}, but ${heldCause(reason, adapters)}: keeping ${mode} (dbt-core check: ${dbtCoreCheck}, adapter check: ${adapters.check})`,
+      false,
+    );
+    this.telemetry.sendTelemetryEvent("dbtIntegrationSwitchHeld", {
+      reason,
+      binaryVersion: binary.version.join("."),
+      binaryLocation: binary.location,
+      dbtCoreCheck,
+      fusionAdapterCheck: adapters.check,
+      adapterTypes: found.adapterTypes,
+      ...heldDetails(this.switchHeld),
+    });
+    if (reason === "fusionTrial" && found.projectRoots.length > 0) {
+      this.startTrial(binary, found.projectRoots, found.env, dbtCoreCheck);
+    }
+  }
+
+  /** Switches the window to dbt Fusion: logs, counts and tags telemetry. */
+  private switched(from: string, mode: string, found: SwitchFindings): void {
+    const { binary, dbtCoreCheck, adapters } = found;
+    this.autoSwitch = {
+      from,
+      binary,
+      dbtCoreCheck,
+      fusionAdapterCheck: adapters.check,
+    };
+    this.terminal.info(
+      "dbtIntegrationAutoSwitched",
+      `dbt.dbtIntegration is not set and ${binary.path} is dbt ${binary.version.join(".")}: using dbt Fusion (dbt-core check: ${dbtCoreCheck}, adapter check: ${adapters.check})`,
+      false,
+    );
+    this.telemetry.setTelemetryCustomAttribute(
+      "dbtIntegrationAutoSwitched",
+      "fusion",
+    );
+    this.telemetry.sendTelemetryEvent("dbtIntegrationAutoSwitched", {
+      from,
+      to: mode,
+      binaryVersion: binary.version.join("."),
+      binaryLocation: binary.location,
+      dbtCoreCheck,
+      fusionAdapterCheck: adapters.check,
+      adapterTypes: found.adapterTypes,
+      trial: found.remembered?.outcome === "parsed" ? "parsed" : "none",
+    });
   }
 
   /**
@@ -613,8 +678,8 @@ export class IntegrationModeService {
 
   /**
    * A project's target path as dbt Core resolves it: `DBT_TARGET_PATH`, else
-   * dbt_project.yml's `target-path` when it is a plain value or a single
-   * `env_var` call, else `target`.
+   * dbt_project.yml's `target-path` with its `env_var` calls rendered, else
+   * `target` (for any other template, which only dbt can render).
    */
   private targetPath(projectRoot: string, env: EnvironmentVariables): string {
     let target: unknown = env.DBT_TARGET_PATH;
@@ -625,11 +690,8 @@ export class IntegrationModeService {
       } catch {
         target = undefined;
       }
-      const match =
-        typeof target === "string" ? SINGLE_ENV_VAR.exec(target) : null;
-      if (match) {
-        const [, , name, , fallback] = match;
-        target = env[name] !== undefined ? env[name] : fallback;
+      if (typeof target === "string") {
+        target = renderEnvVars(target, env);
       }
     }
     return path.resolve(
@@ -1265,7 +1327,10 @@ export class IntegrationModeService {
       // its result. A canceled trial means dbt Core works after all.
       void trial.done
         .then((result) =>
-          result ? this.showHeld({ ...held, trial: result }) : undefined,
+          // dbt Core may have started working while the result was saved.
+          result && !trial.controller.signal.aborted
+            ? this.showHeld({ ...held, trial: result })
+            : undefined,
         )
         .catch((error) =>
           this.telemetry.sendTelemetryError(

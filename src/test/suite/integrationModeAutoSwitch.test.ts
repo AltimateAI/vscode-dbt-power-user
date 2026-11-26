@@ -2779,6 +2779,21 @@ describe("the safe switch to dbt Fusion", () => {
       });
     });
 
+    it("renders env_var calls inside a longer target-path", async () => {
+      writeFileSync(
+        path.join(root, "dbt_project.yml"),
+        "name: jaffle\nversion: \"1.0\"\nprofile: jaffle\ntarget-path: \"build/{{ env_var('BUILD_ENV', 'dev') }}\"\n",
+      );
+      mkdirSync(path.join(root, "build", "dev"), { recursive: true });
+      writeFileSync(
+        path.join(root, "build", "dev", "partial_parse.msgpack"),
+        "",
+      );
+      const { svc, telemetry } = shipped();
+      await svc.resolve(new FakeMemento() as never);
+      expect(held(telemetry)).toMatchObject({ reason: "dbtCoreRecent" });
+    });
+
     it("lets a partial parse file older than 7 days go to the trial", async () => {
       mkdirSync(path.join(root, "target"));
       const file = path.join(root, "target", "partial_parse.msgpack");
@@ -3049,6 +3064,29 @@ describe("the safe switch to dbt Fusion", () => {
       await settle();
 
       expect(memento.get(FUSION_TRIAL_KEY)).toBeUndefined();
+      expect(shown()).toHaveLength(0);
+      expect(errors()).toHaveLength(0);
+    });
+
+    it("shows nothing when dbt Core works while the trial's result is being saved", async () => {
+      const memento = new FakeMemento();
+      let saved: () => void = () => undefined;
+      const update = memento.update.bind(memento);
+      memento.update = (key: string, value: unknown) =>
+        key === FUSION_TRIAL_KEY
+          ? new Promise<void>((resolve) => {
+              saved = () => void update(key, value).then(resolve);
+            })
+          : update(key, value);
+      const { svc } = shipped({ trial: parsed() });
+      await svc.resolve(memento as never, new FakeMemento() as never);
+      void svc.notifyHeldWithoutDbtCore();
+      await settle();
+
+      await svc.dbtCoreWorked();
+      saved();
+      await settle();
+
       expect(shown()).toHaveLength(0);
       expect(errors()).toHaveLength(0);
     });
