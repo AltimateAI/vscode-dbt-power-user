@@ -613,7 +613,8 @@ export class IntegrationModeService {
 
   /**
    * A project's target path as dbt Core resolves it: `DBT_TARGET_PATH`, else
-   * dbt_project.yml's `target-path` when it is a plain value, else `target`.
+   * dbt_project.yml's `target-path` when it is a plain value or a single
+   * `env_var` call, else `target`.
    */
   private targetPath(projectRoot: string, env: EnvironmentVariables): string {
     let target: unknown = env.DBT_TARGET_PATH;
@@ -623,6 +624,12 @@ export class IntegrationModeService {
         target = isRecord(config) ? config["target-path"] : undefined;
       } catch {
         target = undefined;
+      }
+      const match =
+        typeof target === "string" ? SINGLE_ENV_VAR.exec(target) : null;
+      if (match) {
+        const [, , name, , fallback] = match;
+        target = env[name] !== undefined ? env[name] : fallback;
       }
     }
     return path.resolve(
@@ -682,10 +689,13 @@ export class IntegrationModeService {
         signal: controller.signal,
       })
       .then(async (result: FusionTrialResult) => {
+        // dbt Core working in this window cancels the trial, even one whose
+        // parse had already finished: nothing is remembered or shown then.
+        const outcome = controller.signal.aborted ? "canceled" : result.outcome;
         const failed = result.failed;
         this.terminal.info(
           "dbtIntegrationFusionTrial",
-          `Trial parse of ${projectRoots.length} project(s) with ${binary.path} (dbt ${version}): ${result.outcome}` +
+          `Trial parse of ${projectRoots.length} project(s) with ${binary.path} (dbt ${version}): ${outcome}` +
             (failed?.firstError
               ? ` in ${path.basename(failed.root)}: ${failed.firstError}`
               : ""),
@@ -694,7 +704,7 @@ export class IntegrationModeService {
         this.telemetry.sendTelemetryEvent(
           "dbtIntegrationFusionTrial",
           {
-            outcome: result.outcome,
+            outcome,
             binaryVersion: version,
             binaryLocation: binary.location,
             dbtCoreCheck,
@@ -708,13 +718,13 @@ export class IntegrationModeService {
             projects: projectRoots.length,
           },
         );
-        if (result.outcome === "canceled") {
+        if (outcome === "canceled") {
           return undefined;
         }
         const trial: RememberedTrial = {
           path: binary.path,
           version,
-          outcome: result.outcome,
+          outcome,
           at: Date.now(),
           projects: projectRoots.map((root) => path.basename(root)),
           failedProject: failed ? path.basename(failed.root) : undefined,

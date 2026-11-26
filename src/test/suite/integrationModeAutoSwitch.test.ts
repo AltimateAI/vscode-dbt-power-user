@@ -2756,6 +2756,29 @@ describe("the safe switch to dbt Fusion", () => {
       expect(held(fromEnv.telemetry)).toMatchObject({ reason: "fusionTrial" });
     });
 
+    it("reads a target-path given as an env_var call", async () => {
+      writeFileSync(
+        path.join(root, "dbt_project.yml"),
+        "name: jaffle\nversion: \"1.0\"\nprofile: jaffle\ntarget-path: \"{{ env_var('BUILD_DIR', 'target') }}\"\n",
+      );
+      mkdirSync(path.join(root, "build"));
+      writeFileSync(path.join(root, "build", "partial_parse.msgpack"), "");
+      const withVar = shipped({
+        env: { PATH: "/usr/bin", BUILD_DIR: "build" },
+      });
+      await withVar.svc.resolve(new FakeMemento() as never);
+      expect(held(withVar.telemetry)).toMatchObject({
+        reason: "dbtCoreRecent",
+      });
+
+      // Unset: its default, target, which has no partial parse file.
+      const withDefault = shipped({ trial: "never" });
+      await withDefault.svc.resolve(new FakeMemento() as never);
+      expect(held(withDefault.telemetry)).toMatchObject({
+        reason: "fusionTrial",
+      });
+    });
+
     it("lets a partial parse file older than 7 days go to the trial", async () => {
       mkdirSync(path.join(root, "target"));
       const file = path.join(root, "target", "partial_parse.msgpack");
@@ -3005,6 +3028,29 @@ describe("the safe switch to dbt Fusion", () => {
         expect.objectContaining({ outcome: "canceled" }),
         expect.anything(),
       );
+    });
+
+    it("remembers and shows nothing when dbt Core works before a finished trial is handled", async () => {
+      const memento = new FakeMemento();
+      const { svc, runTrial } = shipped();
+      let finish: (result: FusionTrialResult) => void = () => undefined;
+      // A trial that ignores the cancel: its parse had already finished.
+      runTrial.mockImplementationOnce(
+        () =>
+          new Promise<FusionTrialResult>((resolve) => {
+            finish = resolve;
+          }),
+      );
+      await svc.resolve(memento as never, new FakeMemento() as never);
+      void svc.notifyHeldWithoutDbtCore();
+
+      await svc.dbtCoreWorked();
+      finish(parsed());
+      await settle();
+
+      expect(memento.get(FUSION_TRIAL_KEY)).toBeUndefined();
+      expect(shown()).toHaveLength(0);
+      expect(errors()).toHaveLength(0);
     });
 
     it("shows nothing about the trial where dbt Core mode works", async () => {
