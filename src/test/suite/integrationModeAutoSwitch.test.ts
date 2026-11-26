@@ -986,7 +986,14 @@ describe("DBTClient in a window held in dbt Core mode", () => {
         notifyHeldWithoutDbtCore: jest.fn(() => Promise.resolve(held)),
         heldWithoutPython: jest.fn(() => (held ? offer : undefined)),
       };
-      const pythonEnvironment = {
+      const pythonEnvironment: {
+        pythonPath: string;
+        isPython3: boolean;
+        pythonExtensionAvailable: boolean;
+        getEnvironmentVariables: () => Record<string, string>;
+        showInterpreterNotFound: jest.Mock;
+        heldNotes?: () => unknown;
+      } = {
         pythonPath,
         isPython3: true,
         pythonExtensionAvailable,
@@ -1109,13 +1116,16 @@ describe("DBTClient in a window held in dbt Core mode", () => {
       ]);
     });
 
-    it("keeps the guidance for an interpreter path that no longer exists, offering dbt Fusion with it", async () => {
+    it("keeps the guidance for an interpreter path that no longer exists, which adds the hold's note however it's reported", async () => {
       const missing = path.join(tmpdir(), "no-such-venv", "bin", "python");
       const held = noPython(true, { pythonPath: missing });
       await held.dbtClient.showErrorIfDbtOrPythonNotInstalled();
       expect(
         held.pythonEnvironment.showInterpreterNotFound,
-      ).toHaveBeenCalledWith(missing, held.offer);
+      ).toHaveBeenCalledWith(missing);
+      // The note is asked when the error is shown, also for a project that
+      // reports the path first.
+      expect(held.pythonEnvironment.heldNotes?.()).toBe(held.offer);
       expect(held.notice.notifyHeldWithoutDbtCore).not.toHaveBeenCalled();
       expect(window.showErrorMessage).not.toHaveBeenCalled();
 
@@ -1123,7 +1133,8 @@ describe("DBTClient in a window held in dbt Core mode", () => {
       await notHeld.dbtClient.showErrorIfDbtOrPythonNotInstalled();
       expect(
         notHeld.pythonEnvironment.showInterpreterNotFound,
-      ).toHaveBeenCalledWith(missing, undefined);
+      ).toHaveBeenCalledWith(missing);
+      expect(notHeld.pythonEnvironment.heldNotes?.()).toBeUndefined();
     });
 
     it("keeps Install dbt Core, through the hold, for an interpreter without dbt-core", async () => {
@@ -3352,6 +3363,52 @@ describe("the safe switch to dbt Fusion", () => {
         ).toBe(true);
       },
     );
+
+    /** A shipped service whose trial finishes when `finish` is called. */
+    const pendingTrial = async () => {
+      const made = shipped();
+      let finish!: (result: FusionTrialResult) => void;
+      made.runTrial.mockImplementation(
+        () =>
+          new Promise<FusionTrialResult>((resolve) => {
+            finish = resolve;
+          }),
+      );
+      await made.svc.resolve(new FakeMemento() as never);
+      return { ...made, finish: (result: FusionTrialResult) => finish(result) };
+    };
+    const settled = async () => {
+      for (let i = 0; i < 5; i++) {
+        await settle();
+      }
+    };
+
+    it("drops a trial's waiting result when Python went away and its error told the window", async () => {
+      const made = await pendingTrial();
+      // Detection with an interpreter that lacks dbt-core: the error waits
+      // for the trial.
+      await made.svc.notifyHeldWithoutDbtCore();
+      // The interpreter is deleted: the Python error tells the window.
+      expect(made.svc.heldWithoutPython()).toMatchObject({ fusion: FUSION });
+
+      made.finish(failed());
+      await settled();
+
+      expect(errors()).toHaveLength(0);
+      expect(shown()).toHaveLength(0);
+    });
+
+    it("shows a trial's result once when the window was detected twice while it ran", async () => {
+      const made = await pendingTrial();
+      await made.svc.notifyHeldWithoutDbtCore();
+      await made.svc.notifyHeldWithoutDbtCore();
+
+      made.finish(failed());
+      await settled();
+
+      expect(errors()).toHaveLength(1);
+      expect(errors()[0][0]).toContain("couldn't parse jaffle");
+    });
 
     it("shows the Python extension's error with a dbt-loom hold's reason and no Use dbt Fusion, and counts the answer", async () => {
       const made = await cases

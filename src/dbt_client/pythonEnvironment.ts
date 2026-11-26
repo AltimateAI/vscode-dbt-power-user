@@ -135,6 +135,12 @@ export class PythonEnvironment {
   // Interpreters already reported missing this session: every dbt project in the
   // workspace fails on the same one, and the user should see one prompt.
   private reportedMissingInterpreters = new Set<string>();
+  /**
+   * What a held window's missing-interpreter error adds (`HeldNote`), asked
+   * when the error is shown: by the installation check or by a project that
+   * failed to start on the same interpreter, whichever reports it first.
+   */
+  heldNotes?: () => HeldNote | undefined;
   // Used while the selected interpreter doesn't exist, for this window only.
   private fallback?: InterpreterFallback;
   private fallbackOutcomeReported = false;
@@ -226,18 +232,16 @@ export class PythonEnvironment {
   /**
    * Tells the user the interpreter doesn't exist (a deleted or moved virtual
    * environment, or a command that isn't on the PATH) and offers a way to pick
-   * another, once per interpreter, with what `held` adds in a held window.
-   * Picking one fires `onPythonEnvironmentChanged`, which re-initializes the
-   * projects.
+   * another, once per interpreter, with what `heldNotes` adds in a held
+   * window. Picking one fires `onPythonEnvironmentChanged`, which
+   * re-initializes the projects.
    */
-  async showInterpreterNotFound(
-    interpreterPath: string,
-    held?: HeldNote,
-  ): Promise<void> {
+  async showInterpreterNotFound(interpreterPath: string): Promise<void> {
     if (this.reportedMissingInterpreters.has(interpreterPath)) {
       return;
     }
     this.reportedMissingInterpreters.add(interpreterPath);
+    const held = this.heldNotes?.();
     // An override wins over the Python extension's selection, so only editing
     // the setting helps.
     if (

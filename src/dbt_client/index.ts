@@ -141,7 +141,13 @@ export class DBTClient implements Disposable {
     @inject("Factory<DBTDetection>")
     private dbtDetectionFactory: () => DBTDetection,
     private heldSwitchNotice?: HeldSwitchNotice,
-  ) {}
+  ) {
+    // A project that fails on a missing interpreter may report it before
+    // this check does; its error adds the same.
+    if (heldSwitchNotice) {
+      pythonEnvironment.heldNotes = () => heldSwitchNotice.heldWithoutPython();
+    }
+  }
 
   dispose() {
     while (this.disposables.length) {
@@ -216,23 +222,19 @@ export class DBTClient implements Disposable {
       if (!this.shownError) {
         // We don't want to flood the user with errors
         this.shownError = true;
-        // A window held with dbt Fusion found also offers it, as it runs
-        // without Python, or says why the window was held.
-        const held = this.heldSwitchNotice?.heldWithoutPython();
         // A path that no longer exists, typically a deleted or moved virtual
         // environment. A bare command such as `python` is left to the general
-        // message: it may be on the PATH.
+        // message: it may be on the PATH. In a held window, both add what
+        // `heldWithoutPython` gives.
         const pythonPath = this.pythonEnvironment.pythonPath;
         if (
           pythonPath &&
           (isAbsolute(pythonPath) || /[\\/]/.test(pythonPath))
         ) {
-          await this.pythonEnvironment.showInterpreterNotFound(
-            pythonPath,
-            held,
-          );
+          await this.pythonEnvironment.showInterpreterNotFound(pythonPath);
           return false;
         }
+        const held = this.heldSwitchNotice?.heldWithoutPython();
         const answer = await window.showErrorMessage(
           held
             ? withHeldNote(

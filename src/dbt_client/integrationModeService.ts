@@ -469,8 +469,14 @@ export class IntegrationModeService {
   private firstRebuildSettled = new Set<string>();
   /** Manifest rebuilds running per project root. */
   private rebuildsRunning = new Map<string, number>();
-  /** `notifyHeldWithoutDbtCore` told this window why it was held. */
+  /** An error told this window why it was held: the hold's or a Python error. */
   private heldErrorShown = false;
+  /**
+   * Counts the errors that told this window why it was held. A trial's
+   * result waits to be shown, and is dropped when a later error came after
+   * it: a Python error, or a later detection's, which shows it instead.
+   */
+  private heldErrors = 0;
   private globalState?: Memento;
   /** The trial parse running in this window, for a "fusionTrial" hold. */
   private trial?: {
@@ -1303,6 +1309,7 @@ export class IntegrationModeService {
       return undefined;
     }
     this.heldErrorShown = true;
+    this.heldErrors++;
     return {
       ...(FUSION_WITHOUT_PYTHON.has(held.reason)
         ? { fusion: fusionLabel(held.binary) }
@@ -1336,14 +1343,18 @@ export class IntegrationModeService {
     }
     // Before the first await: the activation's notice checks it next.
     this.heldErrorShown = true;
+    const shown = ++this.heldErrors;
     const trial = held.reason === "fusionTrial" ? this.trial : undefined;
     if (trial) {
       // The trial can take minutes: this error is claimed now and shown with
       // its result. A canceled trial means dbt Core works after all.
       void trial.done
         .then((result) =>
-          // dbt Core may have started working while the result was saved.
-          result && !trial.controller.signal.aborted
+          // dbt Core may have started working while the result was saved,
+          // or a later error told the window already.
+          result &&
+          !trial.controller.signal.aborted &&
+          shown === this.heldErrors
             ? this.showHeld({ ...held, trial: result })
             : undefined,
         )
@@ -1536,29 +1547,10 @@ function heldMessage(
       };
     }
     case "fusionTrial":
-    case "fusionTrialFailed": {
-      const trial = held.trial;
-      if (!trial) {
-        return offerFusion();
-      }
-      if (trial.outcome === "parsed") {
-        return {
-          text: `${withNeeds(`${fusion} parsed ${projectsPhrase(trial.projects)}.`)} Reload the window to use dbt Fusion.`,
-          actions: [RELOAD_WITH_FUSION, INSTALL_DBT_CORE],
-          info: true,
-        };
-      }
-      const blocker = withNeeds(
-        `${fusion} is on your path, but ${trialBlocker(trial)}.`,
-      );
-      return {
-        text:
-          shownAs === "pythonError"
-            ? blocker
-            : `${blocker} Install dbt Core, or use dbt Fusion anyway.`,
-        actions: installOr(USE_FUSION),
-      };
-    }
+    case "fusionTrialFailed":
+      return held.trial
+        ? trialMessage(held.trial, fusion, withNeeds, installOr, shownAs)
+        : offerFusion();
   }
 
   function offerFusion() {
@@ -1567,6 +1559,33 @@ function heldMessage(
       actions: installOr(USE_FUSION),
     };
   }
+}
+
+/** A finished trial's message: Reload where it parsed, its first error where it didn't. */
+function trialMessage(
+  trial: RememberedTrial,
+  fusion: string,
+  withNeeds: (text: string) => string,
+  installOr: (...actions: string[]) => string[],
+  shownAs: "notice" | "error" | "pythonError",
+): { text: string; actions: string[]; info?: boolean } {
+  if (trial.outcome === "parsed") {
+    return {
+      text: `${withNeeds(`${fusion} parsed ${projectsPhrase(trial.projects)}.`)} Reload the window to use dbt Fusion.`,
+      actions: [RELOAD_WITH_FUSION, INSTALL_DBT_CORE],
+      info: true,
+    };
+  }
+  const blocker = withNeeds(
+    `${fusion} is on your path, but ${trialBlocker(trial)}.`,
+  );
+  return {
+    text:
+      shownAs === "pythonError"
+        ? blocker
+        : `${blocker} Install dbt Core, or use dbt Fusion anyway.`,
+    actions: installOr(USE_FUSION),
+  };
 }
 
 /** "jaffle_shop", "a and b", or "4 dbt projects". */
