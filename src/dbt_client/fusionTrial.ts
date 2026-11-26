@@ -436,13 +436,26 @@ function killTree(child: ChildProcess, spawnProcess: SpawnProcess): void {
       // No such group: kill the process itself.
     }
   }
-  try {
-    if (process.platform === "win32" && child.pid !== undefined) {
+  if (process.platform === "win32" && child.pid !== undefined) {
+    // taskkill finds the tree from the run, so the run is killed after it.
+    const killRun = () => killProcess(child);
+    try {
       spawnProcess("taskkill", ["/pid", String(child.pid), "/T", "/F"], {
         stdio: "ignore",
         windowsHide: true,
-      }).on("error", () => undefined);
+      })
+        .on("error", killRun)
+        .on("exit", killRun);
+      return;
+    } catch {
+      // taskkill didn't start: kill the run itself.
     }
+  }
+  killProcess(child);
+}
+
+function killProcess(child: ChildProcess): void {
+  try {
     child.kill("SIGKILL");
   } catch {
     // Already gone.

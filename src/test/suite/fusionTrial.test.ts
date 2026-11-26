@@ -84,10 +84,28 @@ function expectKilled(child: FakeChild): void {
 
 let calls: Call[];
 
+interface TaskKill {
+  args: string[];
+  /** The run was killed before taskkill looked for its tree, so it found none. */
+  runKilledFirst: boolean;
+}
+
+let taskkills: TaskKill[];
+
 function fakeSpawn(script: (args: string[]) => Script): SpawnProcess {
   return (command: string, args: string[], options: SpawnOptions) => {
     const child = new FakeChild();
     if (command === "taskkill") {
+      const run = calls.find((c) => String(c.child.pid) === args[1]);
+      // taskkill takes a moment to start before it looks for the tree.
+      setImmediate(() => {
+        taskkills.push({
+          args,
+          runKilledFirst: (run?.child.kill.mock.calls.length ?? 0) > 0,
+        });
+        child.exitCode = 0;
+        child.emit("exit", 0, null);
+      });
       return child as unknown as ChildProcess;
     }
     calls.push({
@@ -231,6 +249,7 @@ function expectScratchOnly(roots: string[]) {
 
 beforeEach(() => {
   calls = [];
+  taskkills = [];
   workspace = mkdtempSync(path.join(tmpdir(), "fusion-trial-test-"));
   // Never a real process group: a fake child stands for each.
   groupKill = jest
@@ -378,6 +397,32 @@ describe("runFusionTrial", () => {
     expect(result.outcome).toBe("timeout");
     expectKilled(calls[0].child);
     expectScratchOnly([root]);
+  });
+
+  it("on Windows, kills the run only after taskkill has killed its process tree", async () => {
+    const platform = Object.getOwnPropertyDescriptor(process, "platform");
+    Object.defineProperty(process, "platform", { value: "win32" });
+    try {
+      const root = makeProject("shop");
+      const result = await trial([root], () => ({ hang: true }), {
+        projectTimeoutMs: 500,
+      });
+
+      expect(result.outcome).toBe("timeout");
+      expect(calls[0].options.detached).toBe(false);
+      expect(taskkills).toEqual([
+        {
+          args: ["/pid", String(calls[0].child.pid), "/T", "/F"],
+          runKilledFirst: false,
+        },
+      ]);
+      expect(calls[0].child.kill).toHaveBeenCalledWith("SIGKILL");
+      expectScratchOnly([root]);
+    } finally {
+      if (platform) {
+        Object.defineProperty(process, "platform", platform);
+      }
+    }
   });
 
   it("starts each run in its own process group on macOS and Linux", async () => {
