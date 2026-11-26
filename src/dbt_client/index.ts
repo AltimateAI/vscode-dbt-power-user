@@ -188,26 +188,30 @@ export class DBTClient implements Disposable {
     );
   }
 
-  private async promptToInstallPythonExtensionOnce() {
-    if (!this.shownError) {
-      this.shownError = true;
-      await this.promptToInstallPythonExtension();
-    }
-  }
-
   async showErrorIfDbtOrPythonNotInstalled() {
     const dbtIntegrationMode = getDbtIntegrationMode();
     if (!integrationNeedsPython(dbtIntegrationMode)) {
       return this.showErrorIfDbtIsNotInstalled();
     }
     if (this.pythonExtensionMissing()) {
-      await this.promptToInstallPythonExtensionOnce();
+      if (!this.shownError) {
+        this.shownError = true;
+        // A window held with dbt Fusion found offers it: it runs without Python.
+        if (!(await this.heldSwitchNotice?.notifyHeldWithoutDbtCore())) {
+          await this.promptToInstallPythonExtension();
+        }
+      }
       return false;
     }
     if (!this._pythonInstalled) {
       if (!this.shownError) {
         // We don't want to flood the user with errors
         this.shownError = true;
+        // A window held with dbt Fusion found says why, with a way to dbt
+        // Fusion and to an interpreter, in place of the Python error.
+        if (await this.heldSwitchNotice?.notifyHeldWithoutDbtCore()) {
+          return false;
+        }
         // A path that no longer exists, typically a deleted or moved virtual
         // environment. A bare command such as `python` is left to the general
         // message: it may be on the PATH.

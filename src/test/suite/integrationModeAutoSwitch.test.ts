@@ -931,6 +931,112 @@ describe("DBTClient in a window held in dbt Core mode", () => {
     await dbtClient.showErrorIfDbtOrPythonNotInstalled();
     expect(notice.notifyHeldWithoutDbtCore).not.toHaveBeenCalled();
   });
+
+  /**
+   * Without a usable Python, a window held with dbt Fusion found shows its
+   * hold, which offers dbt Fusion (it runs without Python), in place of the
+   * Python errors. Without a hold, the Python errors are as before.
+   */
+  describe("without a usable Python", () => {
+    const showInterpreterNotFound = jest.fn(() => Promise.resolve());
+
+    function noPython(
+      held: boolean,
+      {
+        pythonExtensionAvailable = true,
+        pythonPath = "",
+      }: { pythonExtensionAvailable?: boolean; pythonPath?: string } = {},
+    ) {
+      setEffectiveDbtIntegrationMode("core");
+      const notice = {
+        notifyHeldWithoutDbtCore: jest.fn(() => Promise.resolve(held)),
+      };
+      const dbtClient = new DBTClient(
+        {
+          pythonPath,
+          isPython3: true,
+          pythonExtensionAvailable,
+          getEnvironmentVariables: () => ({ PATH: "" }),
+          showInterpreterNotFound,
+        } as never,
+        jest.fn() as never,
+        notice,
+      );
+      const internals = dbtClient as unknown as {
+        _pythonInstalled: boolean;
+        _dbtInstalled: boolean;
+      };
+      internals._pythonInstalled = false;
+      internals._dbtInstalled = false;
+      return { dbtClient, notice };
+    }
+
+    const errorTexts = () =>
+      (window.showErrorMessage as jest.Mock).mock.calls.map(
+        (call) => (call as unknown[])[0],
+      );
+
+    afterEach(() => {
+      showInterpreterNotFound.mockClear();
+    });
+
+    it("offers the hold instead of the Python extension prompt when the Python extension is missing", async () => {
+      const { dbtClient, notice } = noPython(true, {
+        pythonExtensionAvailable: false,
+      });
+      await expect(
+        dbtClient.showErrorIfDbtOrPythonNotInstalled(),
+      ).resolves.toBe(false);
+      expect(notice.notifyHeldWithoutDbtCore).toHaveBeenCalledTimes(1);
+      expect(window.showErrorMessage).not.toHaveBeenCalled();
+    });
+
+    it("prompts for the Python extension when the window wasn't held", async () => {
+      const { dbtClient } = noPython(false, {
+        pythonExtensionAvailable: false,
+      });
+      await dbtClient.showErrorIfDbtOrPythonNotInstalled();
+      expect(errorTexts()).toEqual([
+        "dbt Core runs through the Python extension, which is not installed. Install it, or switch dbt.dbtIntegration to fusion to use dbt Fusion without Python.",
+      ]);
+    });
+
+    it("offers the hold instead of 'No Python interpreter is selected'", async () => {
+      const { dbtClient, notice } = noPython(true);
+      await dbtClient.showErrorIfDbtOrPythonNotInstalled();
+      expect(notice.notifyHeldWithoutDbtCore).toHaveBeenCalledTimes(1);
+      expect(window.showErrorMessage).not.toHaveBeenCalled();
+    });
+
+    it("says no interpreter is selected when the window wasn't held", async () => {
+      const { dbtClient } = noPython(false);
+      await dbtClient.showErrorIfDbtOrPythonNotInstalled();
+      expect(errorTexts()).toEqual([
+        "No Python interpreter is selected or Python is not installed",
+      ]);
+    });
+
+    it("offers the hold instead of 'interpreter not found' for a path that no longer exists", async () => {
+      const missing = path.join(tmpdir(), "no-such-venv", "bin", "python");
+      const held = noPython(true, { pythonPath: missing });
+      await held.dbtClient.showErrorIfDbtOrPythonNotInstalled();
+      expect(held.notice.notifyHeldWithoutDbtCore).toHaveBeenCalledTimes(1);
+      expect(showInterpreterNotFound).not.toHaveBeenCalled();
+
+      const notHeld = noPython(false, { pythonPath: missing });
+      await notHeld.dbtClient.showErrorIfDbtOrPythonNotInstalled();
+      expect(showInterpreterNotFound).toHaveBeenCalledWith(missing);
+    });
+
+    it("shows it once per window, as the Python errors are", async () => {
+      const { dbtClient, notice } = noPython(true, {
+        pythonExtensionAvailable: false,
+      });
+      await dbtClient.showErrorIfDbtOrPythonNotInstalled();
+      await dbtClient.showErrorIfDbtOrPythonNotInstalled();
+      expect(notice.notifyHeldWithoutDbtCore).toHaveBeenCalledTimes(1);
+    });
+  });
 });
 
 describe("IntegrationModeService.needsReload", () => {
