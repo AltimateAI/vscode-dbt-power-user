@@ -150,10 +150,8 @@ export async function runFusionTrial(
  * own. Only directories: a file or link with the same name is kept. Never
  * rejects.
  */
-export async function removeLeftoverScratch(
-  dir: string,
-  now = Date.now(),
-): Promise<void> {
+export async function removeLeftoverScratch(dir: string): Promise<void> {
+  const now = Date.now();
   const names = await readdir(dir).catch(() => [] as string[]);
   for (const name of names.filter((n) => n.startsWith(SCRATCH_PREFIX))) {
     const folder = path.join(dir, name);

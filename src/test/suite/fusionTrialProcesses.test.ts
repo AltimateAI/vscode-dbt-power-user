@@ -104,7 +104,11 @@ async function until(condition: () => boolean, ms: number): Promise<boolean> {
 function scratchOf(p: string): string {
   let dir = p;
   while (!path.basename(dir).startsWith("pu-fusion-trial-")) {
-    dir = path.dirname(dir);
+    const parent = path.dirname(dir);
+    if (parent === dir) {
+      throw new Error(`${p} is not in a trial scratch directory`);
+    }
+    dir = parent;
   }
   return dir;
 }
