@@ -64,10 +64,35 @@ describe("DBTTerminal Test Suite", () => {
       `${name}:${message}`,
       [],
     );
-    expect(mockTelemetry.sendTelemetryEvent).toHaveBeenCalledWith(name, {
-      message,
-      level: "warn",
+    expect(mockTelemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+      name,
+      { message, level: "warn" },
+      {},
+    );
+  });
+
+  it("sends the dbt error codes and count a warning carries", () => {
+    // dbt-integration's "dbt debug reported" warning passes what dbt Fusion
+    // reported as its first extra argument (a FusionReportedError).
+    const reported = Object.assign(new Error("dbt debug reported: …"), {
+      errorCodes: "dbt1001,dbt1005",
+      errorCount: 2,
     });
+    terminal.warn(
+      "DBTFusionCommandInitializeTargetError",
+      "dbt debug reported: …",
+      true,
+      reported,
+    );
+    expect(mockTelemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+      "DBTFusionCommandInitializeTargetError",
+      {
+        message: "dbt debug reported: …",
+        level: "warn",
+        errorCodes: "dbt1001,dbt1005",
+      },
+      { errorCount: 2 },
+    );
   });
 
   it("should handle errors with proper error message formatting", () => {

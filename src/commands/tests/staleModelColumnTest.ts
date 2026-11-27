@@ -84,7 +84,11 @@ export class StaleModelColumnTest implements AltimateScanStep {
         const modelDict =
           altimateCatalog[projectName + projectRootUri][modelKey];
         const allDBColumns = modelDict.map(({ column_name }) =>
-          getColumnNameByCase(column_name, project.getAdapterType()),
+          getColumnNameByCase(
+            column_name,
+            project.getAdapterType(),
+            project.projectRoot,
+          ),
         );
         // The package install path is unknown for a project whose
         // packages-install-path never resolved (deps not installed, or an
@@ -99,7 +103,11 @@ export class StaleModelColumnTest implements AltimateScanStep {
         for (const existingCol of Object.keys(value.columns)) {
           if (
             !allDBColumns.includes(
-              getColumnNameByCase(existingCol, project.getAdapterType()),
+              getColumnNameByCase(
+                existingCol,
+                project.getAdapterType(),
+                project.projectRoot,
+              ),
             )
           ) {
             const errMessage = `Column ${existingCol} listed in model ${value.name} is not found in the database.

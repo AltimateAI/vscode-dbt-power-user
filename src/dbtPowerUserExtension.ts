@@ -15,7 +15,10 @@ import { VSCodeCommands } from "./commands";
 import { CommentProviders } from "./comment_provider";
 import { ContentProviders } from "./content_provider";
 import { DBTProjectContainer } from "./dbt_client/dbtProjectContainer";
-import { readConfiguredDbtIntegration } from "./dbt_client/integrationMode";
+import {
+  getDbtIntegrationMode,
+  readConfiguredDbtIntegration,
+} from "./dbt_client/integrationMode";
 import { IntegrationModeService } from "./dbt_client/integrationModeService";
 import { DefinitionProviders } from "./definition_provider";
 import { DocumentFormattingEditProviders } from "./document_formatting_edit_provider";
@@ -65,6 +68,21 @@ export function isPowerUserRejection(reason: unknown): boolean {
   return (
     typeof stack === "string" && stack.includes(POWER_USER_EXTENSION_MARKER)
   );
+}
+
+/**
+ * A project's dbt major version, undefined when its reader throws: this
+ * runs inside the container's rebuild event, whose other listeners and
+ * bookkeeping must still run.
+ */
+function dbtMajorVersion(project: {
+  getDBTVersion(): number[] | undefined;
+}): number | undefined {
+  try {
+    return project.getDBTVersion()?.[0];
+  } catch {
+    return undefined;
+  }
 }
 
 export class DBTPowerUserExtension implements Disposable {
@@ -249,19 +267,67 @@ export class DBTPowerUserExtension implements Disposable {
       });
       try {
         // Before detection: the mode decides which dbt is looked for.
-        await this.integrationModeService.resolve(context.workspaceState);
-        void this.integrationModeService
-          .notifySwitchHeld()
-          .catch((error) =>
-            this.telemetry.sendTelemetryError(
-              "dbtIntegrationSwitchHeldNoticeError",
-              error,
-            ),
-          );
+        await this.integrationModeService.resolve(
+          context.workspaceState,
+          context.globalState,
+        );
       } catch (error) {
         this.telemetry.sendTelemetryError("dbtIntegrationModeError", error);
       }
+      if (["core", "corecommand"].includes(getDbtIntegrationMode())) {
+        // A project that read dbt 1.x shows dbt Core works on this machine:
+        // other windows aren't switched to dbt Fusion for a while.
+        context.subscriptions.push(
+          this.dbtProjectContainer.onProjectRebuildManifestStatusChange(
+            ({ project, inProgress }) => {
+              if (!inProgress && dbtMajorVersion(project) === 1) {
+                void this.integrationModeService
+                  .dbtCoreWorked()
+                  .catch((error) =>
+                    this.telemetry.sendTelemetryError(
+                      "dbtIntegrationDbtCoreWorkedError",
+                      error,
+                    ),
+                  );
+              }
+            },
+          ),
+        );
+      }
+      if (this.integrationModeService.autoSwitched) {
+        // Subscribed before the projects start, so each one's first rebuild is seen.
+        context.subscriptions.push(
+          this.dbtProjectContainer.onProjectRebuildManifestStatusChange(
+            ({ project, inProgress }) =>
+              void this.integrationModeService
+                .rebuildStatusChanged({
+                  root: project.projectRoot.fsPath,
+                  name: project.getProjectName(),
+                  inProgress,
+                  errorCount: inProgress
+                    ? 0
+                    : project.rebuildManifestErrorCount(),
+                })
+                .catch((error) =>
+                  this.telemetry.sendTelemetryError(
+                    "dbtIntegrationAutoSwitchParseFailedError",
+                    error,
+                  ),
+                ),
+          ),
+        );
+      }
       await this.dbtProjectContainer.detectDBT();
+      // After detection: where dbt Core mode can't start, detection already
+      // showed why the window was held, as its "dbt is not installed" error.
+      void this.integrationModeService
+        .notifySwitchHeld()
+        .catch((error) =>
+          this.telemetry.sendTelemetryError(
+            "dbtIntegrationSwitchHeldNoticeError",
+            error,
+          ),
+        );
       await this.dbtProjectContainer.initializeDBTProjects();
       const notifyAutoSwitch = (roots: Uri[]) =>
         void this.integrationModeService

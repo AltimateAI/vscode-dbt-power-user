@@ -102,6 +102,64 @@ describe("TelemetryService.sendTelemetryError forwards diagnostic fields", () =>
     expect(captureCall().properties.errorClass).toBeUndefined();
   });
 
+  // VS Code's redactor blanks the whole text of about 1 in 5 dbt Fusion
+  // parse errors, and the dbt error codes with it. dbt-integration puts the
+  // codes and the error count on the error it reports.
+  it("forwards the dbt error codes and error count dbt-integration reports", () => {
+    const err = Object.assign(new Error("<REDACTED: Generic Secret>"), {
+      errorCodes: "dbt1005,dbt1159",
+      errorCount: 3,
+    });
+    telemetry.sendTelemetryError("dbtFusionParseProjectUserError", err);
+    const { properties, measurements } = captureCall();
+    expect(properties.errorCodes).toBe("dbt1005,dbt1159");
+    expect(measurements.errorCount).toBe(3);
+  });
+
+  it("sends only values shaped like a dbt error code, and a count of 0", () => {
+    const err = Object.assign(new Error("panic"), {
+      errorCodes: "dbt1005,/home/user/secret,dbt12",
+      errorCount: 0,
+    });
+    telemetry.sendTelemetryError("dbtFusionParseProjectUserError", err);
+    const { properties, measurements } = captureCall();
+    expect(properties.errorCodes).toBe("dbt1005");
+    expect(measurements.errorCount).toBe(0);
+  });
+
+  it.each<[string, unknown, unknown]>([
+    ["none", undefined, undefined],
+    ["not a string or a number", ["dbt1005"], "3"],
+    ["no code in it", "dbtXXXX", Number.NaN],
+  ])(
+    "sends no errorCodes or errorCount when they are %s",
+    (_, errorCodes, errorCount) => {
+      telemetry.sendTelemetryError(
+        "dbtFusionParseProjectUserError",
+        Object.assign(new Error("boom"), { errorCodes, errorCount }),
+      );
+      const { properties, measurements } = captureCall();
+      expect(properties.errorCodes).toBeUndefined();
+      expect(measurements.errorCount).toBeUndefined();
+    },
+  );
+
+  it("sends the error without the fields when reading them throws", () => {
+    const err = new Error("boom");
+    Object.defineProperty(err, "errorCodes", {
+      get() {
+        throw new Error("getter");
+      },
+    });
+    expect(() =>
+      telemetry.sendTelemetryError("dbtFusionParseProjectUserError", err),
+    ).not.toThrow();
+    const { properties, measurements } = captureCall();
+    expect(properties.error_message).toBe("boom");
+    expect(properties.errorCodes).toBeUndefined();
+    expect(measurements.errorCount).toBeUndefined();
+  });
+
   it("forwards error.name as a top-level property", () => {
     const err = new TypeError("Cannot destructure property 'returnResult'");
     telemetry.sendTelemetryError("unhandledRejectionError", err);
