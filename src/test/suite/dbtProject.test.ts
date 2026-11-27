@@ -1770,4 +1770,201 @@ describe("DBTProject Test Suite", () => {
       expect(mockManifestChangedEmitter.fire).toHaveBeenCalled();
     });
   });
+
+  describe("project check and error phase", () => {
+    const PROFILE =
+      "dbt configuration is invalid : Runtime Error Could not find profile named 'analytics'";
+    const MISSING_REF =
+      "There is a problem in your dbt project. Compilation failed: Model 'orders' depends on a node named 'stg_orderz' which was not found";
+    let checkFailed: boolean;
+    let projectConfigDiagnostics: object[];
+    let rebuildManifestDiagnostics: object[];
+
+    const construct = () =>
+      new DBTProject(
+        mockPythonEnvironment,
+        dbtProjectLogFactory as any,
+        mockCommandFactory,
+        mockTerminal,
+        mockSharedStateService,
+        mockTelemetry,
+        mockExecutionInfrastructure,
+        jest.fn().mockReturnValue(mockProjectIntegration) as any,
+        mockAltimate,
+        mockValidationProvider,
+        mockAltimateAuthService,
+        mockRunHistoryService,
+        vscode.Uri.file("/test/project"),
+        {},
+        mockManifestChangedEmitter,
+      );
+
+    const emit = (event: string, ...args: unknown[]) => {
+      const onCall = mockProjectIntegration.on.mock.calls.find(
+        (call: any) => call[0] === event,
+      );
+      onCall![1](...args);
+    };
+    const error = (message: string, category: string) => ({
+      filePath: "/test/project/dbt_project.yml",
+      message,
+      severity: "error",
+      source: "dbt-project",
+      category,
+    });
+    // The adapter announces a check's outcome as a diagnostics change.
+    const failCheck = (message?: string) => {
+      checkFailed = true;
+      projectConfigDiagnostics = message
+        ? [error(message, "project-config")]
+        : [];
+      emit(DBTProjectIntegrationAdapterEvents.DIAGNOSTICS_CHANGED);
+    };
+    const passCheck = () => {
+      checkFailed = false;
+      projectConfigDiagnostics = [];
+      emit(DBTProjectIntegrationAdapterEvents.DIAGNOSTICS_CHANGED);
+    };
+    const parse = (stale?: object) =>
+      emit(DBTProjectIntegrationAdapterEvents.MANIFEST_PARSED, { stale });
+    const passed = () =>
+      mockTelemetry.sendTelemetryEvent.mock.calls.filter(
+        (call) => call[0] === "projectCheckPassed",
+      );
+
+    beforeEach(() => {
+      checkFailed = false;
+      projectConfigDiagnostics = [];
+      rebuildManifestDiagnostics = [];
+      mockProjectIntegration.getDiagnostics = jest.fn(() => ({
+        pythonBridgeDiagnostics: [],
+        rebuildManifestDiagnostics,
+        projectConfigDiagnostics,
+      }));
+      mockProjectIntegration.isProjectCheckFailed = jest.fn(() => checkFailed);
+      mockProjectIntegration.getCloudVariantInfo = jest.fn(() => null);
+      mockProjectIntegration.getAdapterType = jest.fn(() => "snowflake");
+      mockProjectIntegration.getVersion = jest.fn(() => [1, 10, 0]);
+    });
+
+    describe("getErrorPhase", () => {
+      it("is startup until the project loads, and recheck after", () => {
+        dbtProject = construct();
+        expect(dbtProject.getErrorPhase()).toBe("startup");
+
+        parse();
+
+        expect(dbtProject.getErrorPhase()).toBe("recheck");
+        failCheck(PROFILE);
+        expect(dbtProject.getErrorPhase()).toBe("recheck");
+      });
+
+      it("stays startup for a manifest read from disk, even where nothing says the check failed", () => {
+        // An older dbt-integration, and a failure that left no diagnostic.
+        delete mockProjectIntegration.isProjectCheckFailed;
+        dbtProject = construct();
+        parse({ manifestPath: "/test/project/target/manifest.json" });
+
+        expect(dbtProject.getErrorPhase()).toBe("startup");
+      });
+
+      it("stays startup for a manifest parsed while the check fails", () => {
+        dbtProject = construct();
+        failCheck();
+        parse();
+
+        expect(dbtProject.getErrorPhase()).toBe("startup");
+      });
+
+      it("stays startup for a manifest parsed beside a parse error", () => {
+        dbtProject = construct();
+        rebuildManifestDiagnostics = [error(MISSING_REF, "manifest-rebuild")];
+        parse();
+
+        expect(dbtProject.getErrorPhase()).toBe("startup");
+      });
+    });
+
+    describe("projectCheckPassed", () => {
+      it("is sent once when a check that failed at startup passes", () => {
+        dbtProject = construct();
+        failCheck(PROFILE);
+        emit(DBTProjectIntegrationAdapterEvents.PROJECT_CONFIG_CHANGED);
+        expect(passed()).toHaveLength(0);
+
+        passCheck();
+        emit(DBTProjectIntegrationAdapterEvents.PROJECT_CONFIG_CHANGED);
+        passCheck();
+
+        expect(passed()).toEqual([
+          [
+            "projectCheckPassed",
+            {
+              errorPhase: "startup",
+              errorKind: "profile",
+              diagnosticCategory: "project-config",
+            },
+            { msSinceCheckFailed: expect.any(Number) },
+          ],
+        ]);
+      });
+
+      it("isn't sent for a check that never failed", () => {
+        dbtProject = construct();
+        emit(DBTProjectIntegrationAdapterEvents.PROJECT_CONFIG_CHANGED);
+        passCheck();
+        parse();
+
+        expect(passed()).toHaveLength(0);
+      });
+
+      it("names a check that fails after the project loaded a recheck", () => {
+        dbtProject = construct();
+        parse();
+        failCheck(PROFILE);
+        passCheck();
+
+        expect(passed()[0][1]).toMatchObject({ errorPhase: "recheck" });
+      });
+
+      it("follows a check that fails without a diagnostic, after the config refresh", () => {
+        dbtProject = construct();
+        checkFailed = true;
+        emit(DBTProjectIntegrationAdapterEvents.PROJECT_CONFIG_CHANGED);
+        checkFailed = false;
+        emit(DBTProjectIntegrationAdapterEvents.PROJECT_CONFIG_CHANGED);
+
+        expect(passed()).toHaveLength(1);
+        expect(passed()[0][1]).toEqual({
+          errorPhase: "startup",
+          errorKind: "unknown",
+          diagnosticCategory: "unknown",
+        });
+      });
+
+      it("takes the check's own error over an older parse error", () => {
+        dbtProject = construct();
+        rebuildManifestDiagnostics = [error(MISSING_REF, "manifest-rebuild")];
+        failCheck(PROFILE);
+        passCheck();
+
+        expect(passed()[0][1]).toMatchObject({
+          errorKind: "profile",
+          diagnosticCategory: "project-config",
+        });
+      });
+
+      it("reads the project-config diagnostics with an older dbt-integration", () => {
+        delete mockProjectIntegration.isProjectCheckFailed;
+        dbtProject = construct();
+        projectConfigDiagnostics = [error(PROFILE, "project-config")];
+        emit(DBTProjectIntegrationAdapterEvents.DIAGNOSTICS_CHANGED);
+        projectConfigDiagnostics = [];
+        emit(DBTProjectIntegrationAdapterEvents.DIAGNOSTICS_CHANGED);
+
+        expect(passed()).toHaveLength(1);
+        expect(passed()[0][1]).toMatchObject({ errorKind: "profile" });
+      });
+    });
+  });
 });

@@ -76,6 +76,7 @@ import {
   resolveSettingsVariables,
 } from "../utils";
 import { ValidationProvider } from "../validation_provider";
+import { classifyLineageError } from "../webview_provider/lineageTelemetry";
 import { DBTProjectLog } from "./dbtProjectLog";
 import {
   ManifestCacheChangedEvent,
@@ -133,6 +134,12 @@ const isSameFile = (left: string, right: string) => {
     : a === b;
 };
 
+/**
+ * When an error came: at `startup`, before the project loaded in this window, or
+ * at a `recheck`, after it had loaded once.
+ */
+export type ProjectErrorPhase = "startup" | "recheck";
+
 export class DBTProject implements Disposable {
   private _manifestCacheEvent?: ManifestCacheProjectAddedEvent;
   /**
@@ -154,6 +161,16 @@ export class DBTProject implements Disposable {
   // switched at runtime without the setting changing, and the integration this
   // project holds is the one created for that mode.
   private readonly dbtIntegrationMode: string;
+  // Whether the project loaded in this window: a manifest was parsed, not read
+  // from disk, with no error standing. Until then, an error is a startup error.
+  private loaded = false;
+  // While the project check stands failed: since when, and the error it failed on.
+  private failedCheck?: {
+    since: number;
+    errorPhase: ProjectErrorPhase;
+    errorKind: string;
+    diagnosticCategory: string;
+  };
 
   private _onProjectConfigChanged =
     new EventEmitter<ProjectConfigChangedEvent>();
@@ -284,6 +301,8 @@ export class DBTProject implements Disposable {
         const event = new ProjectConfigChangedEvent(this);
         this.stampCloudVariantOnTelemetry();
         this.stampDbtEnvironmentOnTelemetry();
+        // A check that failed without a diagnostic is seen here.
+        this.followProjectCheck();
         this._onProjectConfigChanged.fire(event);
       },
     );
@@ -335,6 +354,7 @@ export class DBTProject implements Disposable {
         this._manifestCacheEvent = manifestCacheEvent;
         this.stampManifestFreshness();
         this.stampDbtEnvironmentOnTelemetry();
+        this.noteLoaded(manifestCacheEvent.staleManifest);
         this._onManifestChanged.fire({ added: [manifestCacheEvent] });
       },
     );
@@ -365,6 +385,7 @@ export class DBTProject implements Disposable {
           "Received diagnosticsChanged event from dbtIntegrationAdapter",
         );
         this.updateDiagnosticsInProblemsPanel();
+        this.followProjectCheck();
       },
     );
 
@@ -2471,6 +2492,82 @@ export class DBTProject implements Disposable {
     return this.PythonEnvironment.getEnvironmentVariables(
       workspace.getWorkspaceFolder(this.projectRoot),
     ).DBT_PROFILES_DIR;
+  }
+
+  /** Whether an error standing now is a startup error or a later one. */
+  getErrorPhase(): ProjectErrorPhase {
+    return this.loaded ? "recheck" : "startup";
+  }
+
+  // A manifest parsed with no error standing is the project's first load; one
+  // read from disk after a failed check, or parsed beside a parse error, is not.
+  private noteLoaded(stale: StaleManifest | undefined): void {
+    if (this.loaded || stale !== undefined) {
+      return;
+    }
+    try {
+      this.loaded =
+        !this.isProjectCheckFailed() &&
+        this.getBlockingDiagnostic() === undefined;
+    } catch (error) {
+      this.terminal.debug(
+        "dbtProject:noteLoaded",
+        "Could not tell whether the project loaded",
+        error,
+      );
+    }
+  }
+
+  // Whether the last project check failed. Older @altimateai/dbt-integration
+  // releases don't say; there a project-config error stands for a failed check.
+  private isProjectCheckFailed(): boolean {
+    const adapter = this.dbtProjectIntegration as {
+      isProjectCheckFailed?: () => boolean;
+    };
+    if (typeof adapter.isProjectCheckFailed === "function") {
+      return adapter.isProjectCheckFailed();
+    }
+    return this.getCurrentProjectIntegration()
+      .getDiagnostics()
+      .projectConfigDiagnostics.some(({ severity }) => severity === "error");
+  }
+
+  /**
+   * Notes when the project check fails, and sends `projectCheckPassed` when a
+   * failed check passes, whether or not a graph follows. Runs on every
+   * diagnostics change and after every config refresh; never throws.
+   */
+  private followProjectCheck(): void {
+    try {
+      const failed = this.isProjectCheckFailed();
+      if (failed && this.failedCheck === undefined) {
+        // The check's own error first: an older parse error can still stand.
+        const error =
+          this.getCurrentProjectIntegration()
+            .getDiagnostics()
+            .projectConfigDiagnostics.find(
+              ({ severity }) => severity === "error",
+            ) ?? this.getBlockingDiagnostic();
+        this.failedCheck = {
+          since: Date.now(),
+          errorPhase: this.getErrorPhase(),
+          errorKind: error ? classifyLineageError(error.message) : "unknown",
+          diagnosticCategory: error?.category ?? "unknown",
+        };
+      } else if (!failed && this.failedCheck !== undefined) {
+        const { since, ...properties } = this.failedCheck;
+        this.failedCheck = undefined;
+        this.telemetry.sendTelemetryEvent("projectCheckPassed", properties, {
+          msSinceCheckFailed: Date.now() - since,
+        });
+      }
+    } catch (error) {
+      this.terminal.debug(
+        "dbtProject:followProjectCheck",
+        "Could not follow the project check",
+        error,
+      );
+    }
   }
 
   /**
