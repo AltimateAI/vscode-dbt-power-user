@@ -3,17 +3,20 @@ import * as path from "path";
 // The subcommands that change what's installed, per installer. `uv pip …` and
 // `python -m pip …` reach pip's.
 const PIP = ["install", "uninstall"];
-const SUBCOMMANDS: Record<string, string[]> = {
-  pip: PIP,
-  uv: ["add", "remove", "sync"],
-  poetry: ["add", "remove", "install", "update", "sync"],
-  pdm: ["add", "remove", "install", "update", "sync"],
-  pipenv: ["install", "uninstall", "update", "sync"],
-  conda: ["install", "remove", "uninstall", "update", "upgrade"],
-  mamba: ["install", "remove", "uninstall", "update", "upgrade"],
-  micromamba: ["install", "remove", "uninstall", "update", "upgrade"],
-  pipx: ["install", "uninstall", "upgrade", "reinstall", "inject"],
-};
+// A Map: an installer name such as `constructor` must not reach Object's own.
+const SUBCOMMANDS = new Map<string, string[]>(
+  Object.entries({
+    pip: PIP,
+    uv: ["add", "remove", "sync"],
+    poetry: ["add", "remove", "install", "update", "sync"],
+    pdm: ["add", "remove", "install", "update", "sync"],
+    pipenv: ["install", "uninstall", "update", "sync"],
+    conda: ["install", "remove", "uninstall", "update", "upgrade"],
+    mamba: ["install", "remove", "uninstall", "update", "upgrade"],
+    micromamba: ["install", "remove", "uninstall", "update", "upgrade"],
+    pipx: ["install", "uninstall", "upgrade", "reinstall", "inject"],
+  }),
+);
 
 // `pip3`, `pip3.12`, a path to a venv's `pip`, a Windows `pip.exe`.
 function installer(word: string): string {
@@ -27,15 +30,19 @@ function changesPackages(words: string[]): boolean {
   while (rest.length && (/^\w+=/.test(rest[0]) || rest[0] === "sudo")) {
     rest = rest.slice(1);
   }
-  // `python -m pip …`, `py -3 -m pip …`.
-  const module = rest.indexOf("-m");
+  // `python -m pip …`, `py -3 -m pip …`: `-m` among the interpreter's own
+  // options, before a script it runs.
   if (
-    module > 0 &&
     /^(python[\d.]*|py)(\.exe)?$/i.test(
-      path.basename(rest[0].replace(/\\/g, "/")),
+      path.basename(rest[0]?.replace(/\\/g, "/") ?? ""),
     )
   ) {
-    rest = rest.slice(module + 1);
+    const options = rest.slice(1);
+    const end = options.findIndex((word) => !word.startsWith("-"));
+    const module = options.slice(0, end < 0 ? undefined : end).indexOf("-m");
+    if (module >= 0) {
+      rest = options.slice(module + 1);
+    }
   }
   const tool = installer(rest[0] ?? "");
   // The words after the installer that aren't options (`-q`, `--upgrade`).
@@ -43,7 +50,9 @@ function changesPackages(words: string[]): boolean {
   if (tool === "uv" && args[0] === "pip") {
     return [...PIP, "sync"].includes(args[1]);
   }
-  return args[0] !== undefined && (SUBCOMMANDS[tool] ?? []).includes(args[0]);
+  return (
+    args[0] !== undefined && (SUBCOMMANDS.get(tool) ?? []).includes(args[0])
+  );
 }
 
 /**

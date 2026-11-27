@@ -55,6 +55,7 @@ import {
   ProgressLocation,
   Range,
   RelativePattern,
+  TerminalShellExecutionEndEvent,
   Uri,
   ViewColumn,
   Webview,
@@ -412,12 +413,9 @@ export class DBTProject implements Disposable {
     // the event.
     if (typeof window.onDidEndTerminalShellExecution === "function") {
       this.disposables.push(
-        window.onDidEndTerminalShellExecution((event) => {
-          const failed = event.exitCode !== undefined && event.exitCode !== 0;
-          if (!failed && isPackageInstall(event.execution.commandLine.value)) {
-            this.recheckAfter("terminalInstall");
-          }
-        }),
+        window.onDidEndTerminalShellExecution((event) =>
+          this.shellCommandEnded(event),
+        ),
       );
     }
 
@@ -448,6 +446,23 @@ export class DBTProject implements Disposable {
           err,
         );
       });
+  }
+
+  // A terminal command ended: one that installed or removed packages, and
+  // didn't fail, checks the project again. Never throws.
+  private shellCommandEnded(event: TerminalShellExecutionEndEvent): void {
+    try {
+      const failed = event.exitCode !== undefined && event.exitCode !== 0;
+      if (!failed && isPackageInstall(event.execution.commandLine.value)) {
+        this.recheckAfter("terminalInstall");
+      }
+    } catch (error) {
+      this.terminal.debug(
+        "dbtProject:shellCommandEnded",
+        "Could not read the terminal command",
+        error,
+      );
+    }
   }
 
   /**

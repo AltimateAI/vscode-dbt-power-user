@@ -2097,6 +2097,13 @@ describe("DBTProject Test Suite", () => {
       expect(mockProjectIntegration.reparseProject).not.toHaveBeenCalled();
     });
 
+    it("never throws to the terminal event, whatever it carries", async () => {
+      await started();
+
+      expect(() => shellExecutionEnded!({ exitCode: 0 })).not.toThrow();
+      expect(mockProjectIntegration.reparseProject).not.toHaveBeenCalled();
+    });
+
     it("starts without the terminal event in an editor that has none", async () => {
       delete (vscode.window as any).onDidEndTerminalShellExecution;
       await started();
