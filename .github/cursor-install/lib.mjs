@@ -1,4 +1,5 @@
 // Shared helpers for the Cursor install checks (.github/workflows/cursor-install.yml).
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -246,6 +247,53 @@ export function newestLogDir(userDataDir) {
   if (!fs.existsSync(root)) return undefined;
   const dirs = fs.readdirSync(root).sort();
   return dirs.length ? path.join(root, dirs[dirs.length - 1]) : undefined;
+}
+
+// The line a Cursor release build prints when it refuses debugger switches, and then exits:
+// "--remote-debugging-port is not supported in this build. Debugger switches work only in
+// development builds." Playwright's Electron launch passes --inspect and --remote-debugging-port.
+export function debuggerSwitchRefusal(output) {
+  return output
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find((line) => /^--[\w-]+ is not supported in this build/.test(line));
+}
+
+// What one start of a Linux Cursor build with a debugger switch and no display printed: the
+// refusal, or Chromium's X11 "Missing X server or $DISPLAY", which only a build that got past its
+// switch checks reaches. Anything else (a missing library, a crash, another platform error) says
+// nothing about the switch.
+const NO_DISPLAY = /Missing X server or \$DISPLAY/;
+export function debuggerSwitchVerdict(output) {
+  const refusal = debuggerSwitchRefusal(output);
+  if (refusal) return { refusal };
+  if (NO_DISPLAY.test(output)) return { accepted: true };
+  const line = output.split(/\r?\n/).find((l) => l.trim());
+  return { unknown: line ? line.trim() : "no output" };
+}
+
+// Starts a Linux Cursor build once with each switch Playwright's Electron launch passes, with no
+// display, so each start exits at once. Returns { accepted: true } only when both got past the
+// switch checks, { refusal } for the first refused switch, or { unknown }. --no-sandbox as for the
+// ui launch: on GitHub's Ubuntu runners Chromium otherwise stops at its SUID sandbox helper before
+// Cursor checks the switch.
+export function probeDebuggerSwitches(exe) {
+  const env = { ...process.env };
+  for (const key of ["ELECTRON_RUN_AS_NODE", "DISPLAY", "WAYLAND_DISPLAY"])
+    delete env[key];
+  for (const flag of ["--inspect=0", "--remote-debugging-port=0"]) {
+    const run = spawnSync(exe, ["--no-sandbox", flag, "--version"], {
+      encoding: "utf8",
+      timeout: 30000,
+      killSignal: "SIGKILL",
+      env,
+    });
+    if (run.error) return { unknown: `${flag}: ${run.error.message}` };
+    const verdict = debuggerSwitchVerdict(`${run.stdout}\n${run.stderr}`);
+    if (verdict.unknown) return { unknown: `${flag}: ${verdict.unknown}` };
+    if (verdict.refusal) return verdict;
+  }
+  return { accepted: true };
 }
 
 export function readIfExists(file) {

@@ -182,11 +182,9 @@ describe("untitled query documents", () => {
     setup(second(), jaffle());
     const doc = untitled("Untitled-1");
     container.setProjectForUntitledDocument(doc, fileUri("/ws/jaffle_shop"));
-    const provider = new VirtualSqlCodeLensProvider(
-      container,
-      { getProject: () => undefined } as never,
-      {} as never,
-    );
+    const provider = new VirtualSqlCodeLensProvider(container, {
+      getProject: () => undefined,
+    } as never);
     const lenses = provider.provideCodeLenses(
       { uri: doc, languageId: "jinja-sql" } as TextDocument,
       {} as never,
@@ -198,11 +196,9 @@ describe("untitled query documents", () => {
 
   it("refreshes the code lens when the document's project changes", () => {
     setup(second(), jaffle());
-    const provider = new VirtualSqlCodeLensProvider(
-      container,
-      { getProject: () => undefined } as never,
-      {} as never,
-    );
+    const provider = new VirtualSqlCodeLensProvider(container, {
+      getProject: () => undefined,
+    } as never);
     const refreshed = jest.fn();
     provider.onDidChangeCodeLenses(refreshed);
     container.setProjectForUntitledDocument(

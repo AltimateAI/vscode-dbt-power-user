@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 import { z } from "zod";
-import { zodToJsonSchema } from "zod-to-json-schema";
+import { toToolInput } from "../../mcp/toolInput";
 
 /**
  * Validates that MCP tool schemas produced by toToolInput() are compatible
@@ -13,16 +13,6 @@ import { zodToJsonSchema } from "zod-to-json-schema";
  *
  * Issue: https://github.com/AltimateAI/vscode-dbt-power-user/issues/1643
  */
-
-const zodToJsonSchemaAny = zodToJsonSchema as (
-  schema: unknown,
-  options?: unknown,
-) => Record<string, unknown>;
-
-// Mirror the toToolInput helper from server.ts
-function toToolInput(schema: z.ZodType): Record<string, unknown> {
-  return zodToJsonSchemaAny(schema, { target: "openApi3" });
-}
 
 // Reproduce all schemas from server.ts
 const BaseSchema = z.object({});
@@ -88,6 +78,15 @@ describe("MCP tool schema Gemini compatibility", () => {
         expect(jsonSchema).toHaveProperty("properties");
       });
 
+      it("keeps every parameter of the schema", () => {
+        const parameters = Object.keys(
+          (schema as z.ZodObject<z.ZodRawShape>).shape,
+        );
+        expect(Object.keys(jsonSchema.properties ?? {}).sort()).toEqual(
+          parameters.sort(),
+        );
+      });
+
       it("should not have additionalProperties: true", () => {
         // additionalProperties: false is fine (and required by Gemini)
         // additionalProperties: true or missing is rejected
@@ -102,8 +101,36 @@ describe("MCP tool schema Gemini compatibility", () => {
     expect(Object.keys(schemas).length).toBe(17);
   });
 
-  it("default zodToJsonSchema DOES include $schema (proving the fix is needed)", () => {
-    const defaultSchema = zodToJsonSchemaAny(BaseSchema);
-    expect(defaultSchema).toHaveProperty("$schema");
+  it("keeps each parameter, its type and whether it is required", () => {
+    expect(toToolInput(schemas.compile_query)).toEqual({
+      type: "object",
+      properties: {
+        projectRoot: { type: "string" },
+        query: { type: "string" },
+        originalModelName: { type: "string" },
+      },
+      required: ["projectRoot", "query"],
+      additionalProperties: false,
+    });
+    expect(toToolInput(schemas.run_model)).toEqual({
+      type: "object",
+      properties: {
+        projectRoot: { type: "string" },
+        plusOperatorLeft: { type: "string", enum: ["", "+"] },
+        modelName: { type: "string" },
+        plusOperatorRight: { type: "string", enum: ["", "+"] },
+      },
+      required: [
+        "projectRoot",
+        "plusOperatorLeft",
+        "modelName",
+        "plusOperatorRight",
+      ],
+      additionalProperties: false,
+    });
+  });
+
+  it("default z.toJSONSchema DOES include $schema (proving the target is needed)", () => {
+    expect(z.toJSONSchema(BaseSchema)).toHaveProperty("$schema");
   });
 });

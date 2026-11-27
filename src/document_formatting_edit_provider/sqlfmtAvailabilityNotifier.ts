@@ -96,7 +96,9 @@ export class SqlFmtAvailabilityNotifier implements Disposable {
     // "user installs sqlfmt mid-session" case the same way the old placement
     // did — once per session, not per editor change.
     this.notifiedThisSession = true;
-    const sqlFmtPath = await this.formattingProvider.resolveSqlFmtPath();
+    const sqlFmtPath = await this.formattingProvider.resolveSqlFmtPath(
+      editor.document.uri,
+    );
     if (sqlFmtPath) {
       return;
     }

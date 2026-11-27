@@ -101,6 +101,7 @@ export class TelemetryService implements vscode.Disposable {
         ? error.stack
         : safeSerializeTelemetryValue(error);
     const structured = extractStructuredFields(error, rawStack);
+    const report = dbtErrorReport(error);
     this.telemetryReporter.sendTelemetryErrorEvent(
       eventName,
       {
@@ -117,12 +118,14 @@ export class TelemetryService implements vscode.Disposable {
           : "false",
         stack: sanitizeForTelemetry(rawStack),
         ...this.extractErrorFields(error),
+        ...report.properties,
         ...structured.properties,
         ...fusionFailureClassProperties(eventName, error),
         ...this.customAttributes,
       },
       {
         ...measurements,
+        ...report.measurements,
         ...structured.measurements,
       },
     );
@@ -159,6 +162,48 @@ export class TelemetryService implements vscode.Disposable {
   dispose(): void {
     this.telemetryReporter?.dispose();
   }
+}
+
+/** A dbt error code as dbt Fusion prints it: "dbt" and four digits. */
+const DBT_ERROR_CODE = /^dbt\d{4}$/;
+
+/**
+ * The dbt error codes and the error count dbt-integration puts on a dbt
+ * Fusion failure it reports (its `FusionReportedError`): `errorCodes`, the
+ * codes sorted and each once ("dbt1005,dbt1159"), and `errorCount`, the
+ * error and fatal lines. Sent as a property and a measurement of their own:
+ * VS Code's redactor can blank the whole message that holds them. Only
+ * values shaped like a code are sent.
+ */
+export function dbtErrorReport(error: unknown): {
+  properties: { errorCodes?: string };
+  measurements: { errorCount?: number };
+} {
+  if (typeof error !== "object" || error === null) {
+    return { properties: {}, measurements: {} };
+  }
+  let errorCodes: unknown;
+  let errorCount: unknown;
+  try {
+    ({ errorCodes, errorCount } = error as {
+      errorCodes?: unknown;
+      errorCount?: unknown;
+    });
+  } catch {
+    // A getter that throws: telemetry never breaks its caller.
+    return { properties: {}, measurements: {} };
+  }
+  const codes =
+    typeof errorCodes === "string"
+      ? errorCodes.split(",").filter((code) => DBT_ERROR_CODE.test(code))
+      : [];
+  return {
+    properties: codes.length > 0 ? { errorCodes: codes.join(",") } : {},
+    measurements:
+      typeof errorCount === "number" && Number.isFinite(errorCount)
+        ? { errorCount }
+        : {},
+  };
 }
 
 // =====================================================================

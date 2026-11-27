@@ -95,7 +95,11 @@ export const setupWatcherHandler: (
 
 export function extendErrorWithSupportLinks(error: unknown): string {
   const message =
-    error instanceof Error ? error.message : error == null ? "" : String(error);
+    error instanceof Error
+      ? error.message
+      : error === null || error === undefined
+        ? ""
+        : String(error);
   const separator = message === "" || message.endsWith(" ") ? "" : " ";
   return (
     message +
@@ -159,8 +163,14 @@ export const deepEqual = (obj1: any, obj2: any): boolean => {
   return true;
 };
 
-export const getColumnNameByCase = (columnName: string, adapter: string) => {
-  if (isQuotedIdentifier(columnName, adapter)) {
+/** `projectRoot` is the dbt project the column belongs to: its folder's
+ * `dbt.unquotedCaseInsensitiveIdentifierRegex` applies. */
+export const getColumnNameByCase = (
+  columnName: string,
+  adapter: string,
+  projectRoot: Uri,
+) => {
+  if (isQuotedIdentifier(columnName, adapter, projectRoot)) {
     return columnName;
   }
   const showColumnNamesInLowercase = workspace
@@ -192,9 +202,13 @@ export const isColumnNameEqual = (
   return false;
 };
 
-export const isQuotedIdentifier = (columnName: string, adapter: string) => {
+export const isQuotedIdentifier = (
+  columnName: string,
+  adapter: string,
+  projectRoot: Uri,
+) => {
   const regexFromConfig = workspace
-    .getConfiguration("dbt")
+    .getConfiguration("dbt", projectRoot)
     .get<string>("unquotedCaseInsensitiveIdentifierRegex", "");
   if (regexFromConfig) {
     console.log(

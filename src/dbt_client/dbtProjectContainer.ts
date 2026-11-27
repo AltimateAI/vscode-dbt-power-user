@@ -29,6 +29,7 @@ import { DBTWorkspaceFolder } from "./dbtWorkspaceFolder";
 import {
   ManifestCacheChangedEvent,
   RebuildManifestCombinedStatusChange,
+  RebuildManifestStatusChange,
 } from "./event/manifestCacheChangedEvent";
 
 /**
@@ -86,6 +87,11 @@ export class DBTProjectContainer implements Disposable {
   private _onDidChangeUntitledDocumentProject = new EventEmitter<Uri>();
   readonly onDidChangeUntitledDocumentProject =
     this._onDidChangeUntitledDocumentProject.event;
+  private _onProjectRebuildManifestStatusChange =
+    new EventEmitter<RebuildManifestStatusChange>();
+  /** Each project's manifest rebuild starting and ending. */
+  readonly onProjectRebuildManifestStatusChange =
+    this._onProjectRebuildManifestStatusChange.event;
 
   constructor(
     private dbtClient: DBTClient,
@@ -413,8 +419,30 @@ export class DBTProjectContainer implements Disposable {
     this.findDBTProject(modelPath)?.generateSchemaYML(modelPath, modelName);
   }
 
+  /**
+   * The registered project with the deepest root that contains `uri`, across
+   * every workspace folder that contains it. Workspace folders can nest (a repo
+   * root plus the dbt project inside it), and the folder listed first may not
+   * have registered the project, for example when its `files.exclude` hides it.
+   * When two folders registered the same root, the innermost folder's copy wins.
+   */
   findDBTProject(uri: Uri): DBTProject | undefined {
-    return this.findDBTWorkspaceFolder(uri)?.findDBTProject(uri);
+    const depth = (u: Uri) => u.fsPath.length;
+    return this.dbtWorkspaceFolders
+      .filter((folder) => folder.contains(uri))
+      .sort(
+        (a, b) => depth(b.workspaceFolder.uri) - depth(a.workspaceFolder.uri),
+      )
+      .map((folder) => folder.findDBTProject(uri))
+      .filter((project): project is DBTProject => project !== undefined)
+      .reduce<DBTProject | undefined>(
+        (deepest, project) =>
+          deepest === undefined ||
+          depth(project.projectRoot) > depth(deepest.projectRoot)
+            ? project
+            : deepest,
+        undefined,
+      );
   }
 
   getProjects(): DBTProject[] {
@@ -549,6 +577,7 @@ export class DBTProjectContainer implements Disposable {
     );
     this.disposables.push(
       dbtProjectWorkspaceFolder.onRebuildManifestStatusChange((e) => {
+        this._onProjectRebuildManifestStatusChange.fire(e);
         this.rebuildManifestStatusChangeMap.set(
           e.project.projectRoot.fsPath,
           e.inProgress,
@@ -577,7 +606,12 @@ export class DBTProjectContainer implements Disposable {
   }
 
   private unregisterWorkspaceFolder(workspaceFolder: WorkspaceFolder): void {
-    const folderToDelete = this.findDBTWorkspaceFolder(workspaceFolder.uri);
+    // Match the removed folder itself: a prefix match would pick an outer
+    // folder that contains it.
+    const folderToDelete = this.dbtWorkspaceFolders.find(
+      (folder) =>
+        folder.workspaceFolder.uri.fsPath === workspaceFolder.uri.fsPath,
+    );
     if (folderToDelete === undefined) {
       return;
     }
@@ -586,10 +620,6 @@ export class DBTProjectContainer implements Disposable {
       1,
     );
     folderToDelete.dispose();
-  }
-
-  private findDBTWorkspaceFolder(uri: Uri): DBTWorkspaceFolder | undefined {
-    return this.dbtWorkspaceFolders.find((folder) => folder.contains(uri));
   }
 
   async checkIfAltimateDatapilotInstalled(): Promise<{
