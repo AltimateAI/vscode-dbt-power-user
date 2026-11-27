@@ -3140,9 +3140,37 @@ describe("the safe switch to dbt Fusion", () => {
       expect(shown()).toHaveLength(0);
     });
 
-    it("closes a window without a trial", () => {
+    it("closes a window without a trial", async () => {
       const { svc } = shipped();
       expect(() => svc.dispose()).not.toThrow();
+      await expect(svc.stopTrial()).resolves.toBeUndefined();
+    });
+
+    it("waits for the stopped trial to finish when the window deactivates", async () => {
+      const { svc, runTrial } = shipped();
+      let finish: (result: FusionTrialResult) => void = () => undefined;
+      // Like the trial: on the abort it kills its run and removes its folder,
+      // and only then resolves.
+      runTrial.mockImplementationOnce(
+        (options: { signal?: AbortSignal }) =>
+          new Promise<FusionTrialResult>((resolve) => {
+            finish = resolve;
+            options.signal?.addEventListener("abort", () => undefined);
+          }),
+      );
+      await svc.resolve(new FakeMemento() as never, new FakeMemento() as never);
+
+      let stopped = false;
+      const stopping = svc.stopTrial().then(() => {
+        stopped = true;
+      });
+      await settle();
+      expect(runTrial.mock.calls[0][0].signal?.aborted).toBe(true);
+      expect(stopped).toBe(false);
+
+      finish({ outcome: "canceled", projects: [], durationMs: 5 });
+      await stopping;
+      expect(stopped).toBe(true);
     });
 
     it("remembers and shows nothing when dbt Core works before a finished trial is handled", async () => {

@@ -832,12 +832,18 @@ export class IntegrationModeService {
   }
 
   /**
-   * The window is closing: stops its trial, which then isn't remembered or
-   * shown, and removes its scratch folder while the window still can.
+   * The window is closing: stops its trial, which then isn't remembered,
+   * shown or sent. Resolves once the trial has finished: its run killed and
+   * its scratch folder removed. Never rejects.
    */
-  dispose(): void {
+  async stopTrial(): Promise<void> {
     this.disposed = true;
     this.trial?.controller.abort();
+    await this.trial?.done;
+  }
+
+  dispose(): void {
+    void this.stopTrial();
   }
 
   /**

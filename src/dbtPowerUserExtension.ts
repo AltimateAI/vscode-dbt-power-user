@@ -153,6 +153,15 @@ export class DBTPowerUserExtension implements Disposable {
     );
   }
 
+  /**
+   * The extension is deactivating: VS Code waits for this, so a trial parse
+   * in progress is stopped and its scratch folder removed before the
+   * extension host exits.
+   */
+  deactivate(): Promise<void> {
+    return this.integrationModeService.stopTrial();
+  }
+
   dispose() {
     while (this.disposables.length) {
       const x = this.disposables.pop();
