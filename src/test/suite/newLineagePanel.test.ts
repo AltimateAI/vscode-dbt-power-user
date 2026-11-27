@@ -1577,6 +1577,23 @@ describe("NewLineagePanel — stale-graph banner", () => {
     ]);
   });
 
+  it("still runs the chip's button when its report fails", async () => {
+    (panel as any).telemetry.sendTelemetryEvent = jest.fn(() => {
+      throw new Error("reporter failed");
+    });
+    const executeCommand = commands.executeCommand as jest.Mock;
+    executeCommand.mockClear();
+
+    await panel.handleCommand({
+      command: "lineageBannerAction",
+      args: { action: "showProblems" },
+    });
+
+    expect(executeCommand.mock.calls).toEqual([
+      ["workbench.action.problems.focus"],
+    ]);
+  });
+
   it("runs the banner's buttons", async () => {
     const showTextDocument = jest.fn();
     (window as any).showTextDocument = showTextDocument;

@@ -502,11 +502,20 @@ export class NewLineagePanel
     const { id = syncRequestId, params } = args;
 
     if (command === "lineageBannerAction") {
-      this.telemetry.sendTelemetryEvent("lineageAction", {
-        kind: this.postedBannerKind ?? "unknown",
-        action: args.action,
-        from: "banner",
-      });
+      // The button runs whether or not its report goes out.
+      try {
+        this.telemetry.sendTelemetryEvent("lineageAction", {
+          kind: this.postedBannerKind ?? "unknown",
+          action: args.action,
+          from: "banner",
+        });
+      } catch (error) {
+        this.dbtTerminal.debug(
+          "Lineage:lineageBannerAction",
+          "Could not report the chip's button",
+          error,
+        );
+      }
       await this.runLineageAction(args.action, args.params);
       return;
     }
