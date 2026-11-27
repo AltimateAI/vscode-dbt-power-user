@@ -482,6 +482,8 @@ export class IntegrationModeService {
   private globalState?: Memento;
   /** The trial parse running in this window, for a "fusionTrial" hold. */
   private trial?: WindowTrial;
+  /** The window is closing. */
+  private disposed = false;
 
   constructor(
     private pythonEnvironment: PythonEnvironment,
@@ -769,6 +771,10 @@ export class IntegrationModeService {
         signal: controller.signal,
       })
       .then(async (result: FusionTrialResult) => {
+        // The window closed: nothing to remember, show or send.
+        if (this.disposed) {
+          return undefined;
+        }
         // dbt Core working in this window cancels the trial, even one whose
         // parse had already finished: nothing is remembered or shown then.
         const outcome = controller.signal.aborted ? "canceled" : result.outcome;
@@ -823,6 +829,15 @@ export class IntegrationModeService {
         return undefined;
       });
     this.trial = entry;
+  }
+
+  /**
+   * The window is closing: stops its trial, which then isn't remembered or
+   * shown, and removes its scratch folder while the window still can.
+   */
+  dispose(): void {
+    this.disposed = true;
+    this.trial?.controller.abort();
   }
 
   /**

@@ -149,6 +149,7 @@ export class DBTPowerUserExtension implements Disposable {
       this.mcpServer,
       this.whatsNewPanel,
       this.altimateConnectService,
+      this.integrationModeService,
     );
   }
 

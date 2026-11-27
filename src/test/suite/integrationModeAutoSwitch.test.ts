@@ -3099,6 +3099,52 @@ describe("the safe switch to dbt Fusion", () => {
       );
     });
 
+    it("stops the trial when the window closes, and remembers, shows and sends nothing", async () => {
+      const memento = new FakeMemento();
+      const { svc, telemetry, runTrial } = shipped({ trial: "never" });
+      await svc.resolve(memento as never, new FakeMemento() as never);
+      void svc.notifyHeldWithoutDbtCore();
+
+      svc.dispose();
+      await settle();
+
+      expect(runTrial.mock.calls[0][0].signal?.aborted).toBe(true);
+      expect(memento.get(FUSION_TRIAL_KEY)).toBeUndefined();
+      expect(shown()).toHaveLength(0);
+      expect(errors()).toHaveLength(0);
+      expect(telemetry.sendTelemetryEvent).not.toHaveBeenCalledWith(
+        "dbtIntegrationFusionTrial",
+        expect.anything(),
+        expect.anything(),
+      );
+    });
+
+    it("remembers nothing when the window closes before a finished trial is handled", async () => {
+      const memento = new FakeMemento();
+      const { svc, runTrial } = shipped();
+      let finish: (result: FusionTrialResult) => void = () => undefined;
+      // Its parse had already finished, so it ignores the abort.
+      runTrial.mockImplementationOnce(
+        () =>
+          new Promise<FusionTrialResult>((resolve) => {
+            finish = resolve;
+          }),
+      );
+      await svc.resolve(memento as never, new FakeMemento() as never);
+
+      svc.dispose();
+      finish(parsed());
+      await settle();
+
+      expect(memento.get(FUSION_TRIAL_KEY)).toBeUndefined();
+      expect(shown()).toHaveLength(0);
+    });
+
+    it("closes a window without a trial", () => {
+      const { svc } = shipped();
+      expect(() => svc.dispose()).not.toThrow();
+    });
+
     it("remembers and shows nothing when dbt Core works before a finished trial is handled", async () => {
       const memento = new FakeMemento();
       const { svc, runTrial } = shipped();
