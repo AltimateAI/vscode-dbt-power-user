@@ -95,6 +95,24 @@ describe("DBTTerminal Test Suite", () => {
     );
   });
 
+  it("sends the codes of a failed v2 parse dbt-integration reports", () => {
+    terminal.warn(
+      "dbtCoreV2ParserFailed",
+      "dbt-core's v2 parser could not parse the project",
+      true,
+      { errorCodes: "dbt1005,dbt1159" },
+    );
+    expect(mockTelemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+      "dbtCoreV2ParserFailed",
+      {
+        message: "dbt-core's v2 parser could not parse the project",
+        level: "warn",
+        errorCodes: "dbt1005,dbt1159",
+      },
+      {},
+    );
+  });
+
   it("should handle errors with proper error message formatting", () => {
     const name = "test_error";
     const message = "Test error message";
