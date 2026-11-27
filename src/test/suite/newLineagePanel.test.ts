@@ -2164,6 +2164,12 @@ describe("NewLineagePanel — partial-graph notice", () => {
     event = manifest(["stg_orders"], failed(SYNTAX));
     panel.eventMapChanged(new Map());
     expect(lastRender().redraw).toBeUndefined();
+    // So does one with more errors in that same file.
+    event = manifest(["stg_orders"], {
+      errors: [...failed(BROKEN_REF).errors, ...failed(SYNTAX).errors],
+    });
+    panel.eventMapChanged(new Map());
+    expect(lastRender().redraw).toBeUndefined();
 
     blocking = undefined;
     event = manifest(["stg_orders"]);

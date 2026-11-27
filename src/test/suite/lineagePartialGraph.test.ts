@@ -205,4 +205,11 @@ describe("partialGraphKey", () => {
       partialGraphKey({ errors: [a, b] }),
     );
   });
+
+  it("stays the same when a file that failed gets more errors", () => {
+    const a = error("models/a.sql", BROKEN_REF);
+    expect(partialGraphKey({ errors: [a, { ...a, message: SYNTAX }] })).toBe(
+      partialGraphKey({ errors: [a] }),
+    );
+  });
 });

@@ -186,6 +186,8 @@ export function droppedModelCard(input: {
  */
 export function partialGraphKey(partial?: PartialManifestErrors): string {
   return partial?.errors.length
-    ? JSON.stringify(partial.errors.map(({ filePath }) => filePath).sort())
+    ? JSON.stringify(
+        [...new Set(partial.errors.map(({ filePath }) => filePath))].sort(),
+      )
     : "";
 }
