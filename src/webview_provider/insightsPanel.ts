@@ -185,7 +185,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
       );
 
       const currentConfig: Record<string, DeferConfig> = workspace
-        .getConfiguration("dbt")
+        .getConfiguration("dbt", Uri.file(params.projectRoot))
         .get("deferConfigPerProject", {});
       const root = getProjectRelativePath(Uri.file(params.projectRoot));
 

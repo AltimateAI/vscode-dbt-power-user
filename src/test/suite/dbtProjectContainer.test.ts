@@ -65,6 +65,7 @@ describe("DBTProjectContainer Tests", () => {
 
     // Mock DBT workspace folder
     mockDbtWorkspaceFolder = {
+      workspaceFolder: { uri: Uri.file("/path/to/workspace") },
       dispose: jest.fn(),
       contains: jest.fn(() => true),
       findDBTProject: jest.fn(() => mockDbtProject),

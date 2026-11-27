@@ -986,6 +986,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                 const name = getColumnNameByCase(
                   column.name,
                   projectByFilePath.getAdapterType(),
+                  projectByFilePath.projectRoot,
                 );
                 return {
                   name,
@@ -1002,6 +1003,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                   ...(isQuotedIdentifier(
                     column.name,
                     projectByFilePath.getAdapterType(),
+                    projectByFilePath.projectRoot,
                   )
                     ? { quote: true }
                     : undefined),
@@ -1079,6 +1081,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
             const name = getColumnNameByCase(
               column.name,
               projectByFilePath.getAdapterType(),
+              projectByFilePath.projectRoot,
             );
             model.addIn(["columns"], {
               name,
@@ -1088,6 +1091,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
               ...(isQuotedIdentifier(
                 column.name,
                 projectByFilePath.getAdapterType(),
+                projectByFilePath.projectRoot,
               )
                 ? { quote: true }
                 : undefined),

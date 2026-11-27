@@ -391,6 +391,13 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.copyModelName", (model) =>
         env.clipboard.writeText(model.label.toString()),
       ),
+      commands.registerCommand(
+        "dbtPowerUser.copyNotebookCellResult",
+        async (resultVariable: string) => {
+          await env.clipboard.writeText(resultVariable);
+          window.setStatusBarMessage(`Copied ${resultVariable}`, 3000);
+        },
+      ),
       commands.registerCommand("dbtPowerUser.showRunSQL", () =>
         this.runModel.showRunSQLOnActiveWindow(),
       ),
@@ -819,6 +826,32 @@ export class VSCodeCommands implements Disposable {
             }),
           );
           this.diagnosticsOutputChannel.logNewLine();
+
+          // In a multi-root workspace, per-project settings can also come from
+          // each dbt project's folder (its .vscode/settings.json)
+          if (workspace.workspaceFile) {
+            for (const project of dbtProjects) {
+              const folderValue: Record<string, unknown> =
+                workspace
+                  .getConfiguration(undefined, project.projectRoot)
+                  .inspect<Record<string, unknown>>("dbt")
+                  ?.workspaceFolderValue ?? {};
+              const folderKeys = Object.keys(folderValue);
+              if (!folderKeys.length) {
+                continue;
+              }
+              this.diagnosticsOutputChannel.logBlockWithHeader(
+                [
+                  `Printing folder settings for project: ${project.getProjectName()}`,
+                  "* Please remove any sensitive information before sending it to us",
+                ],
+                folderKeys.map(
+                  (key) => `${key}=${JSON.stringify(folderValue[key])}`,
+                ),
+              );
+              this.diagnosticsOutputChannel.logNewLine();
+            }
+          }
 
           // Printing extension and setup info
           const dbtIntegrationMode = getDbtIntegrationMode();
