@@ -1,7 +1,7 @@
 import { DBTTerminal, PythonException } from "@altimateai/dbt-integration";
 import { injectable } from "inversify";
 import { Disposable, EventEmitter, Terminal, window } from "vscode";
-import { TelemetryService } from "../telemetry";
+import { dbtErrorReport, TelemetryService } from "../telemetry";
 import { stripANSI } from "../utils";
 
 @injectable()
@@ -62,7 +62,14 @@ export class VSCodeDBTTerminal implements DBTTerminal {
     this.outputChannel?.warn(`${name}:${stripANSI(message)}`, args);
     console.warn(`${name}:${message}`, args);
     if (sendTelemetry) {
-      this.telemetry.sendTelemetryEvent(name, { message, level: "warn" });
+      // dbt-integration passes what dbt Fusion reported (codes, error count)
+      // as the first extra argument of some warnings.
+      const report = dbtErrorReport(args[0]);
+      this.telemetry.sendTelemetryEvent(
+        name,
+        { message, level: "warn", ...report.properties },
+        report.measurements,
+      );
     }
   }
 

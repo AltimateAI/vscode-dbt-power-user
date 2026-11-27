@@ -3,19 +3,34 @@ import {
   DEFAULT_CONFIGURATION_VALUES,
 } from "@altimateai/dbt-integration";
 import { injectable } from "inversify";
-import { workspace } from "vscode";
+import { Uri, workspace } from "vscode";
 import { getFirstWorkspacePath, resolveSettingsVariables } from "../utils";
 import { getDbtIntegrationMode } from "./integrationMode";
 
 @injectable()
 export class VSCodeDBTConfiguration implements DBTConfiguration {
+  /** Folder or file whose resource-scoped `dbt.*` settings apply; undefined
+   * reads the window-level (workspace and user) values only. */
+  private resource: Uri | undefined;
+
+  /** A configuration that reads resource-scoped settings for `resource`, so a
+   * dbt project picks up its own folder's `.vscode/settings.json` in a
+   * multi-root workspace. */
+  forResource(resource: Uri): VSCodeDBTConfiguration {
+    const configuration = new VSCodeDBTConfiguration();
+    configuration.resource = resource;
+    return configuration;
+  }
+
+  private config() {
+    return workspace.getConfiguration("dbt", this.resource);
+  }
+
   getDbtCustomRunnerImport(): string {
-    return workspace
-      .getConfiguration("dbt")
-      .get<string>(
-        "dbtCustomRunnerImport",
-        DEFAULT_CONFIGURATION_VALUES.dbtCustomRunnerImport,
-      );
+    return this.config().get<string>(
+      "dbtCustomRunnerImport",
+      DEFAULT_CONFIGURATION_VALUES.dbtCustomRunnerImport,
+    );
   }
 
   getDbtIntegration(): string {
@@ -23,78 +38,69 @@ export class VSCodeDBTConfiguration implements DBTConfiguration {
   }
 
   getRunModelCommandAdditionalParams(): string[] {
-    const params = workspace
-      .getConfiguration("dbt")
-      .get<
-        string[]
-      >("runModelCommandAdditionalParams", DEFAULT_CONFIGURATION_VALUES.runModelCommandAdditionalParams);
+    const params = this.config().get<string[]>(
+      "runModelCommandAdditionalParams",
+      DEFAULT_CONFIGURATION_VALUES.runModelCommandAdditionalParams,
+    );
     return params.map((p) => resolveSettingsVariables(p));
   }
 
   getBuildModelCommandAdditionalParams(): string[] {
-    const params = workspace
-      .getConfiguration("dbt")
-      .get<
-        string[]
-      >("buildModelCommandAdditionalParams", DEFAULT_CONFIGURATION_VALUES.buildModelCommandAdditionalParams);
+    const params = this.config().get<string[]>(
+      "buildModelCommandAdditionalParams",
+      DEFAULT_CONFIGURATION_VALUES.buildModelCommandAdditionalParams,
+    );
     return params.map((p) => resolveSettingsVariables(p));
   }
 
   getTestModelCommandAdditionalParams(): string[] {
-    const params = workspace
-      .getConfiguration("dbt")
-      .get<
-        string[]
-      >("testModelCommandAdditionalParams", DEFAULT_CONFIGURATION_VALUES.testModelCommandAdditionalParams);
+    const params = this.config().get<string[]>(
+      "testModelCommandAdditionalParams",
+      DEFAULT_CONFIGURATION_VALUES.testModelCommandAdditionalParams,
+    );
     return params.map((p) => resolveSettingsVariables(p));
   }
 
   getQueryTemplate(): string {
-    return workspace
-      .getConfiguration("dbt")
-      .get<string>("queryTemplate", DEFAULT_CONFIGURATION_VALUES.queryTemplate);
+    return this.config().get<string>(
+      "queryTemplate",
+      DEFAULT_CONFIGURATION_VALUES.queryTemplate,
+    );
   }
 
   getQueryLimit(): number {
-    return workspace
-      .getConfiguration("dbt")
-      .get<number>("queryLimit", DEFAULT_CONFIGURATION_VALUES.queryLimit);
+    return this.config().get<number>(
+      "queryLimit",
+      DEFAULT_CONFIGURATION_VALUES.queryLimit,
+    );
   }
 
   getEnableNotebooks(): boolean {
-    return workspace
-      .getConfiguration("dbt")
-      .get<boolean>(
-        "enableNotebooks",
-        DEFAULT_CONFIGURATION_VALUES.enableNotebooks,
-      );
+    return this.config().get<boolean>(
+      "enableNotebooks",
+      DEFAULT_CONFIGURATION_VALUES.enableNotebooks,
+    );
   }
 
   getDisableQueryHistory(): boolean {
-    return workspace
-      .getConfiguration("dbt")
-      .get<boolean>(
-        "disableQueryHistory",
-        DEFAULT_CONFIGURATION_VALUES.disableQueryHistory,
-      );
+    return this.config().get<boolean>(
+      "disableQueryHistory",
+      DEFAULT_CONFIGURATION_VALUES.disableQueryHistory,
+    );
   }
 
   getInstallDepsOnProjectInitialization(): boolean {
-    return workspace
-      .getConfiguration("dbt")
-      .get<boolean>(
-        "installDepsOnProjectInitialization",
-        DEFAULT_CONFIGURATION_VALUES.installDepsOnProjectInitialization,
-      );
+    return this.config().get<boolean>(
+      "installDepsOnProjectInitialization",
+      DEFAULT_CONFIGURATION_VALUES.installDepsOnProjectInitialization,
+    );
   }
 
   getDisableDepthsCalculation(): boolean {
-    return workspace
-      .getConfiguration("dbt")
-      .get<boolean>(
-        "disableDepthsCalculation",
-        DEFAULT_CONFIGURATION_VALUES.disableDepthsCalculation,
-      );
+    return this.config().get<boolean>(
+      "disableDepthsCalculation",
+      DEFAULT_CONFIGURATION_VALUES.disableDepthsCalculation,
+    );
   }
 
   getWorkingDirectory(): string {
@@ -102,24 +108,24 @@ export class VSCodeDBTConfiguration implements DBTConfiguration {
   }
 
   getAltimateUrl(): string {
-    return workspace
-      .getConfiguration("dbt")
-      .get<string>("altimateUrl", DEFAULT_CONFIGURATION_VALUES.altimateUrl);
+    return this.config().get<string>(
+      "altimateUrl",
+      DEFAULT_CONFIGURATION_VALUES.altimateUrl,
+    );
   }
 
   getIsLocalMode(): boolean {
-    return workspace
-      .getConfiguration("dbt")
-      .get<boolean>("isLocalMode", DEFAULT_CONFIGURATION_VALUES.isLocalMode);
+    return this.config().get<boolean>(
+      "isLocalMode",
+      DEFAULT_CONFIGURATION_VALUES.isLocalMode,
+    );
   }
 
   getAltimateInstanceName(): string | undefined {
-    return workspace
-      .getConfiguration("dbt")
-      .get<string>("altimateInstanceName");
+    return this.config().get<string>("altimateInstanceName");
   }
 
   getAltimateAiKey(): string | undefined {
-    return workspace.getConfiguration("dbt").get<string>("altimateAiKey");
+    return this.config().get<string>("altimateAiKey");
   }
 }
