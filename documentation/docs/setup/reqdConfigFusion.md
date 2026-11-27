@@ -41,7 +41,7 @@ If you haven't set `dbt.dbtIntegration` yourself, Power User for dbt chooses the
 - dbt Core hasn't worked on this machine in the last 7 days (see [When dbt Core worked recently](#when-dbt-core-worked-recently));
 - dbt Fusion supports the adapter in your dbt profile, or runs it as an experimental adapter and `DBT_ALLOW_EXPERIMENTAL_ADAPTERS=true` is set (in `terminal.integrated.env.<os>`, or in the environment VS Code starts with); and the profile is found;
 - there is no dbt-loom config: no `dbt_loom.config.yml` at a workspace folder root or next to a `dbt_project.yml`, and no `DBT_LOOM_CONFIG_PATH` environment variable;
-- this dbt Fusion has parsed every project in the workspace in a trial run.
+- this dbt Fusion has parsed the workspace's projects in a trial run.
 
 ### The trial parse
 
@@ -50,9 +50,10 @@ The first window that could switch keeps dbt Core mode and runs dbt Fusion's `pa
 Power User remembers the result for the workspace and that dbt Fusion binary (its path and version):
 
 - **It parsed:** the next window opens in dbt Fusion mode.
-- **It didn't:** windows keep dbt Core mode for 24 hours, then run the trial again.
+- **It didn't:** windows opened in the next 24 hours keep dbt Core mode. The first window opened after that runs the trial again.
 - A new dbt Fusion version, or a binary at another path, gets a trial of its own.
-- If a switched window's first parse has errors, Power User offers once to switch back to dbt Core, and forgets the pass, so the next window runs the trial again.
+- A project added after the trial passed switches with the others, without a trial of its own.
+- If a switched window's first parse has errors, Power User forgets the pass, so the next window runs the trial again. It also offers once to switch back to dbt Core. **Switch back to dbt Core** sets `dbt.dbtIntegration` to `core` in the workspace settings, so from then on the mode no longer changes by itself.
 
 When the window switches, Power User tells you once per project, for example:
 
