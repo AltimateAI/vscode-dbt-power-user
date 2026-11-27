@@ -7,6 +7,7 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
+  symlinkSync,
   utimesSync,
   writeFileSync,
 } from "fs";
@@ -786,12 +787,23 @@ describe("removeLeftoverScratch", () => {
     const old = folder(workspace, "pu-fusion-trial-old", 2 * HOUR);
     const live = folder(workspace, "pu-fusion-trial-live", 5 * 60 * 1000);
     const other = folder(workspace, "someone-elses-folder", 2 * HOUR);
+    const file = path.join(workspace, "pu-fusion-trial-notes");
+    writeFileSync(file, "not a trial's");
+    const target = folder(workspace, "linked-target", 2 * HOUR);
+    const link = path.join(workspace, "pu-fusion-trial-link");
+    symlinkSync(target, link, "dir");
+    const twoHoursAgo = new Date(Date.now() - 2 * HOUR);
+    utimesSync(file, twoHoursAgo, twoHoursAgo);
 
     await removeLeftoverScratch(workspace);
 
     expect(existsSync(old)).toBe(false);
     expect(existsSync(live)).toBe(true);
     expect(existsSync(other)).toBe(true);
+    // Only directories: a file or a link with the name is kept.
+    expect(existsSync(file)).toBe(true);
+    expect(existsSync(link)).toBe(true);
+    expect(existsSync(path.join(target, "shop"))).toBe(true);
   });
 
   it("doesn't throw for a folder it can't read", async () => {
@@ -808,6 +820,10 @@ describe("removeLeftoverScratch", () => {
     );
     try {
       await trial([makeProject("shop")], () => ({}));
+      // It runs alongside the trial.
+      for (let i = 0; i < 100 && existsSync(leftover); i++) {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      }
       expect(existsSync(leftover)).toBe(false);
     } finally {
       rmSync(leftover, { recursive: true, force: true });

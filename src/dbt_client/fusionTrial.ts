@@ -6,12 +6,12 @@ import {
 import { ChildProcess, spawn, SpawnOptions } from "child_process";
 import {
   copyFile,
+  lstat,
   mkdir,
   mkdtemp,
   readdir,
   readFile,
   rm,
-  stat,
 } from "fs/promises";
 import { homedir, tmpdir } from "os";
 import * as path from "path";
@@ -117,7 +117,8 @@ export async function runFusionTrial(
   const started = Date.now();
   const totalDeadline =
     started + (options.totalTimeoutMs ?? DEFAULT_TOTAL_TIMEOUT_MS);
-  await removeLeftoverScratch(tmpdir());
+  // Alongside the trial, so a slow removal can't hold it up.
+  void removeLeftoverScratch(tmpdir());
   const projects: FusionTrialProject[] = [];
   for (const [index, root] of options.projectRoots.entries()) {
     const project = await trialProject(root, options, totalDeadline);
@@ -145,8 +146,9 @@ export async function runFusionTrial(
 
 /**
  * Removes trial scratch folders in `dir` older than an hour. They're left
- * when a window closed or its extension host exited mid-trial, before the
- * trial could remove its own. Never throws.
+ * when an extension host exited mid-trial, before the trial could remove its
+ * own. Only directories: a file or link with the same name is kept. Never
+ * rejects.
  */
 export async function removeLeftoverScratch(
   dir: string,
@@ -156,7 +158,8 @@ export async function removeLeftoverScratch(
   for (const name of names.filter((n) => n.startsWith(SCRATCH_PREFIX))) {
     const folder = path.join(dir, name);
     try {
-      if (now - (await stat(folder)).mtimeMs > LEFTOVER_SCRATCH_MS) {
+      const found = await lstat(folder);
+      if (found.isDirectory() && now - found.mtimeMs > LEFTOVER_SCRATCH_MS) {
         await rm(folder, { recursive: true, force: true, maxRetries: 3 });
       }
     } catch {

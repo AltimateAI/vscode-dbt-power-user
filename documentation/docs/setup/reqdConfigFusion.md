@@ -39,13 +39,13 @@ If you haven't set `dbt.dbtIntegration` yourself, Power User for dbt chooses the
 - the `dbt` it finds for your project is dbt Fusion (version 2.x);
 - the selected Python interpreter, if there is one, can't import dbt-core;
 - dbt Core hasn't worked on this machine in the last 7 days (see [When dbt Core worked recently](#when-dbt-core-worked-recently));
-- dbt Fusion supports the adapter in your dbt profile (not only as an experimental adapter), and the profile is found;
+- dbt Fusion supports the adapter in your dbt profile, or runs it as an experimental adapter and you've added `DBT_ALLOW_EXPERIMENTAL_ADAPTERS=true` to `terminal.integrated.env.<os>`; and the profile is found;
 - there is no dbt-loom config: no `dbt_loom.config.yml` at a workspace folder root or next to a `dbt_project.yml`, and no `DBT_LOOM_CONFIG_PATH` environment variable;
 - this dbt Fusion has parsed every project in the workspace in a trial run.
 
 ### The trial parse
 
-The first window that could switch keeps dbt Core mode and runs dbt Fusion's `parse` on each project in the background. The trial writes nothing into your project: its target, logs and packages go to a folder in the system temp directory, which is removed afterwards. A project that declares packages gets them installed into that folder from a copy of its package files, so the trial needs access to the dbt package hub. Each project gets up to 3 minutes, and the whole trial up to 5 minutes.
+The first window that could switch keeps dbt Core mode and runs dbt Fusion's `parse` on each project in the background. The trial writes nothing into your project: its target, logs and packages go to a folder in the system temp directory, which is removed afterwards. A project that declares packages gets them installed into that folder from a copy of its package files, so the trial needs access to the dbt package hub. A project with a `local:` package can't be tried this way, so it doesn't pass. Each project gets up to 3 minutes, and the whole trial up to 5 minutes.
 
 Power User remembers the result for the workspace and that dbt Fusion binary (its path and version):
 
@@ -81,7 +81,7 @@ Where dbt Core mode can't start (the interpreter has no dbt-core), the same reas
 
 > dbt Fusion 2.0.9 (/home/you/.local/bin/dbt) parsed jaffle_shop. dbt Core mode needs dbt-core, which the selected Python interpreter does not have. Reload the window to use dbt Fusion.
 
-**Reload with dbt Fusion** reloads the window, which then opens in dbt Fusion mode. Where it didn't parse, the error names dbt Fusion's first error and offers Install dbt Core and Use dbt Fusion.
+**Reload with dbt Fusion** reloads the window, which then opens in dbt Fusion mode. Where it didn't pass, the error says why, such as dbt Fusion's first error or a package it couldn't install, and offers Install dbt Core and Use dbt Fusion.
 
 Without a usable Python (no Python extension, no interpreter, or one that no longer exists), Power User shows its Python error with its own fix, and adds one of two things:
 
