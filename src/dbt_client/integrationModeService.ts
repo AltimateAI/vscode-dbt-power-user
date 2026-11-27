@@ -360,6 +360,8 @@ interface SwitchFindings {
   adapterTypes: string;
   dbtCoreEvidence?: DbtCoreEvidence;
   remembered?: RememberedTrial;
+  /** Python's error line when the dbt-core check "failed". */
+  dbtCoreDetail?: string;
   projectRoots: string[];
   env: EnvironmentVariables;
 }
@@ -388,6 +390,8 @@ export interface SwitchHeld {
   experimentalAdapters: string[];
   /** What is missing, for "profileNotFound". */
   profileProblem?: ProfileProblem;
+  /** Python's error line when the dbt-core check "failed": shown, never sent. */
+  dbtCoreDetail?: string;
   /** For "dbtCoreRecent". */
   dbtCoreEvidence?: DbtCoreEvidence;
   /** The trial's result, for "fusionTrialFailed" and a finished "fusionTrial". */
@@ -404,6 +408,50 @@ type SwitchHeldAnswer =
   | "fixPython"
   | "reloadWithFusion"
   | "dismissed";
+
+/** The dbt-core check, and Python's error line when the import "failed". */
+interface DbtCoreFinding {
+  check: DbtCoreCheck;
+  detail?: string;
+}
+
+/**
+ * The kind of a failed dbt-core import, for telemetry: the line itself can
+ * name local paths. A library dbt-core imports that is broken or the wrong
+ * version (protobuf, pydantic, mashumaro), a module missing, or other.
+ */
+export function dbtCoreImportErrorKind(
+  detail: string,
+): "protobuf" | "pydantic" | "mashumaro" | "missingModule" | "other" {
+  if (/protobuf|_pb2\b|Descriptors cannot be created/i.test(detail)) {
+    return "protobuf";
+  }
+  if (/pydantic/i.test(detail)) {
+    return "pydantic";
+  }
+  if (/mashumaro/i.test(detail)) {
+    return "mashumaro";
+  }
+  if (/^(ModuleNotFoundError|ImportError): No module named/.test(detail)) {
+    return "missingModule";
+  }
+  return "other";
+}
+
+/** The dbt-core check for the log, with Python's error line when it has one. */
+function dbtCoreCheckText(check: DbtCoreCheck, detail?: string): string {
+  return detail ? `${check}: ${detail}` : check;
+}
+
+/**
+ * `dbtCoreImportError` for telemetry when the import failed with an error
+ * line: its kind only, as the line itself can name local paths.
+ */
+function dbtCoreImportErrorProperty(detail?: string): {
+  dbtCoreImportError?: ReturnType<typeof dbtCoreImportErrorKind>;
+} {
+  return detail ? { dbtCoreImportError: dbtCoreImportErrorKind(detail) } : {};
+}
 
 /** How the user answered the offer to switch back to dbt Core. */
 export type ParseFailedAnswer = "switchBack" | "keepFusion" | "dismissed";
@@ -511,6 +559,7 @@ export class IntegrationModeService {
     let configured = readConfiguredDbtIntegration();
     let binary: DbtV2Binary | undefined;
     let dbtCoreCheck: DbtCoreCheck = "noInterpreter";
+    let dbtCoreDetail: string | undefined;
     let dbtLoom = false;
     let projectRoots: string[] = [];
     let env: EnvironmentVariables = {};
@@ -537,7 +586,8 @@ export class IntegrationModeService {
         env,
       });
       if (binary) {
-        dbtCoreCheck = await this.checkDbtCore(pythonPath, fromOverride, env);
+        ({ check: dbtCoreCheck, detail: dbtCoreDetail } =
+          await this.checkDbtCore(pythonPath, fromOverride, env));
         projectRoots = await this.listProjectRoots();
         dbtLoom =
           Boolean(env.DBT_LOOM_CONFIG_PATH) ||
@@ -575,6 +625,7 @@ export class IntegrationModeService {
           .join(","),
         dbtCoreEvidence,
         remembered,
+        dbtCoreDetail,
         projectRoots,
         env,
       };
@@ -594,8 +645,14 @@ export class IntegrationModeService {
     mode: string,
     found: SwitchFindings,
   ): void {
-    const { binary, dbtCoreCheck, adapters, dbtCoreEvidence, remembered } =
-      found;
+    const {
+      binary,
+      dbtCoreCheck,
+      adapters,
+      dbtCoreEvidence,
+      remembered,
+      dbtCoreDetail,
+    } = found;
     this.switchHeld = {
       reason,
       binary,
@@ -607,10 +664,11 @@ export class IntegrationModeService {
         reason === "profileNotFound" ? adapters.profileProblem : undefined,
       dbtCoreEvidence: reason === "dbtCoreRecent" ? dbtCoreEvidence : undefined,
       trial: reason === "fusionTrialFailed" ? remembered : undefined,
+      dbtCoreDetail,
     };
     this.terminal.info(
       "dbtIntegrationSwitchHeld",
-      `${binary.path} is dbt ${binary.version.join(".")}, but ${heldCause(reason, adapters)}: keeping ${mode} (dbt-core check: ${dbtCoreCheck}, adapter check: ${adapters.check})`,
+      `${binary.path} is dbt ${binary.version.join(".")}, but ${heldCause(reason, adapters)}: keeping ${mode} (dbt-core check: ${dbtCoreCheckText(dbtCoreCheck, dbtCoreDetail)}, adapter check: ${adapters.check})`,
       false,
     );
     this.telemetry.sendTelemetryEvent("dbtIntegrationSwitchHeld", {
@@ -621,6 +679,7 @@ export class IntegrationModeService {
       fusionAdapterCheck: adapters.check,
       adapterTypes: found.adapterTypes,
       ...heldDetails(this.switchHeld),
+      ...dbtCoreImportErrorProperty(dbtCoreDetail),
     });
     if (reason === "fusionTrial" && found.projectRoots.length > 0) {
       this.startTrial(binary, found.projectRoots, found.env, dbtCoreCheck);
@@ -855,16 +914,16 @@ export class IntegrationModeService {
     pythonPath: string | undefined,
     fromOverride: boolean,
     env: Record<string, string | undefined>,
-  ): Promise<DbtCoreCheck> {
+  ): Promise<DbtCoreFinding> {
     if (
       this.pythonEnvironment.pythonExtensionAvailable &&
       !fromOverride &&
       (!pythonPath || !isInterpreterPath(pythonPath))
     ) {
-      return "unresolvedInterpreter";
+      return { check: "unresolvedInterpreter" };
     }
     if (!pythonPath) {
-      return "noInterpreter";
+      return { check: "noInterpreter" };
     }
     return this.probeDbtCore(pythonPath, env);
   }
@@ -877,20 +936,26 @@ export class IntegrationModeService {
   private async probeDbtCore(
     pythonPath: string,
     env: Record<string, string | undefined>,
-  ): Promise<DbtCoreCheck> {
+  ): Promise<DbtCoreFinding> {
     let timer: NodeJS.Timeout | undefined;
-    const timedOut = new Promise<DbtCoreCheck>((resolve) => {
-      timer = setTimeout(() => resolve("timeout"), this.probeTimeoutMs);
+    const timedOut = new Promise<DbtCoreFinding>((resolve) => {
+      timer = setTimeout(
+        () => resolve({ check: "timeout" }),
+        this.probeTimeoutMs,
+      );
     });
     try {
       const probe = this.probes
         .probeDbtCore(pythonPath, env, this.probeTimeoutMs + PROBE_GRACE_MS)
-        .then(
-          (result): DbtCoreCheck =>
-            result.status === "unknown"
-              ? (result.reason ?? "failed")
-              : result.status,
-        );
+        .then((result): DbtCoreFinding => {
+          if (result.status !== "unknown") {
+            return { check: result.status };
+          }
+          const check = result.reason ?? "failed";
+          return check === "failed" && result.detail
+            ? { check, detail: result.detail }
+            : { check };
+        });
       return await Promise.race([probe, timedOut]);
     } finally {
       clearTimeout(timer);
@@ -1535,6 +1600,14 @@ function heldMessage(
     case "profileNotFound":
       return profileMessage(held, lead, installOr);
     case "dbtCoreUnknown":
+      // A failed import names its error, and reinstalling dbt-core
+      // (`--force-reinstall`, with its dependencies) can repair it.
+      if (held.dbtCoreDetail) {
+        return {
+          text: `${lead("this window", `importing dbt-core in the selected interpreter fails: ${held.dbtCoreDetail.trim().replace(/\.+$/, "")}`)} Fix or reinstall dbt-core, select another interpreter, or use dbt Fusion.`,
+          actions: installOr(SELECT_INTERPRETER, USE_FUSION),
+        };
+      }
       return {
         text: lead(
           "this window",

@@ -27,6 +27,7 @@ import {
 import {
   AUTO_SWITCH_NOTIFIED_KEY,
   DBT_CORE_WORKED_KEY,
+  dbtCoreImportErrorKind,
   FUSION_TRIAL_KEY,
   IntegrationModeService,
   PARSE_FAILED_OFFERED_KEY,
@@ -748,6 +749,115 @@ describe("IntegrationModeService.notifySwitchHeld", () => {
 // A held window whose dbt Core mode can't start either (no dbt-core) used to
 // get the hold notice and, on top of it, "Please ensure dbt core cli is
 // installed.". Now the hold is that error: one message, the blocker first.
+// A dbt-core install that fails to import used to read only "dbt-core could
+// not be checked". dbt-integration now returns Python's error line.
+describe("a dbt-core install that fails to import", () => {
+  const failedWith = (detail: string): PythonDbtCore => ({
+    importable: false,
+    status: "unknown",
+    reason: "failed",
+    detail,
+  });
+  const PROTOBUF =
+    "ImportError: cannot import name 'builder' from 'google.protobuf.internal' (~/venv/lib/python3.11/site-packages/google/protobuf/internal/__init__.py)";
+
+  it("quotes Python's error line, and sends only its kind", async () => {
+    const { svc, telemetry } = service({ dbtCore: failedWith(PROTOBUF) });
+    await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe("core");
+    expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+      "dbtIntegrationSwitchHeld",
+      expect.objectContaining({
+        reason: "dbtCoreUnknown",
+        dbtCoreCheck: "failed",
+        dbtCoreImportError: "protobuf",
+      }),
+    );
+    // The line itself, which can name local paths, is never sent.
+    expect(
+      JSON.stringify(telemetry.sendTelemetryEvent.mock.calls),
+    ).not.toContain("google.protobuf.internal");
+    await svc.notifyHeldWithoutDbtCore();
+    expect(
+      (window.showErrorMessage as jest.Mock).mock.calls as unknown[][],
+    ).toEqual([
+      [
+        `Power User didn't switch this window to dbt Fusion 2.0.9 (/home/user/.local/bin/dbt): importing dbt-core in the selected interpreter fails: ${PROTOBUF}. Fix or reinstall dbt-core, select another interpreter, or use dbt Fusion.`,
+        "Install dbt Core",
+        "Select interpreter",
+        "Use dbt Fusion",
+      ],
+    ]);
+  });
+
+  it("offers the reinstall only in the error, where dbt Core mode can't start", async () => {
+    const { svc } = service({ dbtCore: failedWith(PROTOBUF) });
+    await svc.resolve(new FakeMemento() as never);
+    await svc.notifySwitchHeld();
+    expect(shown()[0].slice(1)).toEqual([
+      "Select interpreter",
+      "Use dbt Fusion",
+      "Dismiss",
+    ]);
+  });
+
+  it("ends the line with one full stop", async () => {
+    const { svc } = service({
+      dbtCore: failedWith("TypeError: Descriptors cannot be created directly."),
+    });
+    await svc.resolve(new FakeMemento() as never);
+    await svc.notifySwitchHeld();
+    expect(shown()[0][0]).toContain(
+      "fails: TypeError: Descriptors cannot be created directly. Fix or reinstall",
+    );
+  });
+
+  it("ends a line that ends in several periods with one full stop too", async () => {
+    const { svc } = service({
+      dbtCore: failedWith("ImportError: cannot import name 'x'... "),
+    });
+    await svc.resolve(new FakeMemento() as never);
+    await svc.notifySwitchHeld();
+    expect(shown()[0][0]).toContain("name 'x'. Fix or reinstall");
+  });
+
+  it("keeps the general sentence for a check that could not tell otherwise", async () => {
+    const { svc, telemetry } = service({ dbtCore: unknownBecause("timeout") });
+    await svc.resolve(new FakeMemento() as never);
+    expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+      "dbtIntegrationSwitchHeld",
+      expect.not.objectContaining({ dbtCoreImportError: expect.anything() }),
+    );
+    await svc.notifySwitchHeld();
+    expect(shown()[0][0]).toMatch(
+      /: dbt-core could not be checked in the selected interpreter\.$/,
+    );
+    // Without Python's line there's nothing to say a reinstall would repair.
+    await svc.notifyHeldWithoutDbtCore();
+    expect(
+      ((window.showErrorMessage as jest.Mock).mock.calls as unknown[][]).map(
+        (call) => call.slice(1),
+      ),
+    ).toEqual([["Select interpreter", "Use dbt Fusion"]]);
+  });
+
+  it.each<[string, string]>([
+    [PROTOBUF, "protobuf"],
+    ["TypeError: Descriptors cannot be created directly.", "protobuf"],
+    [
+      "pydantic.errors.PydanticUserError: `const` is removed, use `Literal` instead",
+      "pydantic",
+    ],
+    [
+      "ImportError: cannot import name 'SerializableType' from 'mashumaro'",
+      "mashumaro",
+    ],
+    ["ModuleNotFoundError: No module named 'agate'", "missingModule"],
+    ["OSError: [Errno 13] Permission denied: '~/venv/lib'", "other"],
+  ])("files %j as %s", (detail, kind) => {
+    expect(dbtCoreImportErrorKind(detail)).toBe(kind);
+  });
+});
+
 describe("IntegrationModeService.notifyHeldWithoutDbtCore", () => {
   const errors = () =>
     (window.showErrorMessage as jest.Mock).mock.calls as unknown[][];
