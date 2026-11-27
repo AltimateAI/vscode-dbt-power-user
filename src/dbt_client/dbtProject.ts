@@ -609,13 +609,16 @@ export class DBTProject implements Disposable {
     return error.message.trim() || "see Problems for the error";
   }
 
-  /** Says why Generate model can't run, with Show problems and Re-parse. */
-  private showGenerateModelLoadError(loadError: string): void {
+  /**
+   * Says why a command can't run on a project that didn't load, with Show
+   * problems and Re-parse. `cannot` leads the message: "Can't generate the model".
+   */
+  private showProjectLoadError(cannot: string, loadError: string): void {
     const showProblems = "Show problems";
     const reparse = "Re-parse";
     window
       .showErrorMessage(
-        `Can't generate the model: the dbt project didn't load: ${loadError}`,
+        `${cannot}: the dbt project didn't load: ${loadError}`,
         showProblems,
         reparse,
       )
@@ -1614,6 +1617,17 @@ export class DBTProject implements Disposable {
   }
 
   async generateSchemaYML(modelPath: Uri, modelName: string) {
+    const loadError = this.getLoadError();
+    if (loadError) {
+      this.telemetry.sendTelemetryEvent("generateSchemaYMLProjectNotLoaded", {
+        adapter: this.getAdapterType(),
+      });
+      this.showProjectLoadError(
+        "Can't generate the documentation YML",
+        loadError,
+      );
+      return;
+    }
     try {
       // Create filePath based on model location
       const currentDir = path.dirname(modelPath.fsPath);
@@ -1637,6 +1651,13 @@ export class DBTProject implements Disposable {
         );
       }
     } catch (exc: any) {
+      // The traceback goes to the log; the toast carries the message.
+      this.terminal.error(
+        "dbtProject:generateSchemaYML",
+        "Could not generate the schema yml",
+        exc,
+        false,
+      );
       if (exc instanceof PythonException) {
         this.telemetry.sendTelemetryError("generateSchemaYMLPythonError", exc, {
           adapter: this.getAdapterType(),
@@ -1648,6 +1669,7 @@ export class DBTProject implements Disposable {
               ".",
           ),
         );
+        return;
       }
       // Unknown error
       this.telemetry.sendTelemetryError("generateSchemaYMLUnknownError", exc, {
@@ -1671,7 +1693,7 @@ export class DBTProject implements Disposable {
       this.telemetry.sendTelemetryEvent("generateModelProjectNotLoaded", {
         adapter: this.getAdapterType(),
       });
-      this.showGenerateModelLoadError(loadError);
+      this.showProjectLoadError("Can't generate the model", loadError);
       return;
     }
     await window.withProgress(

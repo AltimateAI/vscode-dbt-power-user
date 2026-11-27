@@ -3,13 +3,15 @@ import type {
   PythonDbtCoreUnknownReason,
 } from "@altimateai/dbt-integration";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
+import { mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import * as path from "path";
 import { commands, ConfigurationTarget, Uri, window, workspace } from "vscode";
 import { DBTClient } from "../../dbt_client";
+import type { FusionTrialResult } from "../../dbt_client/fusionTrial";
 import {
   DbtCoreCheck,
+  DbtIntegrationFacts,
   decideDbtIntegrationMode,
   FusionAdapterCheck,
   fusionAdapterSupport,
@@ -18,11 +20,15 @@ import {
   pythonDbtCoreFromCheck,
   readConfiguredDbtIntegration,
   setEffectiveDbtIntegrationMode,
+  SWITCH_GATE,
+  SwitchGate,
   windowAdapterCheck,
 } from "../../dbt_client/integrationMode";
 import {
   AUTO_SWITCH_NOTIFIED_KEY,
+  DBT_CORE_WORKED_KEY,
   dbtCoreImportErrorKind,
+  FUSION_TRIAL_KEY,
   IntegrationModeService,
   PARSE_FAILED_OFFERED_KEY,
   SWITCH_HELD_NOTIFIED_KEY,
@@ -138,9 +144,15 @@ function service({
   env = { PATH: "/usr/bin" } as Record<string, string>,
   // More variables per workspace folder path, as each folder's .env adds them.
   folderEnv = {} as Record<string, Record<string, string>>,
+  // "none" (no gate), so the switch's own rules can be tested; "shipped"
+  // takes the service's default, as the extension constructs it.
+  switchGate = "none" as SwitchGate | "none" | "shipped",
+  // What the trial parse returns; "never": it does not finish.
+  trial = undefined as FusionTrialResult | "never" | undefined,
 } = {}) {
   const telemetry = {
     sendTelemetryEvent: jest.fn(),
+    sendTelemetryError: jest.fn(),
     setTelemetryCustomAttribute: jest.fn(),
   };
   const findBinary = jest.fn(() => Promise.resolve(binary ?? undefined));
@@ -154,6 +166,17 @@ function service({
       (projectFiles[folder.uri.fsPath] ?? []).map((file) => Uri.file(file)),
     ),
   );
+  const runTrial = jest.fn(
+    (options: { signal?: AbortSignal }): Promise<FusionTrialResult> =>
+      new Promise((resolve) => {
+        if (trial !== "never" && trial !== undefined) {
+          resolve(trial);
+        }
+        options.signal?.addEventListener("abort", () =>
+          resolve({ outcome: "canceled", projects: [], durationMs: 5 }),
+        );
+      }),
+  );
   const terminal = { info: jest.fn(), debug: jest.fn() };
   const svc = new IntegrationModeService(
     {
@@ -166,8 +189,9 @@ function service({
     } as never,
     telemetry as never,
     terminal as never,
-    { findBinary, probeDbtCore, findProjectFiles } as never,
+    { findBinary, probeDbtCore, findProjectFiles, runTrial } as never,
     probeTimeoutMs,
+    switchGate === "shipped" ? undefined : switchGate,
   );
   return {
     svc,
@@ -176,6 +200,7 @@ function service({
     findBinary,
     probeDbtCore,
     findProjectFiles,
+    runTrial,
   };
 }
 
@@ -324,6 +349,8 @@ describe("IntegrationModeService.resolve", () => {
         dbtCoreCheck: "notInstalled",
         fusionAdapterCheck: "noProjects",
         adapterTypes: "",
+        // Switched without a gate here; the shipped gate needs a passed trial.
+        trial: "none",
       },
     );
     expect(telemetry.setTelemetryCustomAttribute).toHaveBeenCalledWith(
@@ -988,6 +1015,7 @@ describe("DBTClient in a window held in dbt Core mode", () => {
   function client(held: boolean) {
     const notice = {
       notifyHeldWithoutDbtCore: jest.fn(() => Promise.resolve(held)),
+      heldWithoutPython: jest.fn(() => undefined),
     };
     const dbtClient = new DBTClient(
       {
@@ -1034,6 +1062,211 @@ describe("DBTClient in a window held in dbt Core mode", () => {
     const { dbtClient, notice } = client(true);
     await dbtClient.showErrorIfDbtOrPythonNotInstalled();
     expect(notice.notifyHeldWithoutDbtCore).not.toHaveBeenCalled();
+  });
+
+  /**
+   * Without a usable Python (no Python extension, no interpreter, or one that
+   * no longer exists), the Python error stays: it says what fixes Python.
+   * In a window held with dbt Fusion found it also offers dbt Fusion, which
+   * runs without Python, and never Install dbt Core, which needs an
+   * interpreter. With an interpreter that lacks dbt-core, the hold's message
+   * keeps Install dbt Core.
+   */
+  describe("without a usable Python", () => {
+    const FUSION = "dbt Fusion 2.0.12 (/home/user/.local/bin/dbt)";
+    const OR_FUSION = `, or use ${FUSION}, which is on your path and runs without Python.`;
+
+    function noPython(
+      held: boolean,
+      {
+        pythonExtensionAvailable = true,
+        pythonPath = "",
+        pythonInstalled = false,
+      }: {
+        pythonExtensionAvailable?: boolean;
+        pythonPath?: string;
+        pythonInstalled?: boolean;
+      } = {},
+    ) {
+      setEffectiveDbtIntegrationMode("core");
+      const offer = {
+        fusion: FUSION,
+        answered: jest.fn(() => Promise.resolve()),
+      };
+      const notice = {
+        notifyHeldWithoutDbtCore: jest.fn(() => Promise.resolve(held)),
+        heldWithoutPython: jest.fn(() => (held ? offer : undefined)),
+      };
+      const pythonEnvironment: {
+        pythonPath: string;
+        isPython3: boolean;
+        pythonExtensionAvailable: boolean;
+        getEnvironmentVariables: () => Record<string, string>;
+        showInterpreterNotFound: jest.Mock;
+        heldNotes?: () => unknown;
+      } = {
+        pythonPath,
+        isPython3: true,
+        pythonExtensionAvailable,
+        getEnvironmentVariables: () => ({ PATH: "" }),
+        showInterpreterNotFound: jest.fn(() => Promise.resolve()),
+      };
+      const dbtClient = new DBTClient(
+        pythonEnvironment as never,
+        jest.fn() as never,
+        notice,
+      );
+      const internals = dbtClient as unknown as {
+        _pythonInstalled: boolean;
+        _dbtInstalled: boolean;
+      };
+      internals._pythonInstalled = pythonInstalled;
+      internals._dbtInstalled = false;
+      return { dbtClient, notice, offer, pythonEnvironment };
+    }
+
+    const errorCalls = () =>
+      (window.showErrorMessage as jest.Mock).mock.calls as unknown[][];
+
+    it("offers dbt Fusion next to installing the Python extension, and not Install dbt Core", async () => {
+      const { dbtClient, notice, offer } = noPython(true, {
+        pythonExtensionAvailable: false,
+      });
+      (window.showErrorMessage as jest.Mock).mockReturnValueOnce(
+        Promise.resolve("Use dbt Fusion"),
+      );
+
+      await expect(
+        dbtClient.showErrorIfDbtOrPythonNotInstalled(),
+      ).resolves.toBe(false);
+
+      expect(errorCalls()).toEqual([
+        [
+          `dbt Core runs through the Python extension, which is not installed. Install it${OR_FUSION}`,
+          "Install Python extension",
+          "Use dbt Fusion",
+          "Troubleshoot",
+        ],
+      ]);
+      expect(offer.answered).toHaveBeenCalledWith("useFusion");
+      expect(notice.notifyHeldWithoutDbtCore).not.toHaveBeenCalled();
+      expect(commands.executeCommand).not.toHaveBeenCalled();
+    });
+
+    it("prompts for the Python extension as before when the window wasn't held", async () => {
+      const { dbtClient } = noPython(false, {
+        pythonExtensionAvailable: false,
+      });
+      await dbtClient.showErrorIfDbtOrPythonNotInstalled();
+      expect(errorCalls()).toEqual([
+        [
+          "dbt Core runs through the Python extension, which is not installed. Install it, or switch dbt.dbtIntegration to fusion to use dbt Fusion without Python.",
+          "Install Python extension",
+          "Troubleshoot",
+        ],
+      ]);
+    });
+
+    it("offers dbt Fusion next to selecting an interpreter when none is selected", async () => {
+      const { dbtClient, notice, offer } = noPython(true);
+      (window.showErrorMessage as jest.Mock).mockReturnValueOnce(
+        Promise.resolve("Select Python interpreter"),
+      );
+
+      await dbtClient.showErrorIfDbtOrPythonNotInstalled();
+
+      expect(errorCalls()).toEqual([
+        [
+          `No Python interpreter is selected or Python is not installed. Select one${OR_FUSION}`,
+          "Select Python interpreter",
+          "Detect from terminal",
+          "Use dbt Fusion",
+        ],
+      ]);
+      expect(offer.answered).toHaveBeenCalledWith("fixPython");
+      expect(commands.executeCommand).toHaveBeenCalledWith(
+        "python.setInterpreter",
+      );
+      expect(notice.notifyHeldWithoutDbtCore).not.toHaveBeenCalled();
+    });
+
+    it("gives the hold's reason, and no Use dbt Fusion, where dbt Fusion would fail as well", async () => {
+      const { dbtClient, offer } = noPython(true);
+      const LOOM =
+        "Power User didn't switch this window to dbt Fusion 2.0.12 (/home/user/.local/bin/dbt): a dbt-loom config is present, which only dbt Core mode reads.";
+      (offer as { fusion?: string; reason?: string }).fusion = undefined;
+      (offer as { fusion?: string; reason?: string }).reason = LOOM;
+      (window.showErrorMessage as jest.Mock).mockReturnValueOnce(
+        Promise.resolve("Detect from terminal"),
+      );
+
+      await dbtClient.showErrorIfDbtOrPythonNotInstalled();
+
+      expect(errorCalls()).toEqual([
+        [
+          `No Python interpreter is selected or Python is not installed. Select one. ${LOOM}`,
+          "Select Python interpreter",
+          "Detect from terminal",
+        ],
+      ]);
+      expect(offer.answered).toHaveBeenCalledWith("fixPython");
+      expect(commands.executeCommand).toHaveBeenCalledWith(
+        "dbtPowerUser.detectPythonFromTerminal",
+      );
+    });
+
+    it("says no interpreter is selected as before when the window wasn't held", async () => {
+      const { dbtClient } = noPython(false);
+      await dbtClient.showErrorIfDbtOrPythonNotInstalled();
+      expect(errorCalls()).toEqual([
+        [
+          "No Python interpreter is selected or Python is not installed",
+          "Select Python interpreter",
+          "Detect from terminal",
+        ],
+      ]);
+    });
+
+    it("keeps the guidance for an interpreter path that no longer exists, which adds the hold's note however it's reported", async () => {
+      const missing = path.join(tmpdir(), "no-such-venv", "bin", "python");
+      const held = noPython(true, { pythonPath: missing });
+      await held.dbtClient.showErrorIfDbtOrPythonNotInstalled();
+      expect(
+        held.pythonEnvironment.showInterpreterNotFound,
+      ).toHaveBeenCalledWith(missing);
+      // The note is asked when the error is shown, also for a project that
+      // reports the path first.
+      expect(held.pythonEnvironment.heldNotes?.()).toBe(held.offer);
+      expect(held.notice.notifyHeldWithoutDbtCore).not.toHaveBeenCalled();
+      expect(window.showErrorMessage).not.toHaveBeenCalled();
+
+      const notHeld = noPython(false, { pythonPath: missing });
+      await notHeld.dbtClient.showErrorIfDbtOrPythonNotInstalled();
+      expect(
+        notHeld.pythonEnvironment.showInterpreterNotFound,
+      ).toHaveBeenCalledWith(missing);
+      expect(notHeld.pythonEnvironment.heldNotes?.()).toBeUndefined();
+    });
+
+    it("keeps Install dbt Core, through the hold, for an interpreter without dbt-core", async () => {
+      const { dbtClient, notice } = noPython(true, {
+        pythonPath: "/venv/bin/python",
+        pythonInstalled: true,
+      });
+      await dbtClient.showErrorIfDbtOrPythonNotInstalled();
+      expect(notice.notifyHeldWithoutDbtCore).toHaveBeenCalledTimes(1);
+      expect(notice.heldWithoutPython).not.toHaveBeenCalled();
+    });
+
+    it("shows one Python error per window", async () => {
+      const { dbtClient, notice } = noPython(true, {
+        pythonExtensionAvailable: false,
+      });
+      await dbtClient.showErrorIfDbtOrPythonNotInstalled();
+      await dbtClient.showErrorIfDbtOrPythonNotInstalled();
+      expect(notice.heldWithoutPython).toHaveBeenCalledTimes(1);
+      expect(errorCalls()).toHaveLength(1);
+    });
   });
 });
 
@@ -2295,5 +2528,1119 @@ describe("IntegrationModeService.resolve: the adapter check", () => {
     expect(shown()[0][0]).toContain(
       ": the dbt profile uses the athena adapter, which dbt Fusion does not support.",
     );
+  });
+});
+
+/**
+ * Power User doesn't switch to dbt Fusion on its own: most switched projects
+ * failed dbt Fusion's first parse. A window it would have switched (a dbt 2.x
+ * binary found, no dbt-core in the selected interpreter, nothing else holding
+ * it) keeps dbt Core mode. Where dbt Core mode can't start, the error that
+ * replaces "dbt is not installed" offers dbt Fusion; where it works, nothing
+ * is shown. The other holds, an explicit dbt Fusion mode and detection are as
+ * before.
+ */
+describe("with the switch gate paused", () => {
+  const errors = () =>
+    (window.showErrorMessage as jest.Mock).mock.calls as unknown[][];
+  const pausedFacts: DbtIntegrationFacts = {
+    dbtV2Found: true,
+    pythonDbtCore: false,
+    dbtLoom: false,
+    fusionAdapterUnsupported: false,
+    fusionAdapterExperimental: false,
+    profileNotFound: false,
+    fusionGate: "paused",
+  };
+
+  it("holds a window the rules would switch for fusionOffered", () => {
+    expect(
+      decideDbtIntegrationMode({ value: "core", explicit: false }, pausedFacts),
+    ).toEqual({ mode: "core", autoSwitched: false, heldBack: "fusionOffered" });
+    expect(
+      decideDbtIntegrationMode(
+        { value: "corecommand", explicit: false },
+        pausedFacts,
+      ),
+    ).toEqual({
+      mode: "corecommand",
+      autoSwitched: false,
+      heldBack: "fusionOffered",
+    });
+  });
+
+  it("keeps the other holds' reasons, and leaves an explicit mode and a window without dbt 2.x alone", () => {
+    const decide = (facts: Partial<DbtIntegrationFacts>) =>
+      decideDbtIntegrationMode(
+        { value: "core", explicit: false },
+        { ...pausedFacts, ...facts },
+      ).heldBack;
+    expect(decide({ pythonDbtCore: true })).toBe("dbtCore");
+    expect(decide({ pythonDbtCore: "unknown" })).toBe("dbtCoreUnknown");
+    expect(decide({ dbtLoom: true })).toBe("dbtLoom");
+    expect(decide({ fusionAdapterUnsupported: true })).toBe(
+      "adapterUnsupported",
+    );
+    expect(decide({ fusionAdapterExperimental: true })).toBe(
+      "adapterExperimental",
+    );
+    expect(decide({ profileNotFound: true })).toBe("profileNotFound");
+    expect(
+      decideDbtIntegrationMode(
+        { value: "fusion", explicit: true },
+        pausedFacts,
+      ),
+    ).toEqual({ mode: "fusion", autoSwitched: false });
+    expect(
+      decideDbtIntegrationMode(
+        { value: "core", explicit: false },
+        { ...pausedFacts, dbtV2Found: false },
+      ),
+    ).toEqual({ mode: "core", autoSwitched: false });
+  });
+
+  it.each<[string, Parameters<typeof service>[0], DbtCoreCheck]>([
+    ["no dbt-core in the interpreter", {}, "notInstalled"],
+    [
+      "no interpreter",
+      { pythonExtensionAvailable: false, extensionPath: "" },
+      "noInterpreter",
+    ],
+  ])(
+    "keeps dbt Core mode with dbt Fusion found and %s",
+    async (_case, options, dbtCoreCheck) => {
+      const { svc, telemetry, terminal } = service({
+        ...options,
+        switchGate: "paused",
+      });
+
+      await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
+        "core",
+      );
+
+      expect(getDbtIntegrationMode()).toBe("core");
+      expect(svc.autoSwitched).toBeUndefined();
+      expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+        "dbtIntegrationSwitchHeld",
+        expect.objectContaining({
+          reason: "fusionOffered",
+          binaryVersion: "2.0.9",
+          dbtCoreCheck,
+        }),
+      );
+      expect(telemetry.sendTelemetryEvent).not.toHaveBeenCalledWith(
+        "dbtIntegrationAutoSwitched",
+        expect.anything(),
+      );
+      expect(telemetry.setTelemetryCustomAttribute).not.toHaveBeenCalled();
+      expect(terminal.info).toHaveBeenCalledWith(
+        "dbtIntegrationSwitchHeld",
+        `/home/user/.local/bin/dbt is dbt 2.0.9, but Power User doesn't switch to dbt Fusion on its own: keeping core (dbt-core check: ${dbtCoreCheck}, adapter check: noProjects)`,
+        false,
+      );
+    },
+  );
+
+  it('offers dbt Fusion in the error that replaces "dbt is not installed", and Use dbt Fusion sets it for the workspace', async () => {
+    const { svc, telemetry } = service({ switchGate: "paused" });
+    await svc.resolve(new FakeMemento() as never);
+    (window.showErrorMessage as jest.Mock).mockReturnValueOnce(
+      Promise.resolve("Use dbt Fusion"),
+    );
+
+    await expect(svc.notifyHeldWithoutDbtCore()).resolves.toBe(true);
+
+    expect(errors()).toEqual([
+      [
+        "dbt Fusion 2.0.9 (/home/user/.local/bin/dbt) is on your path. dbt Core mode needs dbt-core, which the selected Python interpreter does not have. Install dbt Core, or use dbt Fusion for this workspace.",
+        "Install dbt Core",
+        "Use dbt Fusion",
+      ],
+    ]);
+    expect(update).toHaveBeenCalledWith(
+      "dbtIntegration",
+      "fusion",
+      ConfigurationTarget.Workspace,
+    );
+    expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+      "dbtIntegrationSwitchHeldAnswer",
+      {
+        reason: "fusionOffered",
+        answer: "useFusion",
+        shownAs: "error",
+        binaryVersion: "2.0.9",
+      },
+    );
+  });
+
+  it("gives the Python errors dbt Fusion to offer, and records the answer", async () => {
+    const { svc, telemetry } = service({
+      pythonExtensionAvailable: false,
+      extensionPath: "",
+      switchGate: "paused",
+    });
+    await svc.resolve(new FakeMemento() as never);
+
+    const offer = svc.heldWithoutPython();
+
+    expect(offer?.fusion).toBe("dbt Fusion 2.0.9 (/home/user/.local/bin/dbt)");
+    await offer!.answered("fixPython");
+    expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+      "dbtIntegrationSwitchHeldAnswer",
+      {
+        reason: "fusionOffered",
+        answer: "fixPython",
+        shownAs: "pythonError",
+        binaryVersion: "2.0.9",
+      },
+    );
+    expect(update).not.toHaveBeenCalled();
+    await offer!.answered("useFusion");
+    expect(update).toHaveBeenCalledWith(
+      "dbtIntegration",
+      "fusion",
+      ConfigurationTarget.Workspace,
+    );
+    expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+      "dbtIntegrationSwitchHeldAnswer",
+      expect.objectContaining({ answer: "useFusion", shownAs: "pythonError" }),
+    );
+  });
+
+  it("offers nothing to the Python errors when the window wasn't held, or was held for dbt-core", async () => {
+    const notHeld = service({ binary: null, switchGate: "paused" });
+    await notHeld.svc.resolve(new FakeMemento() as never);
+    expect(notHeld.svc.heldWithoutPython()).toBeUndefined();
+
+    const dbtCore = service({
+      dbtCore: IMPORTABLE,
+      switchGate: "paused",
+    });
+    await dbtCore.svc.resolve(new FakeMemento() as never);
+    expect(dbtCore.svc.heldWithoutPython()).toBeUndefined();
+  });
+
+  it("shows no notice after a Python error offered dbt Fusion", async () => {
+    // A dbt-loom hold tells the workspace once, unless an error said it first.
+    const { svc } = service({
+      env: { PATH: "/usr/bin", DBT_LOOM_CONFIG_PATH: "/etc/loom.yml" },
+      pythonExtensionAvailable: false,
+      extensionPath: "",
+    });
+    await svc.resolve(new FakeMemento() as never);
+    expect(svc.heldWithoutPython()).toBeDefined();
+    await svc.notifySwitchHeld();
+    expect(shown()).toHaveLength(0);
+  });
+
+  it("shows nothing where dbt Core mode works, and never the switch's notices", async () => {
+    const { svc } = service({ switchGate: "paused" });
+    const memento = new FakeMemento();
+    await svc.resolve(memento as never);
+
+    await svc.notifySwitchHeld();
+    await svc.notifyProjects([{ root: "/work/jaffle", name: "jaffle" }]);
+    await svc.rebuildStatusChanged({
+      root: "/work/jaffle",
+      name: "jaffle",
+      inProgress: false,
+      errorCount: 3,
+    });
+
+    expect(shown()).toHaveLength(0);
+    expect(window.showWarningMessage).not.toHaveBeenCalled();
+    expect(memento.keys()).toEqual([]);
+  });
+});
+
+/**
+ * The safe switch: a window is switched to dbt Fusion only when dbt Core has
+ * not worked on the machine in the last 7 days (the dbt-core check reads one
+ * window's interpreter and misread machines whose dbt Core had just run), and
+ * only to a dbt Fusion that parsed the window's projects in a background
+ * trial. Until the trial passes, the window keeps dbt Core mode.
+ */
+describe("the safe switch to dbt Fusion", () => {
+  const DAY = 24 * 60 * 60 * 1000;
+  const errors = () =>
+    (window.showErrorMessage as jest.Mock).mock.calls as unknown[][];
+  let dir: string;
+  let root: string;
+
+  beforeEach(() => {
+    dir = mkdtempSync(path.join(tmpdir(), "fusion-safe-switch-"));
+    (workspace as { workspaceFolders: unknown }).workspaceFolders = [
+      { uri: Uri.file(dir), name: "repo", index: 0 },
+    ];
+    root = path.join(dir, "jaffle");
+    mkdirSync(root, { recursive: true });
+    writeFileSync(
+      path.join(root, "dbt_project.yml"),
+      'name: jaffle\nversion: "1.0"\nprofile: jaffle\n',
+    );
+    writeFileSync(
+      path.join(root, "profiles.yml"),
+      JSON.stringify({
+        jaffle: { target: "dev", outputs: { dev: { type: "duckdb" } } },
+      }),
+    );
+  });
+  afterEach(() => rmSync(dir, { recursive: true, force: true }));
+
+  const projectFiles = () => ({ [dir]: [path.join(root, "dbt_project.yml")] });
+  const parsed = (): FusionTrialResult => ({
+    outcome: "parsed",
+    projects: [{ root, outcome: "parsed", errorCount: 0, durationMs: 900 }],
+    durationMs: 900,
+  });
+  const failed = (): FusionTrialResult => {
+    const project = {
+      root,
+      outcome: "parseErrors" as const,
+      errorCount: 2,
+      firstError: "Environment variable 'DUCKDB_PATH' not found.",
+      firstErrorCode: "dbt1501",
+      durationMs: 700,
+    };
+    return {
+      outcome: "parseErrors",
+      projects: [project],
+      failed: project,
+      durationMs: 700,
+    };
+  };
+  const shipped = (
+    options: Parameters<typeof service>[0] = {},
+  ): ReturnType<typeof service> =>
+    service({
+      projectFiles: projectFiles(),
+      switchGate: "shipped",
+      ...options,
+    });
+  const settle = () => new Promise((resolve) => setImmediate(resolve));
+  const held = (telemetry: ReturnType<typeof service>["telemetry"]) =>
+    (telemetry.sendTelemetryEvent.mock.calls as unknown[][]).find(
+      ([name]) => name === "dbtIntegrationSwitchHeld",
+    )?.[1] as Record<string, string> | undefined;
+
+  it("gates the switch on a trial in the shipped build", () => {
+    expect(SWITCH_GATE).toBe("trial");
+  });
+
+  describe("dbt Core worked on the machine recently", () => {
+    // dbt-integration 0.3.22 reads Python 3.15's "No module named 'dbt'.
+    // Did you mean: 'dbm'?" as notInstalled: the same hold covers it.
+    it("holds a window whose check reads notInstalled when a dbt Core window ran in the last 7 days", async () => {
+      const globalState = new FakeMemento();
+      await globalState.update(DBT_CORE_WORKED_KEY, Date.now() - 6 * DAY);
+      const { svc, telemetry, runTrial } = shipped({ trial: parsed() });
+
+      await expect(
+        svc.resolve(new FakeMemento() as never, globalState as never),
+      ).resolves.toBe("core");
+
+      expect(svc.autoSwitched).toBeUndefined();
+      expect(held(telemetry)).toMatchObject({
+        reason: "dbtCoreRecent",
+        dbtCoreEvidence: "record",
+        dbtCoreCheck: "notInstalled",
+      });
+      expect(runTrial).not.toHaveBeenCalled();
+    });
+
+    it("holds a window with no interpreter the same way", async () => {
+      const globalState = new FakeMemento();
+      await globalState.update(DBT_CORE_WORKED_KEY, Date.now() - DAY);
+      const { svc, telemetry } = shipped({
+        pythonExtensionAvailable: false,
+        extensionPath: "",
+      });
+      await svc.resolve(new FakeMemento() as never, globalState as never);
+      expect(held(telemetry)).toMatchObject({
+        reason: "dbtCoreRecent",
+        dbtCoreCheck: "noInterpreter",
+      });
+    });
+
+    it("lets a record older than 7 days go to the trial", async () => {
+      const globalState = new FakeMemento();
+      await globalState.update(DBT_CORE_WORKED_KEY, Date.now() - 8 * DAY);
+      const { svc, telemetry, runTrial } = shipped({ trial: "never" });
+      await svc.resolve(new FakeMemento() as never, globalState as never);
+      expect(held(telemetry)).toMatchObject({ reason: "fusionTrial" });
+      expect(runTrial).toHaveBeenCalled();
+    });
+
+    it("holds when dbt Core parsed a project in the last 7 days, read from its partial parse file", async () => {
+      mkdirSync(path.join(root, "target"));
+      writeFileSync(path.join(root, "target", "partial_parse.msgpack"), "");
+      const { svc, telemetry } = shipped();
+      await svc.resolve(new FakeMemento() as never, new FakeMemento() as never);
+      expect(held(telemetry)).toMatchObject({
+        reason: "dbtCoreRecent",
+        dbtCoreEvidence: "partialParse",
+      });
+    });
+
+    it("reads the partial parse file from the project's target-path and DBT_TARGET_PATH", async () => {
+      writeFileSync(
+        path.join(root, "dbt_project.yml"),
+        'name: jaffle\nversion: "1.0"\nprofile: jaffle\ntarget-path: build\n',
+      );
+      mkdirSync(path.join(root, "build"));
+      writeFileSync(path.join(root, "build", "partial_parse.msgpack"), "");
+      const fromConfig = shipped();
+      await fromConfig.svc.resolve(new FakeMemento() as never);
+      expect(held(fromConfig.telemetry)).toMatchObject({
+        reason: "dbtCoreRecent",
+      });
+
+      const fromEnv = shipped({
+        trial: "never",
+        env: { PATH: "/usr/bin", DBT_TARGET_PATH: "elsewhere" },
+      });
+      await fromEnv.svc.resolve(new FakeMemento() as never);
+      expect(held(fromEnv.telemetry)).toMatchObject({ reason: "fusionTrial" });
+    });
+
+    it("reads a target-path given as an env_var call", async () => {
+      writeFileSync(
+        path.join(root, "dbt_project.yml"),
+        "name: jaffle\nversion: \"1.0\"\nprofile: jaffle\ntarget-path: \"{{ env_var('BUILD_DIR', 'target') }}\"\n",
+      );
+      mkdirSync(path.join(root, "build"));
+      writeFileSync(path.join(root, "build", "partial_parse.msgpack"), "");
+      const withVar = shipped({
+        env: { PATH: "/usr/bin", BUILD_DIR: "build" },
+      });
+      await withVar.svc.resolve(new FakeMemento() as never);
+      expect(held(withVar.telemetry)).toMatchObject({
+        reason: "dbtCoreRecent",
+      });
+
+      // Unset: its default, target, which has no partial parse file.
+      const withDefault = shipped({ trial: "never" });
+      await withDefault.svc.resolve(new FakeMemento() as never);
+      expect(held(withDefault.telemetry)).toMatchObject({
+        reason: "fusionTrial",
+      });
+    });
+
+    it("renders env_var calls inside a longer target-path", async () => {
+      writeFileSync(
+        path.join(root, "dbt_project.yml"),
+        "name: jaffle\nversion: \"1.0\"\nprofile: jaffle\ntarget-path: \"build/{{ env_var('BUILD_ENV', 'dev') }}\"\n",
+      );
+      mkdirSync(path.join(root, "build", "dev"), { recursive: true });
+      writeFileSync(
+        path.join(root, "build", "dev", "partial_parse.msgpack"),
+        "",
+      );
+      const { svc, telemetry } = shipped();
+      await svc.resolve(new FakeMemento() as never);
+      expect(held(telemetry)).toMatchObject({ reason: "dbtCoreRecent" });
+    });
+
+    it("takes an env_var's default for a variable unset with null in terminal.integrated.env", async () => {
+      writeFileSync(
+        path.join(root, "dbt_project.yml"),
+        "name: jaffle\nversion: \"1.0\"\nprofile: jaffle\ntarget-path: \"build/{{ env_var('BUILD_ENV', 'dev') }}\"\n",
+      );
+      mkdirSync(path.join(root, "build", "dev"), { recursive: true });
+      writeFileSync(
+        path.join(root, "build", "dev", "partial_parse.msgpack"),
+        "",
+      );
+      const { svc, telemetry } = shipped({
+        env: { PATH: "/usr/bin", BUILD_ENV: null as unknown as string },
+      });
+      await svc.resolve(new FakeMemento() as never);
+      expect(held(telemetry)).toMatchObject({ reason: "dbtCoreRecent" });
+    });
+
+    it("lets a partial parse file older than 7 days go to the trial", async () => {
+      mkdirSync(path.join(root, "target"));
+      const file = path.join(root, "target", "partial_parse.msgpack");
+      writeFileSync(file, "");
+      const old = new Date(Date.now() - 8 * DAY);
+      utimesSync(file, old, old);
+      const { svc, telemetry } = shipped({ trial: "never" });
+      await svc.resolve(new FakeMemento() as never);
+      expect(held(telemetry)).toMatchObject({ reason: "fusionTrial" });
+    });
+
+    it("keeps an importable dbt-core first", async () => {
+      const globalState = new FakeMemento();
+      await globalState.update(DBT_CORE_WORKED_KEY, Date.now());
+      const { svc, telemetry } = shipped({ dbtCore: IMPORTABLE });
+      await svc.resolve(new FakeMemento() as never, globalState as never);
+      expect(held(telemetry)).toMatchObject({ reason: "dbtCore" });
+    });
+
+    it("shows nothing where dbt Core mode works, and says why where it can't start", async () => {
+      const globalState = new FakeMemento();
+      await globalState.update(DBT_CORE_WORKED_KEY, Date.now() - DAY);
+      const { svc } = shipped();
+      await svc.resolve(new FakeMemento() as never, globalState as never);
+
+      await svc.notifySwitchHeld();
+      expect(shown()).toHaveLength(0);
+
+      (window.showErrorMessage as jest.Mock).mockReturnValueOnce(
+        Promise.resolve("Select interpreter"),
+      );
+      await expect(svc.notifyHeldWithoutDbtCore()).resolves.toBe(true);
+      expect(errors()).toEqual([
+        [
+          "Power User didn't switch this window to dbt Fusion 2.0.9 (/home/user/.local/bin/dbt): dbt Core ran on this machine in the last 7 days, so the window keeps dbt Core mode. dbt Core mode needs dbt-core, which the selected Python interpreter does not have.",
+          "Select interpreter",
+          "Install dbt Core",
+          "Use dbt Fusion",
+        ],
+      ]);
+      expect(commands.executeCommand).toHaveBeenCalledWith(
+        "python.setInterpreter",
+      );
+    });
+
+    it("names the project whose partial parse file showed it", async () => {
+      mkdirSync(path.join(root, "target"));
+      writeFileSync(path.join(root, "target", "partial_parse.msgpack"), "");
+      const { svc } = shipped();
+      await svc.resolve(new FakeMemento() as never);
+      await svc.notifyHeldWithoutDbtCore();
+      expect(errors()[0][0]).toContain(
+        "dbt Core parsed jaffle in the last 7 days, so the window keeps dbt Core mode.",
+      );
+    });
+
+    it("is recorded by a dbt Core window at most once an hour", async () => {
+      const globalState = new FakeMemento();
+      const { svc } = shipped();
+      await svc.resolve(new FakeMemento() as never, globalState as never);
+
+      await svc.dbtCoreWorked();
+      const first = globalState.get<number>(DBT_CORE_WORKED_KEY);
+      expect(typeof first).toBe("number");
+      await globalState.update(DBT_CORE_WORKED_KEY, first! - 10 * 60 * 1000);
+      await svc.dbtCoreWorked();
+      expect(globalState.get(DBT_CORE_WORKED_KEY)).toBe(
+        first! - 10 * 60 * 1000,
+      );
+
+      await globalState.update(
+        DBT_CORE_WORKED_KEY,
+        first! - 2 * 60 * 60 * 1000,
+      );
+      await svc.dbtCoreWorked();
+      expect(
+        globalState.get<number>(DBT_CORE_WORKED_KEY),
+      ).toBeGreaterThanOrEqual(first!);
+    });
+  });
+
+  describe("the trial parse", () => {
+    it("keeps dbt Core mode and tries the window's projects with the found dbt Fusion", async () => {
+      const { svc, telemetry, runTrial } = shipped({ trial: "never" });
+      await expect(svc.resolve(new FakeMemento() as never)).resolves.toBe(
+        "core",
+      );
+      expect(svc.autoSwitched).toBeUndefined();
+      expect(held(telemetry)).toMatchObject({ reason: "fusionTrial" });
+      expect(runTrial).toHaveBeenCalledWith(
+        expect.objectContaining({
+          binary: "/home/user/.local/bin/dbt",
+          projectRoots: [root],
+        }),
+      );
+    });
+
+    it("switches the next window once this dbt Fusion parsed the projects", async () => {
+      const memento = new FakeMemento();
+      const first = shipped({ trial: parsed() });
+      await first.svc.resolve(memento as never);
+      await settle();
+      expect(memento.get(FUSION_TRIAL_KEY)).toMatchObject({
+        path: "/home/user/.local/bin/dbt",
+        version: "2.0.9",
+        outcome: "parsed",
+        projects: ["jaffle"],
+      });
+      expect(first.telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+        "dbtIntegrationFusionTrial",
+        expect.objectContaining({ outcome: "parsed", binaryVersion: "2.0.9" }),
+        expect.objectContaining({
+          durationMs: 900,
+          errorCount: 0,
+          projects: 1,
+        }),
+      );
+
+      const next = shipped();
+      await expect(next.svc.resolve(memento as never)).resolves.toBe("fusion");
+      expect(next.svc.autoSwitched).toBeDefined();
+      expect(next.runTrial).not.toHaveBeenCalled();
+      expect(next.telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+        "dbtIntegrationAutoSwitched",
+        expect.objectContaining({ trial: "parsed" }),
+      );
+    });
+
+    it("tries again for another dbt Fusion version", async () => {
+      const memento = new FakeMemento();
+      await memento.update(FUSION_TRIAL_KEY, {
+        path: "/home/user/.local/bin/dbt",
+        version: "2.0.8",
+        outcome: "parsed",
+        at: Date.now(),
+        projects: ["jaffle"],
+      });
+      const { svc, runTrial } = shipped({ trial: "never" });
+      await expect(svc.resolve(memento as never)).resolves.toBe("core");
+      expect(runTrial).toHaveBeenCalled();
+    });
+
+    it("holds the next window after a failed trial, and tries again a day later", async () => {
+      const memento = new FakeMemento();
+      const first = shipped({ trial: failed() });
+      await first.svc.resolve(memento as never);
+      await settle();
+      expect(first.telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+        "dbtIntegrationFusionTrial",
+        expect.objectContaining({
+          outcome: "parseErrors",
+          firstErrorCode: "dbt1501",
+        }),
+        expect.objectContaining({ errorCount: 2 }),
+      );
+
+      const next = shipped();
+      await expect(next.svc.resolve(memento as never)).resolves.toBe("core");
+      expect(held(next.telemetry)).toMatchObject({
+        reason: "fusionTrialFailed",
+        trialOutcome: "parseErrors",
+      });
+      expect(next.runTrial).not.toHaveBeenCalled();
+
+      const remembered = memento.get<{ at: number }>(FUSION_TRIAL_KEY);
+      await memento.update(FUSION_TRIAL_KEY, {
+        ...remembered,
+        at: remembered.at - 25 * 60 * 60 * 1000,
+      });
+      const later = shipped({ trial: "never" });
+      await later.svc.resolve(memento as never);
+      expect(held(later.telemetry)).toMatchObject({ reason: "fusionTrial" });
+      expect(later.runTrial).toHaveBeenCalled();
+    });
+
+    it("offers to reload with dbt Fusion once the trial passes, where dbt Core mode can't start", async () => {
+      const { svc, telemetry } = shipped({ trial: parsed() });
+      await svc.resolve(new FakeMemento() as never);
+      (window.showInformationMessage as jest.Mock).mockReturnValueOnce(
+        Promise.resolve("Reload with dbt Fusion"),
+      );
+
+      await expect(svc.notifyHeldWithoutDbtCore()).resolves.toBe(true);
+      await settle();
+
+      expect(errors()).toHaveLength(0);
+      expect(shown()).toEqual([
+        [
+          "dbt Fusion 2.0.9 (/home/user/.local/bin/dbt) parsed jaffle. dbt Core mode needs dbt-core, which the selected Python interpreter does not have. Reload the window to use dbt Fusion.",
+          "Reload with dbt Fusion",
+          "Install dbt Core",
+        ],
+      ]);
+      expect(commands.executeCommand).toHaveBeenCalledWith(
+        "workbench.action.reloadWindow",
+      );
+      expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+        "dbtIntegrationSwitchHeldAnswer",
+        expect.objectContaining({
+          reason: "fusionTrial",
+          answer: "reloadWithFusion",
+        }),
+      );
+    });
+
+    it("names dbt Fusion's first error when the trial fails, where dbt Core mode can't start", async () => {
+      const { svc } = shipped({ trial: failed() });
+      await svc.resolve(new FakeMemento() as never);
+      await svc.notifyHeldWithoutDbtCore();
+      await settle();
+      expect(errors()).toEqual([
+        [
+          "dbt Fusion 2.0.9 (/home/user/.local/bin/dbt) is on your path, but it couldn't parse jaffle: Environment variable 'DUCKDB_PATH' not found. dbt Core mode needs dbt-core, which the selected Python interpreter does not have. Install dbt Core, or use dbt Fusion anyway.",
+          "Install dbt Core",
+          "Use dbt Fusion",
+        ],
+      ]);
+    });
+
+    it("says the same from the remembered trial in the next window", async () => {
+      const memento = new FakeMemento();
+      const first = shipped({ trial: failed() });
+      await first.svc.resolve(memento as never);
+      await settle();
+      const next = shipped();
+      await next.svc.resolve(memento as never);
+      await next.svc.notifyHeldWithoutDbtCore();
+      expect(errors()[0][0]).toContain(
+        "is on your path, but it couldn't parse jaffle: Environment variable 'DUCKDB_PATH' not found.",
+      );
+    });
+
+    it("stops the trial and remembers nothing when dbt Core works in the window", async () => {
+      const memento = new FakeMemento();
+      const { svc, telemetry } = shipped({ trial: "never" });
+      await svc.resolve(memento as never, new FakeMemento() as never);
+      void svc.notifyHeldWithoutDbtCore();
+
+      await svc.dbtCoreWorked();
+      await settle();
+
+      expect(memento.get(FUSION_TRIAL_KEY)).toBeUndefined();
+      expect(shown()).toHaveLength(0);
+      expect(errors()).toHaveLength(0);
+      expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+        "dbtIntegrationFusionTrial",
+        expect.objectContaining({ outcome: "canceled" }),
+        expect.anything(),
+      );
+    });
+
+    it("remembers and shows nothing when dbt Core works before a finished trial is handled", async () => {
+      const memento = new FakeMemento();
+      const { svc, runTrial } = shipped();
+      let finish: (result: FusionTrialResult) => void = () => undefined;
+      // A trial that ignores the cancel: its parse had already finished.
+      runTrial.mockImplementationOnce(
+        () =>
+          new Promise<FusionTrialResult>((resolve) => {
+            finish = resolve;
+          }),
+      );
+      await svc.resolve(memento as never, new FakeMemento() as never);
+      void svc.notifyHeldWithoutDbtCore();
+
+      await svc.dbtCoreWorked();
+      finish(parsed());
+      await settle();
+
+      expect(memento.get(FUSION_TRIAL_KEY)).toBeUndefined();
+      expect(shown()).toHaveLength(0);
+      expect(errors()).toHaveLength(0);
+    });
+
+    it("shows nothing when dbt Core works while the trial's result is being saved", async () => {
+      const memento = new FakeMemento();
+      let saved: () => void = () => undefined;
+      const update = memento.update.bind(memento);
+      memento.update = (key: string, value: unknown) =>
+        key === FUSION_TRIAL_KEY
+          ? new Promise<void>((resolve) => {
+              saved = () => void update(key, value).then(resolve);
+            })
+          : update(key, value);
+      const { svc } = shipped({ trial: parsed() });
+      await svc.resolve(memento as never, new FakeMemento() as never);
+      void svc.notifyHeldWithoutDbtCore();
+      await settle();
+
+      await svc.dbtCoreWorked();
+      saved();
+      await settle();
+
+      expect(shown()).toHaveLength(0);
+      expect(errors()).toHaveLength(0);
+    });
+
+    it("shows nothing about the trial where dbt Core mode works", async () => {
+      const { svc } = shipped({ trial: parsed() });
+      await svc.resolve(new FakeMemento() as never);
+      await settle();
+      await svc.notifySwitchHeld();
+      expect(shown()).toHaveLength(0);
+    });
+
+    it("runs no trial without a dbt project, and offers dbt Fusion where dbt Core mode can't start", async () => {
+      const { svc, runTrial } = service({ switchGate: "shipped" });
+      await svc.resolve(new FakeMemento() as never);
+      expect(runTrial).not.toHaveBeenCalled();
+      await svc.notifyHeldWithoutDbtCore();
+      expect(errors()[0]).toEqual([
+        "dbt Fusion 2.0.9 (/home/user/.local/bin/dbt) is on your path. dbt Core mode needs dbt-core, which the selected Python interpreter does not have. Install dbt Core, or use dbt Fusion for this workspace.",
+        "Install dbt Core",
+        "Use dbt Fusion",
+      ]);
+    });
+
+    it("forgets a passed trial when the switched window's first parse fails, so the next window tries again", async () => {
+      const memento = new FakeMemento();
+      await memento.update(FUSION_TRIAL_KEY, {
+        path: "/home/user/.local/bin/dbt",
+        version: "2.0.9",
+        outcome: "parsed",
+        at: Date.now(),
+        projects: ["jaffle"],
+      });
+      (window.showWarningMessage as jest.Mock).mockReturnValue(
+        Promise.resolve(undefined),
+      );
+      const { svc } = shipped();
+      await expect(svc.resolve(memento as never)).resolves.toBe("fusion");
+      await svc.rebuildStatusChanged({
+        root,
+        name: "jaffle",
+        inProgress: true,
+        errorCount: 0,
+      });
+      await svc.rebuildStatusChanged({
+        root,
+        name: "jaffle",
+        inProgress: false,
+        errorCount: 3,
+      });
+      expect(memento.get(FUSION_TRIAL_KEY)).toBeUndefined();
+    });
+  });
+
+  /**
+   * Without a usable Python, the Python error stands for the hold's message.
+   * Holds that say nothing against dbt Fusion add dbt Fusion to it, as it
+   * runs without Python. Every other hold adds its reason instead, the same
+   * one it gives where an interpreter runs without dbt-core, and no Use dbt
+   * Fusion: dbt Fusion would fail on that profile, adapter, loom config or
+   * parse, or dbt Core worked here recently.
+   */
+  describe("each hold, with and without a usable Python", () => {
+    const FUSION = "dbt Fusion 2.0.9 (/home/user/.local/bin/dbt)";
+    const os =
+      process.platform === "win32"
+        ? "windows"
+        : process.platform === "darwin"
+          ? "osx"
+          : "linux";
+    const noPython = { pythonExtensionAvailable: false, extensionPath: "" };
+    /** The fixture's folder in an expected message, filled in by `inDir`. */
+    const DIR = "<dir>";
+    const inDir = (text: string) => text.split(DIR).join(dir);
+    const useProfile = (type: string) =>
+      writeFileSync(
+        path.join(root, "profiles.yml"),
+        JSON.stringify({
+          jaffle: { target: "dev", outputs: { dev: { type } } },
+        }),
+      );
+
+    type Case = {
+      reason: string;
+      /** The service for this hold; `python`: an interpreter without dbt-core. */
+      setup: (python: boolean) => Promise<ReturnType<typeof service>>;
+      /** What the Python error adds. */
+      adds: { fusion: string } | { reason: string };
+    };
+    const resolved = async (
+      options: Parameters<typeof service>[0],
+      memento = new FakeMemento(),
+      globalState?: FakeMemento,
+    ) => {
+      const made = shipped(options);
+      await made.svc.resolve(memento as never, globalState as never);
+      return made;
+    };
+    const python = (on: boolean) => (on ? {} : noPython);
+    const cases: Case[] = [
+      {
+        reason: "fusionOffered",
+        setup: (on) => resolved({ ...python(on), switchGate: "paused" }),
+        adds: { fusion: FUSION },
+      },
+      {
+        reason: "fusionTrial",
+        setup: (on) => resolved({ ...python(on), trial: parsed() }),
+        adds: { fusion: FUSION },
+      },
+      {
+        reason: "dbtCoreUnknown",
+        setup: () => resolved({ dbtCore: unknownBecause("failed") }),
+        adds: { fusion: FUSION },
+      },
+      {
+        reason: "adapterUnsupported",
+        setup: (on) => {
+          useProfile("sqlserver");
+          return resolved(python(on));
+        },
+        adds: {
+          reason: `Power User didn't switch this window to ${FUSION}: the dbt profile uses the sqlserver adapter, which dbt Fusion does not support.`,
+        },
+      },
+      {
+        reason: "dbtLoom",
+        setup: (on) =>
+          resolved({
+            ...python(on),
+            env: { PATH: "/usr/bin", DBT_LOOM_CONFIG_PATH: "/etc/loom.yml" },
+          }),
+        adds: {
+          reason: `Power User didn't switch this window to ${FUSION}: a dbt-loom config is present, which only dbt Core mode reads.`,
+        },
+      },
+      {
+        reason: "profileNotFound",
+        setup: (on) => {
+          rmSync(path.join(root, "profiles.yml"));
+          mkdirSync(path.join(dir, "no-profiles"), { recursive: true });
+          return resolved({
+            ...python(on),
+            env: {
+              PATH: "/usr/bin",
+              DBT_PROFILES_DIR: path.join(dir, "no-profiles"),
+            },
+          });
+        },
+        adds: {
+          reason: `Power User didn't switch jaffle to ${FUSION}: no profiles.yml in DBT_PROFILES_DIR (${path.join(DIR, "no-profiles", "profiles.yml")}). dbt Fusion and dbt Core both need it: add the profile, then reload the window.`,
+        },
+      },
+      {
+        reason: "adapterExperimental",
+        setup: (on) => {
+          useProfile("postgres");
+          return resolved(python(on));
+        },
+        adds: {
+          reason: `Power User didn't switch this window to ${FUSION}: the dbt profile uses the postgres adapter, which dbt Fusion runs only as an experimental adapter. To use dbt Fusion with it, add DBT_ALLOW_EXPERIMENTAL_ADAPTERS=true to terminal.integrated.env.${os}, then reload the window.`,
+        },
+      },
+      {
+        reason: "dbtCoreRecent",
+        setup: async (on) => {
+          const globalState = new FakeMemento();
+          await globalState.update(DBT_CORE_WORKED_KEY, Date.now() - DAY);
+          return resolved(python(on), new FakeMemento(), globalState);
+        },
+        adds: {
+          reason: `Power User didn't switch this window to ${FUSION}: dbt Core ran on this machine in the last 7 days, so the window keeps dbt Core mode.`,
+        },
+      },
+      {
+        reason: "fusionTrialFailed",
+        setup: async (on) => {
+          const memento = new FakeMemento();
+          await memento.update(FUSION_TRIAL_KEY, {
+            path: "/home/user/.local/bin/dbt",
+            version: "2.0.9",
+            outcome: "parseErrors",
+            at: Date.now(),
+            projects: ["jaffle"],
+            failedProject: "jaffle",
+            firstError: "Environment variable 'DUCKDB_PATH' not found.",
+          });
+          return resolved(python(on), memento);
+        },
+        adds: {
+          reason: `${FUSION} is on your path, but it couldn't parse jaffle: Environment variable 'DUCKDB_PATH' not found.`,
+        },
+      },
+    ];
+
+    /** The hold's message where an interpreter runs without dbt-core. */
+    const withPython = async (made: ReturnType<typeof service>) => {
+      await expect(made.svc.notifyHeldWithoutDbtCore()).resolves.toBe(true);
+      await settle();
+      const [message] = [...errors(), ...shown()];
+      return message as string[];
+    };
+
+    it.each(cases)(
+      "$reason: the Python error adds what the hold allows",
+      async ({ reason, setup, adds }) => {
+        const made = await setup(false);
+        expect(held(made.telemetry)).toMatchObject({ reason });
+
+        const note = made.svc.heldWithoutPython();
+
+        expect(note).toEqual({
+          ...("reason" in adds ? { reason: inDir(adds.reason) } : adds),
+          answered: expect.any(Function),
+        });
+      },
+    );
+
+    it.each(cases.filter((c) => "reason" in c.adds))(
+      "$reason: the reason without Python is the one the hold gives with an interpreter",
+      async ({ setup, adds }) => {
+        const message = await withPython(await setup(true));
+        expect(message[0]).toContain(
+          inDir((adds as { reason: string }).reason),
+        );
+        expect(message).toContain("Use dbt Fusion");
+      },
+    );
+
+    it.each(cases.filter((c) => "fusion" in c.adds))(
+      "$reason: with an interpreter, the hold's own message offers dbt Fusion",
+      async ({ setup }) => {
+        const message = await withPython(await setup(true));
+        expect(
+          message.some((action) =>
+            ["Use dbt Fusion", "Reload with dbt Fusion"].includes(action),
+          ),
+        ).toBe(true);
+      },
+    );
+
+    /** A shipped service whose trial finishes when `finish` is called. */
+    const pendingTrial = async (
+      memento: FakeMemento = new FakeMemento(),
+      options: Parameters<typeof service>[0] = {},
+    ) => {
+      const made = shipped(options);
+      let finish!: (result: FusionTrialResult) => void;
+      made.runTrial.mockImplementation(
+        () =>
+          new Promise<FusionTrialResult>((resolve) => {
+            finish = resolve;
+          }),
+      );
+      await made.svc.resolve(memento as never);
+      return { ...made, finish: (result: FusionTrialResult) => finish(result) };
+    };
+    const settled = async () => {
+      for (let i = 0; i < 5; i++) {
+        await settle();
+      }
+    };
+
+    it("drops a trial's waiting result when Python went away and its error told the window", async () => {
+      const made = await pendingTrial();
+      // Detection with an interpreter that lacks dbt-core: the error waits
+      // for the trial.
+      await made.svc.notifyHeldWithoutDbtCore();
+      // The interpreter is deleted: the Python error tells the window.
+      expect(made.svc.heldWithoutPython()).toMatchObject({ fusion: FUSION });
+
+      made.finish(failed());
+      await settled();
+
+      expect(errors()).toHaveLength(0);
+      expect(shown()).toHaveLength(0);
+    });
+
+    it("gives a Python error after this window's trial failed its reason, and no Use dbt Fusion", async () => {
+      const made = await pendingTrial(new FakeMemento(), noPython);
+      made.finish(failed());
+      await settled();
+
+      expect(made.svc.heldWithoutPython()).toEqual({
+        reason: `${FUSION} is on your path, but it couldn't parse jaffle: Environment variable 'DUCKDB_PATH' not found.`,
+        answered: expect.any(Function),
+      });
+    });
+
+    it("still offers dbt Fusion to a Python error after this window's trial passed", async () => {
+      const made = await pendingTrial(new FakeMemento(), noPython);
+      made.finish(parsed());
+      await settled();
+
+      expect(made.svc.heldWithoutPython()).toMatchObject({ fusion: FUSION });
+    });
+
+    it("shows the trial's result where dbt Core mode can't start even when saving it fails", async () => {
+      class UnsavedTrial extends FakeMemento {
+        update(key: string, value: unknown) {
+          return key === FUSION_TRIAL_KEY
+            ? Promise.reject(new Error("storage closed"))
+            : super.update(key, value);
+        }
+      }
+      const made = await pendingTrial(new UnsavedTrial());
+      await made.svc.notifyHeldWithoutDbtCore();
+
+      made.finish(failed());
+      await settled();
+
+      expect(errors()).toHaveLength(1);
+      expect(errors()[0][0]).toContain("couldn't parse jaffle");
+    });
+
+    it("shows the hold where dbt Core mode can't start when the trial itself fails to run", async () => {
+      const made = shipped();
+      made.runTrial.mockImplementation(() =>
+        Promise.reject(new Error("runner crashed")),
+      );
+      await made.svc.resolve(new FakeMemento() as never);
+      await made.svc.notifyHeldWithoutDbtCore();
+      await settled();
+
+      expect(errors()).toEqual([
+        [
+          `${FUSION} is on your path. dbt Core mode needs dbt-core, which the selected Python interpreter does not have. Install dbt Core, or use dbt Fusion for this workspace.`,
+          "Install dbt Core",
+          "Use dbt Fusion",
+        ],
+      ]);
+    });
+
+    it("shows a trial's result once when the window was detected twice while it ran", async () => {
+      const made = await pendingTrial();
+      await made.svc.notifyHeldWithoutDbtCore();
+      await made.svc.notifyHeldWithoutDbtCore();
+
+      made.finish(failed());
+      await settled();
+
+      expect(errors()).toHaveLength(1);
+      expect(errors()[0][0]).toContain("couldn't parse jaffle");
+    });
+
+    it("shows the Python extension's error with a dbt-loom hold's reason and no Use dbt Fusion, and counts the answer", async () => {
+      const made = await cases
+        .find((c) => c.reason === "dbtLoom")!
+        .setup(false);
+      setEffectiveDbtIntegrationMode("core");
+      const dbtClient = new DBTClient(
+        {
+          pythonPath: "",
+          isPython3: true,
+          pythonExtensionAvailable: false,
+          getEnvironmentVariables: () => ({ PATH: "" }),
+        } as never,
+        jest.fn() as never,
+        made.svc,
+      );
+      const internals = dbtClient as unknown as {
+        _pythonInstalled: boolean;
+        _dbtInstalled: boolean;
+      };
+      internals._pythonInstalled = false;
+      internals._dbtInstalled = false;
+      (window.showErrorMessage as jest.Mock).mockReturnValueOnce(
+        Promise.resolve(undefined),
+      );
+
+      await dbtClient.showErrorIfDbtOrPythonNotInstalled();
+      await made.svc.notifySwitchHeld();
+
+      expect(errors()).toEqual([
+        [
+          `dbt Core runs through the Python extension, which is not installed. Install it. Power User didn't switch this window to ${FUSION}: a dbt-loom config is present, which only dbt Core mode reads.`,
+          "Install Python extension",
+          "Troubleshoot",
+        ],
+      ]);
+      expect(shown()).toHaveLength(0);
+      expect(made.telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+        "dbtIntegrationSwitchHeldAnswer",
+        {
+          reason: "dbtLoom",
+          answer: "dismissed",
+          shownAs: "pythonError",
+          binaryVersion: "2.0.9",
+        },
+      );
+    });
   });
 });
