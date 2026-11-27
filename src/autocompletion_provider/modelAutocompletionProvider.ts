@@ -9,6 +9,8 @@ import {
   Disposable,
   Position,
   ProviderResult,
+  Range,
+  SnippetString,
   TextDocument,
   Uri,
 } from "vscode";
@@ -24,6 +26,8 @@ export class ModelAutocompletionProvider
   private static readonly MODEL_PATTERN = /ref\s*\(\s*(['"])?\s*\w*$/;
   private static readonly PACKAGE_PATTERN =
     /ref\s*\(\s*('[^)']*'|"[^)"]*")\s*,\s*(['"])?\s*\w*$/;
+  // A bare identifier being typed: not inside quotes and not after a dot.
+  private static readonly KEYWORD_PATTERN = /(^|[^\w.'"])[A-Za-z_]\w*$/;
   private modelAutocompleteMap: Map<
     string,
     {
@@ -63,7 +67,7 @@ export class ModelAutocompletionProvider
     const line = document.lineAt(position).text;
     const linePrefix = line.substring(0, position.character);
     if (!isEnclosedWithinCodeBlock(document, position)) {
-      return undefined;
+      return this.getRefKeywordItems(document, position, linePrefix);
     }
     const modelMatch = linePrefix.match(
       ModelAutocompletionProvider.MODEL_PATTERN,
@@ -72,7 +76,7 @@ export class ModelAutocompletionProvider
       ModelAutocompletionProvider.PACKAGE_PATTERN,
     );
     if (!modelMatch && !packageMatch) {
-      return undefined;
+      return this.getRefKeywordItems(document, position, linePrefix);
     }
     let autoCompleteItems = this.getAutoCompleteItems(document.uri);
     if (!autoCompleteItems) {
@@ -135,6 +139,41 @@ export class ModelAutocompletionProvider
     return undefined;
   }
 
+  /**
+   * The `ref` keyword item. It inserts `{{ ref('') }}`, or only `ref('')` when
+   * the cursor is already inside a `{{ }}` or `{% %}` block, with the cursor
+   * left empty between the quotes, and reopens suggestions so the model list
+   * shows straight away. A placeholder there would become the completion
+   * filter word and hide every model.
+   */
+  private getRefKeywordItems(
+    document: TextDocument,
+    position: Position,
+    linePrefix: string,
+  ): CompletionItem[] | undefined {
+    if (!ModelAutocompletionProvider.KEYWORD_PATTERN.test(linePrefix)) {
+      return undefined;
+    }
+    if (!this.getAutoCompleteItems(document.uri, false)) {
+      return undefined;
+    }
+    const body = isInsideOpenJinjaBlock(document, position)
+      ? "ref('$1')"
+      : "{{ ref('$1') }}";
+    return [
+      {
+        label: "ref",
+        kind: CompletionItemKind.Snippet,
+        detail: "Ref",
+        insertText: new SnippetString(body),
+        command: {
+          command: "editor.action.triggerSuggest",
+          title: "Suggest models",
+        },
+      },
+    ];
+  }
+
   private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     event.added?.forEach((added) => {
       const project = added.project;
@@ -175,7 +214,10 @@ export class ModelAutocompletionProvider
     });
   }
 
-  private getAutoCompleteItems = (currentFilePath: Uri) => {
+  private getAutoCompleteItems = (
+    currentFilePath: Uri,
+    sendTelemetry = true,
+  ) => {
     const projectRootpath =
       this.dbtProjectContainer.getProjectRootpath(currentFilePath);
     if (projectRootpath === undefined) {
@@ -188,7 +230,24 @@ export class ModelAutocompletionProvider
 
       return this.modelAutocompleteMap.get(project.uri.fsPath);
     }
-    this.telemetry.sendTelemetryEvent("provideModelAutocompletion");
+    if (sendTelemetry) {
+      this.telemetry.sendTelemetryEvent("provideModelAutocompletion");
+    }
     return this.modelAutocompleteMap.get(projectRootpath.fsPath);
   };
 }
+
+// True when the last Jinja opener before the cursor (`{{` or `{%`) has not been
+// closed yet (`}}` or `%}`).
+const isInsideOpenJinjaBlock = (
+  document: TextDocument,
+  position: Position,
+): boolean => {
+  const before = document.getText(new Range(new Position(0, 0), position));
+  const lastOpen = Math.max(before.lastIndexOf("{{"), before.lastIndexOf("{%"));
+  const lastClose = Math.max(
+    before.lastIndexOf("}}"),
+    before.lastIndexOf("%}"),
+  );
+  return lastOpen > lastClose;
+};
