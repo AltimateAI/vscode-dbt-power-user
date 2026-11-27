@@ -39,6 +39,12 @@ function makeNotebook(notebookType: string, cells: any[]): any {
 function makeProvider() {
   const dbtProjectContainer = {
     getFromWorkspaceState: jest.fn().mockReturnValue({ label: "jaffle_shop" }),
+    onDidChangeUntitledDocumentProject: jest
+      .fn()
+      .mockReturnValue({ dispose: jest.fn() }),
+    findProjectForUntitledDocument: jest
+      .fn()
+      .mockReturnValue({ getProjectName: () => "jaffle_shop" }),
   } as any;
   const queryManifestService = { getProject: jest.fn() } as any;
   return new VirtualSqlCodeLensProvider(
