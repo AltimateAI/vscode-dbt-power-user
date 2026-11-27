@@ -32,6 +32,7 @@ import {
   readAndParseProjectConfig,
   resolvePackagesInstallPath,
 } from "@altimateai/dbt-integration";
+import { isPathInside } from "../utils";
 import { getDbtIntegrationMode } from "./integrationMode";
 
 // Sentinel for the empty-after-retries case in `retryWithBackoff`. Lets the
@@ -242,10 +243,7 @@ export class DBTWorkspaceFolder implements Disposable {
     if (!uri?.fsPath) {
       return false;
     }
-    return (
-      uri.fsPath === this.workspaceFolder.uri.fsPath ||
-      uri.fsPath.startsWith(this.workspaceFolder.uri.fsPath + path.sep)
-    );
+    return isPathInside(uri.fsPath, this.workspaceFolder.uri.fsPath);
   }
 
   getAdapters(): string[] {

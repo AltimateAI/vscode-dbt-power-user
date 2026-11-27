@@ -145,7 +145,7 @@ export class SqlPreviewContentProvider
    */
   private refreshPreviewsTheNodeCanNowAnswer(): void {
     for (const [uriString, previewUri] of this.compilationDocs.entries()) {
-      const fsPath = decodeURI(previewUri.fsPath);
+      const fsPath = previewUri.fsPath;
       const savedAt = this.savedAt(fsPath);
       if (savedAt === undefined) {
         continue;
@@ -217,7 +217,7 @@ export class SqlPreviewContentProvider
   private async requestCompilation(uri: Uri) {
     const uriString = uri.toString();
     try {
-      const fsPath = decodeURI(uri.fsPath);
+      const fsPath = uri.fsPath;
       const modelName = path.basename(fsPath, ".sql");
 
       // Read from the active document if available, otherwise fall back to file

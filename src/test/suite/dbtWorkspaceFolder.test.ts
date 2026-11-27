@@ -1,5 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 import * as path from "path";
+import { DBTWorkspaceFolder } from "../../dbt_client/dbtWorkspaceFolder";
 
 /**
  * Test the `contains` method guard against undefined uri.fsPath.
@@ -12,18 +13,14 @@ import * as path from "path";
  * (e.g., virtual files, git diff views, untitled documents, output channels).
  */
 describe("DBTWorkspaceFolder.contains guard", () => {
-  // Extracted logic mirrors the `contains` method to test without full DI setup
+  // The real `contains`, on a folder built without the DI setup.
   function contains(
     uriFsPath: string | undefined,
     workspaceFsPath: string,
   ): boolean {
-    if (!uriFsPath) {
-      return false;
-    }
-    return (
-      uriFsPath === workspaceFsPath ||
-      uriFsPath.startsWith(workspaceFsPath + path.sep)
-    );
+    const folder = Object.create(DBTWorkspaceFolder.prototype);
+    folder.workspaceFolder = { uri: { fsPath: workspaceFsPath } };
+    return folder.contains({ fsPath: uriFsPath });
   }
 
   it("should return false when uri.fsPath is undefined", () => {
