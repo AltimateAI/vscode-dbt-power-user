@@ -9,6 +9,9 @@ export class VSCodeDBTTerminal implements DBTTerminal {
   private disposables: Disposable[] = [];
   private terminal?: Terminal;
   private readonly writeEmitter = new EventEmitter<string>();
+  private readonly closeEmitter = new EventEmitter<void>();
+  /** Fires when the user closes "Tasks - dbt", as with Kill Terminal. */
+  readonly onDidClose = this.closeEmitter.event;
   private outputChannel = window.createOutputChannel(`Log - dbt`, {
     log: true,
   });
@@ -112,6 +115,7 @@ export class VSCodeDBTTerminal implements DBTTerminal {
           close: () => {
             this.terminal?.dispose();
             this.terminal = undefined;
+            this.closeEmitter.fire();
           },
         },
       });
