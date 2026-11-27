@@ -1850,19 +1850,51 @@ describe("DBTProject Test Suite", () => {
         },
       );
 
-      it("stamps unknown when the parser can't be read", () => {
-        useMode("core");
-        mockProjectIntegration.getParserStatus = jest.fn(() => {
-          throw new Error("bridge not ready");
-        });
+      it.each([["core"], ["fusion"]])(
+        "stamps unknown when reading the parser throws (%s)",
+        (mode) => {
+          useMode(mode);
+          mockProjectIntegration.getParserStatus = jest.fn(() => {
+            throw new Error("bridge not ready");
+          });
+          dbtProject = construct();
+
+          emit(DBTProjectIntegrationAdapterEvents.PROJECT_CONFIG_CHANGED);
+
+          expect(stamped()).toMatchObject({
+            dbtParser: "unknown",
+            dbtVersion: "1.12.6",
+            dbtAdapter: "snowflake",
+          });
+        },
+      );
+
+      it.each([
+        ["core", { parser: "v3" }],
+        ["fusion", { parser: "v3" }],
+        ["fusion", "v2"],
+        ["fusion", {}],
+      ])(
+        "stamps unknown for a status it can't read (%s, %o)",
+        (mode, status) => {
+          useMode(mode);
+          mockProjectIntegration.getParserStatus = jest.fn(() => status);
+          dbtProject = construct();
+
+          emit(DBTProjectIntegrationAdapterEvents.PROJECT_CONFIG_CHANGED);
+
+          expect(stamped()).toMatchObject({ dbtParser: "unknown" });
+        },
+      );
+
+      it("stamps fusion in fusion mode while no parse has reported a status", () => {
+        useMode("fusion");
+        mockProjectIntegration.getParserStatus = jest.fn(() => undefined);
         dbtProject = construct();
 
         emit(DBTProjectIntegrationAdapterEvents.PROJECT_CONFIG_CHANGED);
 
-        expect(stamped()).toMatchObject({
-          dbtParser: "unknown",
-          dbtVersion: "1.12.6",
-        });
+        expect(stamped()).toMatchObject({ dbtParser: "fusion" });
       });
     });
 

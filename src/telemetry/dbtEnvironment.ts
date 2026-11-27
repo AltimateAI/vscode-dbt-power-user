@@ -51,15 +51,19 @@ function dbtAdapterLabel(adapter: unknown): string {
 
 /**
  * The parser label for what dbt-integration's `getParserStatus()` reports
- * (from its release after 0.3.22; older ones don't have it). Without a status,
- * a fusion-mode project is still parsed by dbt Fusion; anything else is unknown
- * until the integration reports a parse.
+ * (from its release after 0.3.22; older ones don't have it). Without a status
+ * (no accessor, or no parse yet), a fusion-mode project is still parsed by dbt
+ * Fusion and anything else is unknown. A status that can't be read as one is
+ * unknown in every mode.
  */
 export function dbtParserLabel(
   mode: string | undefined,
   status: unknown,
 ): string {
-  if (typeof status === "object" && status !== null) {
+  if (status === undefined || status === null) {
+    return mode === "fusion" ? DbtParser.Fusion : DBT_ENVIRONMENT_UNKNOWN;
+  }
+  if (typeof status === "object") {
     const { parser, v2Requested, v2Unsupported } = status as {
       parser?: unknown;
       v2Requested?: unknown;
@@ -76,7 +80,7 @@ export function dbtParserLabel(
           : DbtParser.V1;
     }
   }
-  return mode === "fusion" ? DbtParser.Fusion : DBT_ENVIRONMENT_UNKNOWN;
+  return DBT_ENVIRONMENT_UNKNOWN;
 }
 
 /**
@@ -102,9 +106,11 @@ export function dbtEnvironmentProperties(
   } catch {
     // Not detected.
   }
-  let parserStatus: unknown;
+  // A reader that throws is a failed read, not an absent status: unknown
+  // in every mode.
+  let parser = DBT_ENVIRONMENT_UNKNOWN;
   try {
-    parserStatus = readParserStatus();
+    parser = dbtParserLabel(mode, readParserStatus());
   } catch {
     // Not detected.
   }
@@ -114,10 +120,7 @@ export function dbtEnvironmentProperties(
     [DbtEnvironmentTelemetryProperty.DbtAdapter]: adapter,
     [DbtEnvironmentTelemetryProperty.DbtFusionVersion]:
       mode === "fusion" ? version.full : undefined,
-    [DbtEnvironmentTelemetryProperty.DbtParser]: dbtParserLabel(
-      mode,
-      parserStatus,
-    ),
+    [DbtEnvironmentTelemetryProperty.DbtParser]: parser,
   };
 }
 
