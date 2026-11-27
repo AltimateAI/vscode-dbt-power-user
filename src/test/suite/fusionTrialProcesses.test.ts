@@ -25,8 +25,13 @@ import { runFusionTrial } from "../../dbt_client/fusionTrial";
 const STAND_IN = `
 const { spawn } = require("child_process");
 const { writeFileSync } = require("fs");
+// On Windows, Node puts what it starts in a job that dies with it; git, started
+// by dbt Fusion, isn't in one. Detached, the child outlives this process there
+// unless the run's tree is killed. On macOS and Linux it stays in the run's group.
 const child = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], {
   stdio: "ignore",
+  detached: process.platform === "win32",
+  windowsHide: true,
 });
 const args = process.argv.slice(2);
 writeFileSync(
