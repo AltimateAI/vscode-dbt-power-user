@@ -1,3 +1,4 @@
+import dbtIntegration = require("@altimateai/dbt-integration");
 import TelemetryReporter from "@vscode/extension-telemetry";
 import { createHash } from "crypto";
 import * as vscode from "vscode";
@@ -19,6 +20,10 @@ export class TelemetryService implements vscode.Disposable {
 
   setTelemetryCustomAttribute(key: string, value: string) {
     this.customAttributes[key] = value;
+  }
+
+  getTelemetryCustomAttribute(key: string): string | undefined {
+    return this.customAttributes[key];
   }
 
   deleteTelemetryCustomAttribute(key: string) {
@@ -167,16 +172,53 @@ export class TelemetryService implements vscode.Disposable {
 /** A dbt error code as dbt Fusion prints it: "dbt" and four digits. */
 const DBT_ERROR_CODE = /^dbt\d{4}$/;
 
+/** A dbt config name ("materialized", "pre-hook"), as dbt-integration names one. */
+const DBT_CONFIG_NAME = /^[a-z][a-z0-9_-]{0,63}$/;
+
 /**
- * The dbt error codes and the error count dbt-integration puts on a dbt
- * Fusion failure it reports (its `FusionReportedError`): `errorCodes`, the
- * codes sorted and each once ("dbt1005,dbt1159"), and `errorCount`, the
- * error and fatal lines. Sent as a property and a measurement of their own:
- * VS Code's redactor can blank the whole message that holds them. Only
- * values shaped like a code are sent.
+ * The config names dbt-integration may put in `unprefixedConfigKeys`, from
+ * its `DBT_PROJECT_CONFIG_NAMES`, or undefined. dbt-integration 0.3.22 and
+ * earlier don't export it (nor set the field), so it is read by name at call
+ * time rather than imported, and without it no config name is sent.
+ */
+function dbtProjectConfigNames(): { has(name: string): boolean } | undefined {
+  try {
+    const names: unknown = Reflect.get(
+      dbtIntegration,
+      "DBT_PROJECT_CONFIG_NAMES",
+    );
+    return typeof names === "object" &&
+      names !== null &&
+      typeof (names as { has?: unknown }).has === "function"
+      ? (names as { has(name: string): boolean })
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** The comma-joined items of `value` that `keep` accepts, or undefined for none. */
+function joinedMatching(
+  value: unknown,
+  keep: (item: string) => boolean,
+): string | undefined {
+  const items = typeof value === "string" ? value.split(",").filter(keep) : [];
+  return items.length > 0 ? items.join(",") : undefined;
+}
+
+/**
+ * The dbt error codes, the error count and the config names dbt-integration
+ * puts on a dbt Fusion failure it reports (its `FusionReportedError`):
+ * `errorCodes`, the codes sorted and each once ("dbt1005,dbt1159");
+ * `errorCount`, the error and fatal lines; and `unprefixedConfigKeys`, the dbt
+ * config names dbt Fusion rejected in dbt_project.yml for a missing `+`
+ * ("materialized,schema"), from dbt-integration releases that set it. Sent
+ * as properties and a measurement of their own: VS Code's redactor can blank
+ * the whole message that holds them. Only values shaped like a code, and
+ * config names on dbt-integration's `DBT_PROJECT_CONFIG_NAMES`, are sent.
  */
 export function dbtErrorReport(error: unknown): {
-  properties: { errorCodes?: string };
+  properties: { errorCodes?: string; unprefixedConfigKeys?: string };
   measurements: { errorCount?: number };
 } {
   if (typeof error !== "object" || error === null) {
@@ -184,21 +226,32 @@ export function dbtErrorReport(error: unknown): {
   }
   let errorCodes: unknown;
   let errorCount: unknown;
+  let unprefixedConfigKeys: unknown;
   try {
-    ({ errorCodes, errorCount } = error as {
+    ({ errorCodes, errorCount, unprefixedConfigKeys } = error as {
       errorCodes?: unknown;
       errorCount?: unknown;
+      unprefixedConfigKeys?: unknown;
     });
   } catch {
     // A getter that throws: telemetry never breaks its caller.
     return { properties: {}, measurements: {} };
   }
-  const codes =
-    typeof errorCodes === "string"
-      ? errorCodes.split(",").filter((code) => DBT_ERROR_CODE.test(code))
-      : [];
+  const codes = joinedMatching(errorCodes, (code) => DBT_ERROR_CODE.test(code));
+  // Only names on dbt-integration's own list leave the machine: anything else
+  // in the field could be a model, schema or other name from the project.
+  const configNames = dbtProjectConfigNames();
+  const configKeys = configNames
+    ? joinedMatching(
+        unprefixedConfigKeys,
+        (key) => DBT_CONFIG_NAME.test(key) && configNames.has(key),
+      )
+    : undefined;
   return {
-    properties: codes.length > 0 ? { errorCodes: codes.join(",") } : {},
+    properties: {
+      ...(codes ? { errorCodes: codes } : {}),
+      ...(configKeys ? { unprefixedConfigKeys: configKeys } : {}),
+    },
     measurements:
       typeof errorCount === "number" && Number.isFinite(errorCount)
         ? { errorCount }

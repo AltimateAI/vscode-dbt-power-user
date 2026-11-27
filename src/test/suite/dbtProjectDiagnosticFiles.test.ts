@@ -122,7 +122,12 @@ function projectWith(rebuildManifestDiagnostics: DBTDiagnosticData[]) {
       error: jest.fn(),
     } as any,
     {} as any,
-    { sendTelemetryEvent: jest.fn(), sendTelemetryError: jest.fn() } as any,
+    {
+      sendTelemetryEvent: jest.fn(),
+      sendTelemetryError: jest.fn(),
+      setTelemetryCustomAttribute: jest.fn(),
+      getTelemetryCustomAttribute: jest.fn(),
+    } as any,
     {} as any,
     jest.fn(() => integration) as any,
     {} as any,
