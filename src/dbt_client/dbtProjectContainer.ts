@@ -82,6 +82,11 @@ export class DBTProjectContainer implements Disposable {
   readonly onRebuildManifestStatusChange =
     this._onRebuildManifestStatusChange.event;
   private rebuildManifestStatusChangeMap = new Map<string, boolean>();
+  // Project root chosen for an untitled query document, keyed by document URI.
+  private untitledDocumentProjects = new Map<string, Uri>();
+  private _onDidChangeUntitledDocumentProject = new EventEmitter<Uri>();
+  readonly onDidChangeUntitledDocumentProject =
+    this._onDidChangeUntitledDocumentProject.event;
   private _onProjectRebuildManifestStatusChange =
     new EventEmitter<RebuildManifestStatusChange>();
   /** Each project's manifest rebuild starting and ending. */
@@ -285,12 +290,8 @@ export class DBTProjectContainer implements Disposable {
     previewMode: PreviewMode = "inline",
   ): void {
     if (uri.scheme === "untitled") {
-      const selectedProject = this.getFromWorkspaceState(
-        "dbtPowerUser.projectSelected",
-      );
-      if (selectedProject) {
-        uri = selectedProject.uri;
-      }
+      this.executeUntitledSQL(uri, query, modelName, previewMode);
+      return;
     }
     this.findDBTProject(uri)?.executeSQLOnQueryPanel(
       query,
@@ -298,6 +299,66 @@ export class DBTProjectContainer implements Disposable {
       previewMode,
       uri,
     );
+  }
+
+  /** Remember the project an untitled query document runs in. */
+  setProjectForUntitledDocument(documentUri: Uri, projectRoot: Uri): void {
+    this.untitledDocumentProjects.set(documentUri.toString(), projectRoot);
+    this._onDidChangeUntitledDocumentProject.fire(documentUri);
+  }
+
+  forgetProjectForUntitledDocument(documentUri: Uri): void {
+    this.untitledDocumentProjects.delete(documentUri.toString());
+    this._onDidChangeUntitledDocumentProject.fire(documentUri);
+  }
+
+  /**
+   * The project an untitled query document runs in: the one remembered for
+   * this document (New query or its code lens), else the project picked for
+   * the workspace, else the project its path is in, else the only project.
+   */
+  findProjectForUntitledDocument(documentUri: Uri): DBTProject | undefined {
+    const remembered = this.untitledDocumentProjects.get(
+      documentUri.toString(),
+    );
+    const selected = this.getFromWorkspaceState("dbtPowerUser.projectSelected");
+    // After a reload the stored Uri is plain JSON; the description holds the root path.
+    const selectedRoot = selected?.uri?.fsPath ?? selected?.description;
+    const projects = this.getProjects();
+    const byRoot = (root?: string) =>
+      root === undefined
+        ? undefined
+        : projects.find((project) => project.projectRoot.fsPath === root);
+    return (
+      byRoot(remembered?.fsPath) ??
+      byRoot(selectedRoot) ??
+      this.findDBTProject(documentUri) ??
+      (projects.length === 1 ? projects[0] : undefined)
+    );
+  }
+
+  private async executeUntitledSQL(
+    uri: Uri,
+    query: string,
+    modelName: string,
+    previewMode: PreviewMode,
+  ): Promise<void> {
+    let project = this.findProjectForUntitledDocument(uri);
+    if (!project) {
+      if (this.getProjects().length === 0) {
+        window.showErrorMessage(
+          "No dbt project found in this workspace to run the query in.",
+        );
+        return;
+      }
+      // Several projects and none chosen for this query yet: ask.
+      await commands.executeCommand("dbtPowerUser.pickProject", uri);
+      project = this.findProjectForUntitledDocument(uri);
+      if (!project) {
+        return;
+      }
+    }
+    project.executeSQLOnQueryPanel(query, modelName, previewMode, uri);
   }
 
   runModel(modelPath: Uri, type?: RunModelType) {

@@ -28,6 +28,10 @@ export class VirtualSqlCodeLensProvider
   ) {
     this.disposables.push(
       this._onDidChangeCodeLenses,
+      // The "Project:" lens follows the project chosen for the document.
+      dbtProjectContainer.onDidChangeUntitledDocumentProject(() =>
+        this._onDidChangeCodeLenses.fire(),
+      ),
       // A new cell gets its id in a metadata edit after it is added, so its
       // lens is requested again on added cells and metadata changes (not on
       // every keystroke).
@@ -54,7 +58,13 @@ export class VirtualSqlCodeLensProvider
     }
   }
 
-  private getProjectName() {
+  private getProjectName(document: TextDocument) {
+    if (document.uri.scheme === "untitled") {
+      // The project Execute runs this query in.
+      return this.dbtProjectContainer
+        .findProjectForUntitledDocument(document.uri)
+        ?.getProjectName();
+    }
     const project = this.dbtProjectContainer.getFromWorkspaceState(
       "dbtPowerUser.projectSelected",
     );
@@ -96,7 +106,7 @@ export class VirtualSqlCodeLensProvider
     }
 
     const topOfDocument = new Range(0, 0, 0, 0);
-    const projectName = this.getProjectName();
+    const projectName = this.getProjectName(document);
     const projectSelectorCommand: Command = {
       title: `Project: ${projectName || "Select a project"}`,
       command: "dbtPowerUser.pickProject",
