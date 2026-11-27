@@ -1,7 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { commands, window, workspace } from "vscode";
 import { DBTClient } from "../../dbt_client";
-import { PythonEnvironment } from "../../dbt_client/pythonEnvironment";
+import {
+  HeldNote,
+  PythonEnvironment,
+} from "../../dbt_client/pythonEnvironment";
 
 /**
  * A selected interpreter that no longer exists (a deleted or moved virtual
@@ -22,12 +25,16 @@ function setOverride(value: string) {
   });
 }
 
-function makeEnvironment(pythonExtensionAvailable = true): PythonEnvironment {
+function makeEnvironment(
+  pythonExtensionAvailable = true,
+  held?: HeldNote,
+): PythonEnvironment {
   const env = new PythonEnvironment({
     debug: jest.fn(),
     warn: jest.fn(),
   } as any);
   (env as any)._pythonExtensionAvailable = pythonExtensionAvailable;
+  env.heldNotes = held && (() => held);
   (env as any).executionDetails = {
     getPythonPath: () => MISSING,
     getEnvVars: () => ({ vars: {}, sources: {} }),
@@ -181,7 +188,7 @@ describe("PythonEnvironment.showInterpreterNotFound with dbt Fusion offered", ()
       Promise.resolve("Use dbt Fusion"),
     );
 
-    await makeEnvironment().showInterpreterNotFound(MISSING, fusion);
+    await makeEnvironment(true, fusion).showInterpreterNotFound(MISSING);
 
     expect(window.showErrorMessage).toHaveBeenCalledWith(
       `The selected Python interpreter ${MISSING} was not found. It may have been moved or deleted. Select another interpreter to use dbt${orFusion}`,
@@ -200,9 +207,8 @@ describe("PythonEnvironment.showInterpreterNotFound with dbt Fusion offered", ()
       Promise.resolve("Open setting"),
     );
 
-    await makeEnvironment().showInterpreterNotFound(
+    await makeEnvironment(true, fusion).showInterpreterNotFound(
       "/gone/venv/bin/python",
-      fusion,
     );
 
     expect(window.showErrorMessage).toHaveBeenCalledWith(
@@ -220,7 +226,7 @@ describe("PythonEnvironment.showInterpreterNotFound with dbt Fusion offered", ()
   it("adds it without the Python extension, next to installing it", async () => {
     const fusion = offer();
 
-    await makeEnvironment(false).showInterpreterNotFound(MISSING, fusion);
+    await makeEnvironment(false, fusion).showInterpreterNotFound(MISSING);
 
     expect(window.showErrorMessage).toHaveBeenCalledWith(
       `The Python interpreter ${MISSING} was not found, and the Python extension, which selects interpreters, is not installed. Install it, or set dbt.dbtPythonPathOverride to an interpreter that exists${orFusion}`,
@@ -229,6 +235,73 @@ describe("PythonEnvironment.showInterpreterNotFound with dbt Fusion offered", ()
       "Use dbt Fusion",
     );
     expect(fusion.answered).toHaveBeenCalledWith("dismissed");
+  });
+});
+
+/**
+ * Where dbt Fusion would fail on the window as well, the hold's reason
+ * follows the interpreter's guidance, without Use dbt Fusion.
+ */
+describe("PythonEnvironment.showInterpreterNotFound with a hold's reason", () => {
+  const PROFILE =
+    "Power User didn't switch shop to dbt Fusion 2.0.12 (/home/user/.local/bin/dbt): no profiles.yml found (looked in /home/user/.dbt and /work/shop). dbt Fusion and dbt Core both need it: add the profile, then reload the window.";
+
+  beforeEach(() => setOverride(""));
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("adds it to a selected interpreter that was moved or deleted", async () => {
+    const held = {
+      reason: PROFILE,
+      answered: jest.fn(() => Promise.resolve()),
+    };
+
+    await makeEnvironment(true, held).showInterpreterNotFound(MISSING);
+
+    expect(window.showErrorMessage).toHaveBeenCalledWith(
+      `The selected Python interpreter ${MISSING} was not found. It may have been moved or deleted. Select another interpreter to use dbt. ${PROFILE}`,
+      "Select Python interpreter",
+      "Detect from terminal",
+    );
+    expect(held.answered).toHaveBeenCalledWith("dismissed");
+  });
+
+  it("adds it whichever reports the interpreter first, and asks for it once", async () => {
+    const held = {
+      reason: PROFILE,
+      answered: jest.fn(() => Promise.resolve()),
+    };
+    const notes = jest.fn(() => held);
+    const env = makeEnvironment();
+    env.heldNotes = notes;
+
+    // A project that failed to start on it, then the installation check.
+    await env.showInterpreterNotFound(MISSING);
+    await env.showInterpreterNotFound(MISSING);
+
+    expect(window.showErrorMessage).toHaveBeenCalledTimes(1);
+    expect((window.showErrorMessage as jest.Mock).mock.calls[0][0]).toBe(
+      `The selected Python interpreter ${MISSING} was not found. It may have been moved or deleted. Select another interpreter to use dbt. ${PROFILE}`,
+    );
+    expect(notes).toHaveBeenCalledTimes(1);
+  });
+
+  it("adds it to an override that names a missing interpreter", async () => {
+    setOverride("/gone/venv/bin/python");
+    const held = {
+      reason: PROFILE,
+      answered: jest.fn(() => Promise.resolve()),
+    };
+
+    await makeEnvironment(true, held).showInterpreterNotFound(
+      "/gone/venv/bin/python",
+    );
+
+    expect(window.showErrorMessage).toHaveBeenCalledWith(
+      `The Python interpreter /gone/venv/bin/python set in dbt.dbtPythonPathOverride was not found. Change the setting to an interpreter that exists. ${PROFILE}`,
+      "Open setting",
+    );
   });
 });
 
@@ -261,7 +334,6 @@ describe("DBTClient when the Python interpreter is missing", () => {
     // No window held for dbt Fusion: nothing else to offer.
     expect(pythonEnvironment.showInterpreterNotFound).toHaveBeenCalledWith(
       MISSING,
-      undefined,
     );
     expect(window.showErrorMessage).not.toHaveBeenCalled();
   });
