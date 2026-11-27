@@ -77,7 +77,7 @@ Where dbt Core mode works, Power User tells you once per workspace why it didn't
 
 The reason can also be an adapter dbt Fusion doesn't support or runs only as experimental, a dbt profile that isn't found, a dbt-loom config, or a dbt-core check that couldn't tell. **Use dbt Fusion** sets `dbt.dbtIntegration` to `fusion` in the workspace settings, and the window reloads in dbt Fusion mode. **Dismiss** keeps dbt Core mode. A window waiting for its trial, held after a failed trial, or held because dbt Core worked recently shows nothing while dbt Core mode works.
 
-Where dbt Core mode can't start (the interpreter has no dbt-core), the same reason replaces the "dbt is not installed" error, and most reasons also offer **Install dbt Core**. A profile that isn't found offers to open `profiles.yml` or `dbt_project.yml` instead. After a trial, that message gives its result. Where the trial parsed:
+Where dbt Core mode can't start (the interpreter has no dbt-core), the same reason replaces the "dbt is not installed" error, and most reasons also offer **Install dbt Core**. Some, such as a profile that `profiles.yml` doesn't have, offer to open the file to fix instead. After a trial, that message gives its result. Where the trial parsed:
 
 > dbt Fusion 2.0.9 (/home/you/.local/bin/dbt) parsed jaffle_shop. dbt Core mode needs dbt-core, which the selected Python interpreter does not have. Reload the window to use dbt Fusion.
 
