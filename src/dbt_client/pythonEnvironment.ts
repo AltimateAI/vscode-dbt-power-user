@@ -151,12 +151,24 @@ export class PythonEnvironment {
   // Changes are resolved in order, and only the latest is announced.
   private interpreterChangeResolved: Promise<void> = Promise.resolve();
   private interpreterChangeCount = 0;
+  // Fires when a source of the environment variables changed: a `.env` file the
+  // Python extension reads (with its workspace folder), or the
+  // `terminal.integrated.env` settings.
+  private readonly envVarChanges = new EventEmitter<Uri | undefined>();
 
   constructor(
     @inject("DBTTerminal")
     private dbtTerminal: DBTTerminal,
   ) {
-    this.disposables.push(this.interpreterChanges);
+    this.disposables.push(
+      this.interpreterChanges,
+      this.envVarChanges,
+      workspace.onDidChangeConfiguration((event) => {
+        if (event.affectsConfiguration("terminal.integrated.env")) {
+          this.envVarChanges.fire(undefined);
+        }
+      }),
+    );
   }
 
   async dispose(): Promise<void> {
@@ -387,6 +399,13 @@ export class PythonEnvironment {
    * reading `pythonPath` gets the interpreter now in use, fallback included. */
   public get onPythonEnvironmentChanged(): Event<Uri | undefined> {
     return this.interpreterChanges.event;
+  }
+
+  /** Fires when the environment variables dbt gets may have changed: a `.env`
+   * file, with its workspace folder, or the `terminal.integrated.env` settings,
+   * with none. */
+  public get onEnvironmentVariablesChanged(): Event<Uri | undefined> {
+    return this.envVarChanges.event;
   }
 
   /**
@@ -897,6 +916,15 @@ export class PythonEnvironment {
     this._pythonExtensionAvailable = true;
 
     const api = extension.exports;
+    // A `.env` file (`python.envFile`) changed.
+    const envFileChanges = api.environments?.onDidEnvironmentVariablesChange;
+    if (typeof envFileChanges === "function") {
+      this.disposables.push(
+        envFileChanges((event: { resource?: WorkspaceFolder }) =>
+          this.envVarChanges.fire(event?.resource?.uri),
+        ),
+      );
+    }
     this.allPythonPaths = await api.environment.getEnvironmentPaths();
     const pythonPath = api.settings.getExecutionDetails(workspace.workspaceFile)
       .execCommand[0];

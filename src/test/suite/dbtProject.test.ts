@@ -1967,4 +1967,142 @@ describe("DBTProject Test Suite", () => {
       });
     });
   });
+
+  describe("checking again after a change outside the project", () => {
+    let checkFailed: boolean;
+    let rebuildManifestDiagnostics: object[];
+    let envChanged: ((folder?: vscode.Uri) => void) | undefined;
+    let shellExecutionEnded: ((event: any) => void) | undefined;
+
+    const construct = () =>
+      new DBTProject(
+        mockPythonEnvironment,
+        dbtProjectLogFactory as any,
+        mockCommandFactory,
+        mockTerminal,
+        mockSharedStateService,
+        mockTelemetry,
+        mockExecutionInfrastructure,
+        jest.fn().mockReturnValue(mockProjectIntegration) as any,
+        mockAltimate,
+        mockValidationProvider,
+        mockAltimateAuthService,
+        mockRunHistoryService,
+        vscode.Uri.file("/test/workspace/project"),
+        {},
+        mockManifestChangedEmitter,
+      );
+    // The listeners subscribe once the Python environment is initialized.
+    const started = async () => {
+      dbtProject = construct();
+      await new Promise((resolve) => setImmediate(resolve));
+    };
+    const ended = (commandLine: string, exitCode: number | undefined) =>
+      shellExecutionEnded!({
+        exitCode,
+        execution: { commandLine: { value: commandLine } },
+      });
+    const requested = () =>
+      mockTelemetry.sendTelemetryEvent.mock.calls
+        .filter((call) => call[0] === "projectRecheckRequested")
+        .map((call) => (call[1] as { trigger: string }).trigger);
+
+    beforeEach(() => {
+      checkFailed = true;
+      rebuildManifestDiagnostics = [];
+      envChanged = undefined;
+      shellExecutionEnded = undefined;
+      mockProjectIntegration.isProjectCheckFailed = jest.fn(() => checkFailed);
+      mockProjectIntegration.getDiagnostics = jest.fn(() => ({
+        pythonBridgeDiagnostics: [],
+        rebuildManifestDiagnostics,
+        projectConfigDiagnostics: [],
+      }));
+      mockProjectIntegration.reparseProject = jest.fn(() => Promise.resolve());
+      (mockPythonEnvironment as any).onEnvironmentVariablesChanged = jest.fn(
+        (listener: (folder?: vscode.Uri) => void) => {
+          envChanged = listener;
+          return { dispose: jest.fn() };
+        },
+      );
+      (vscode.window as any).onDidEndTerminalShellExecution = jest.fn(
+        (listener: (event: any) => void) => {
+          shellExecutionEnded = listener;
+          return { dispose: jest.fn() };
+        },
+      );
+    });
+
+    afterEach(() => {
+      delete (vscode.window as any).onDidEndTerminalShellExecution;
+    });
+
+    it("re-parses a project whose check failed when the environment variables change", async () => {
+      await started();
+      envChanged!(undefined);
+
+      expect(mockProjectIntegration.reparseProject).toHaveBeenCalledTimes(1);
+      expect(requested()).toEqual(["envChange"]);
+    });
+
+    it("re-parses for a .env change in the project's own workspace folder only", async () => {
+      await started();
+      envChanged!(vscode.Uri.file("/elsewhere"));
+      expect(mockProjectIntegration.reparseProject).not.toHaveBeenCalled();
+
+      envChanged!(vscode.Uri.file("/test/workspace"));
+      expect(mockProjectIntegration.reparseProject).toHaveBeenCalledTimes(1);
+    });
+
+    it("re-parses a project showing a parse error, too", async () => {
+      checkFailed = false;
+      rebuildManifestDiagnostics = [
+        {
+          message: "Env var required but not provided: 'DBT_SCHEMA'",
+          severity: "error",
+          category: "manifest-rebuild",
+        },
+      ];
+      await started();
+      envChanged!(undefined);
+
+      expect(mockProjectIntegration.reparseProject).toHaveBeenCalledTimes(1);
+    });
+
+    it("leaves a healthy project alone", async () => {
+      checkFailed = false;
+      await started();
+      envChanged!(undefined);
+      ended("pip install dbt-core", 0);
+
+      expect(mockProjectIntegration.reparseProject).not.toHaveBeenCalled();
+      expect(requested()).toEqual([]);
+    });
+
+    it("re-parses a project whose check failed after a package install in a terminal", async () => {
+      await started();
+      ended("pip install dbt-core", 0);
+      // Shell integration couldn't tell how it ended.
+      ended("uv add dbt-duckdb", undefined);
+
+      expect(mockProjectIntegration.reparseProject).toHaveBeenCalledTimes(2);
+      expect(requested()).toEqual(["terminalInstall", "terminalInstall"]);
+    });
+
+    it("does nothing after a failed install or another command", async () => {
+      await started();
+      ended("pip install dbt-cor", 1);
+      ended("dbt run", 0);
+
+      expect(mockProjectIntegration.reparseProject).not.toHaveBeenCalled();
+    });
+
+    it("starts without the terminal event in an editor that has none", async () => {
+      delete (vscode.window as any).onDidEndTerminalShellExecution;
+      await started();
+      envChanged!(undefined);
+
+      expect(mockProjectIntegration.reparseProject).toHaveBeenCalledTimes(1);
+    });
+  });
 });
