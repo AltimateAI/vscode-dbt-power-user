@@ -180,6 +180,8 @@ describe("activate records dbt Core working from a dbt Core mode window", () => 
       }),
       notifySwitchHeld: jest.fn(() => Promise.resolve()),
       dbtCoreWorked: jest.fn(() => Promise.resolve()),
+      stopTrial: jest.fn(() => Promise.resolve()),
+      dispose: jest.fn(),
     };
     const container = {
       setContext: jest.fn(),
@@ -226,8 +228,24 @@ describe("activate records dbt Core working from a dbt Core mode window", () => 
       listeners.forEach((listener) =>
         listener({ project: { getDBTVersion: () => version }, inProgress }),
       );
-    return { rebuilt, listeners, integrationModeService };
+    return { extension, rebuilt, listeners, integrationModeService };
   }
+
+  it("stops the window's trial when the extension is disposed", async () => {
+    const { extension, integrationModeService } = await activateIn("core");
+
+    extension.dispose();
+
+    expect(integrationModeService.dispose).toHaveBeenCalledTimes(1);
+  });
+
+  it("waits for the window's trial to stop when the extension deactivates", async () => {
+    const { extension, integrationModeService } = await activateIn("core");
+
+    await extension.deactivate();
+
+    expect(integrationModeService.stopTrial).toHaveBeenCalledTimes(1);
+  });
 
   it.each(["core", "corecommand"])(
     "records it in a %s window when a project's rebuild read dbt 1.x",

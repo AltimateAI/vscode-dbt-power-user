@@ -7,11 +7,17 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
+  symlinkSync,
+  utimesSync,
   writeFileSync,
 } from "fs";
 import { homedir, tmpdir } from "os";
 import * as path from "path";
-import { runFusionTrial, SpawnProcess } from "../../dbt_client/fusionTrial";
+import {
+  removeLeftoverScratch,
+  runFusionTrial,
+  SpawnProcess,
+} from "../../dbt_client/fusionTrial";
 
 /**
  * The trial parse runs dbt Fusion on each project without writing into it:
@@ -92,6 +98,12 @@ interface TaskKill {
 
 let taskkills: TaskKill[];
 
+/** What the fake taskkill does: kill the tree and exit, fail to start, or never report. */
+let taskkillDoes: "exit" | "error" | "hang";
+
+/** Whether the run was killed as soon as taskkill failed to start, not later. */
+let killedWhenTaskkillFailed: boolean | undefined;
+
 function fakeSpawn(script: (args: string[]) => Script): SpawnProcess {
   return (command: string, args: string[], options: SpawnOptions) => {
     const child = new FakeChild();
@@ -99,12 +111,20 @@ function fakeSpawn(script: (args: string[]) => Script): SpawnProcess {
       const run = calls.find((c) => String(c.child.pid) === args[1]);
       // taskkill takes a moment to start before it looks for the tree.
       setImmediate(() => {
+        if (taskkillDoes === "error") {
+          child.emit("error", new Error("spawn taskkill ENOENT"));
+          killedWhenTaskkillFailed =
+            (run?.child.kill.mock.calls.length ?? 0) > 0;
+          return;
+        }
         taskkills.push({
           args,
           runKilledFirst: (run?.child.kill.mock.calls.length ?? 0) > 0,
         });
-        child.exitCode = 0;
-        child.emit("exit", 0, null);
+        if (taskkillDoes === "exit") {
+          child.exitCode = 0;
+          child.emit("exit", 0, null);
+        }
       });
       return child as unknown as ChildProcess;
     }
@@ -247,9 +267,24 @@ function expectScratchOnly(roots: string[]) {
   }
 }
 
+/** Runs `body` as if on Windows. */
+async function onWindows(body: () => Promise<void>): Promise<void> {
+  const platform = Object.getOwnPropertyDescriptor(process, "platform");
+  Object.defineProperty(process, "platform", { value: "win32" });
+  try {
+    await body();
+  } finally {
+    if (platform) {
+      Object.defineProperty(process, "platform", platform);
+    }
+  }
+}
+
 beforeEach(() => {
   calls = [];
   taskkills = [];
+  taskkillDoes = "exit";
+  killedWhenTaskkillFailed = undefined;
   workspace = mkdtempSync(path.join(tmpdir(), "fusion-trial-test-"));
   // Never a real process group: a fake child stands for each.
   groupKill = jest
@@ -400,9 +435,7 @@ describe("runFusionTrial", () => {
   });
 
   it("on Windows, kills the run only after taskkill has killed its process tree", async () => {
-    const platform = Object.getOwnPropertyDescriptor(process, "platform");
-    Object.defineProperty(process, "platform", { value: "win32" });
-    try {
+    await onWindows(async () => {
       const root = makeProject("shop");
       const result = await trial([root], () => ({ hang: true }), {
         projectTimeoutMs: 500,
@@ -418,12 +451,38 @@ describe("runFusionTrial", () => {
       ]);
       expect(calls[0].child.kill).toHaveBeenCalledWith("SIGKILL");
       expectScratchOnly([root]);
-    } finally {
-      if (platform) {
-        Object.defineProperty(process, "platform", platform);
-      }
-    }
+    });
   });
+
+  it("on Windows, kills the run itself when taskkill can't start", async () => {
+    taskkillDoes = "error";
+    await onWindows(async () => {
+      const root = makeProject("shop");
+      const result = await trial([root], () => ({ hang: true }), {
+        projectTimeoutMs: 500,
+      });
+
+      expect(result.outcome).toBe("timeout");
+      expect(killedWhenTaskkillFailed).toBe(true);
+      expect(calls[0].child.kill).toHaveBeenCalledWith("SIGKILL");
+      expectScratchOnly([root]);
+    });
+  });
+
+  it("on Windows, kills the run at the end of the grace period when taskkill doesn't report", async () => {
+    taskkillDoes = "hang";
+    await onWindows(async () => {
+      const root = makeProject("shop");
+      const result = await trial([root], () => ({ hang: true }), {
+        projectTimeoutMs: 500,
+      });
+
+      expect(result.outcome).toBe("timeout");
+      expect(taskkills).toHaveLength(1);
+      expect(calls[0].child.kill).toHaveBeenCalledWith("SIGKILL");
+      expectScratchOnly([root]);
+    });
+  }, 15_000);
 
   it("starts each run in its own process group on macOS and Linux", async () => {
     const root = makeProject("shop");
@@ -505,6 +564,8 @@ describe("runFusionTrial", () => {
     expect(result.outcome).toBe("timeout");
     expect(calls).toHaveLength(1);
     expect(Date.now() - started).toBeLessThan(5_000);
+    // Killed again at the end of the grace period, on its own.
+    expect(calls[0].child.kill).toHaveBeenCalledWith("SIGKILL");
     expectScratchOnly([root]);
   });
 
@@ -708,5 +769,64 @@ describe("runFusionTrial", () => {
       expect(calls.map((call) => call.args[0])).toEqual(["deps"]);
       expectScratchOnly([root]);
     });
+  });
+});
+
+describe("removeLeftoverScratch", () => {
+  const HOUR = 60 * 60 * 1000;
+
+  function folder(dir: string, name: string, ageMs: number): string {
+    const p = path.join(dir, name);
+    mkdirSync(path.join(p, "shop", "target"), { recursive: true });
+    const at = new Date(Date.now() - ageMs);
+    utimesSync(p, at, at);
+    return p;
+  }
+
+  it("removes trial scratch folders older than an hour, and nothing else", async () => {
+    const old = folder(workspace, "pu-fusion-trial-old", 2 * HOUR);
+    const live = folder(workspace, "pu-fusion-trial-live", 5 * 60 * 1000);
+    const other = folder(workspace, "someone-elses-folder", 2 * HOUR);
+    const file = path.join(workspace, "pu-fusion-trial-notes");
+    writeFileSync(file, "not a trial's");
+    const target = folder(workspace, "linked-target", 2 * HOUR);
+    const link = path.join(workspace, "pu-fusion-trial-link");
+    symlinkSync(target, link, "dir");
+    const twoHoursAgo = new Date(Date.now() - 2 * HOUR);
+    utimesSync(file, twoHoursAgo, twoHoursAgo);
+
+    await removeLeftoverScratch(workspace);
+
+    expect(existsSync(old)).toBe(false);
+    expect(existsSync(live)).toBe(true);
+    expect(existsSync(other)).toBe(true);
+    // Only directories: a file or a link with the name is kept.
+    expect(existsSync(file)).toBe(true);
+    expect(existsSync(link)).toBe(true);
+    expect(existsSync(path.join(target, "shop"))).toBe(true);
+  });
+
+  it("doesn't throw for a folder it can't read", async () => {
+    await expect(
+      removeLeftoverScratch(path.join(workspace, "missing")),
+    ).resolves.toBeUndefined();
+  });
+
+  it("runs at the start of a trial, in the temp directory", async () => {
+    const leftover = folder(
+      tmpdir(),
+      `pu-fusion-trial-test-${process.pid}`,
+      2 * HOUR,
+    );
+    try {
+      await trial([makeProject("shop")], () => ({}));
+      // It runs alongside the trial.
+      for (let i = 0; i < 100 && existsSync(leftover); i++) {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      }
+      expect(existsSync(leftover)).toBe(false);
+    } finally {
+      rmSync(leftover, { recursive: true, force: true });
+    }
   });
 });

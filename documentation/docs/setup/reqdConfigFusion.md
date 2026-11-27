@@ -34,23 +34,60 @@ Power User looks for dbt Fusion next to the selected Python interpreter (if ther
 
 ## Automatic dbt Fusion mode for dbt 2.x projects
 
-If you haven't set `dbt.dbtIntegration` yourself, Power User for dbt chooses the mode when the window opens. It uses dbt Fusion mode when all of these are true:
+If you haven't set `dbt.dbtIntegration` yourself, Power User for dbt chooses the mode when the window opens. It switches the window to dbt Fusion mode only when all of these are true:
 
 - the `dbt` it finds for your project is dbt Fusion (version 2.x);
 - the selected Python interpreter, if there is one, can't import dbt-core;
-- there is no dbt-loom config: no `dbt_loom.config.yml` at a workspace folder root or next to a `dbt_project.yml`, and no `DBT_LOOM_CONFIG_PATH` environment variable.
+- dbt Core hasn't worked on this machine in the last 7 days (see [When dbt Core worked recently](#when-dbt-core-worked-recently));
+- dbt Fusion supports the adapter in your dbt profile, or runs it as an experimental adapter and `DBT_ALLOW_EXPERIMENTAL_ADAPTERS=true` is set (in `terminal.integrated.env.<os>`, or in the environment VS Code starts with); and the profile is found;
+- there is no dbt-loom config: no `dbt_loom.config.yml` at a workspace folder root or next to a `dbt_project.yml`, and no `DBT_LOOM_CONFIG_PATH` environment variable;
+- this dbt Fusion has parsed the workspace's projects in a trial run.
 
-Power User tells you once per project, for example:
+### The trial parse
+
+The first window that could switch keeps dbt Core mode and runs dbt Fusion's `parse` on each project in the background. The trial writes nothing into your project: its target, logs and packages go to a folder in the system temp directory, which is removed afterwards. A project that declares packages gets them installed into that folder from a copy of its package files, so the trial needs access to the dbt package hub. A project with a `local:` package can't be tried this way, so it doesn't pass. Each project gets up to 3 minutes, and the whole trial up to 5 minutes.
+
+Power User remembers the result for the workspace and that dbt Fusion binary (its path and version):
+
+- **It parsed:** the next window opens in dbt Fusion mode.
+- **It didn't:** windows opened in the next 24 hours keep dbt Core mode. The first window opened after that runs the trial again.
+- A new dbt Fusion version, or a binary at another path, gets a trial of its own.
+- A project added after the trial passed switches with the others, without a trial of its own.
+- If a switched window's first parse has errors, Power User forgets the pass, so the next window runs the trial again. It also offers once to switch back to dbt Core. **Switch back to dbt Core** sets `dbt.dbtIntegration` to `core` in the workspace settings, so from then on the mode no longer changes by itself.
+
+When the window switches, Power User tells you once per project, for example:
 
 > Power User for dbt is using dbt Fusion for jaffle_shop: the dbt on your path is dbt 2.0.9, which needs dbt Fusion mode. Set dbt.dbtIntegration to choose a mode yourself.
 
 **Open setting** opens the `dbt.dbtIntegration` setting.
 
-If dbt Fusion is found but the interpreter has dbt-core, or there is a dbt-loom config, the window stays in dbt Core mode, and Power User tells you once per workspace, for example:
+### When dbt Core worked recently
 
-> dbt Fusion 2.0.9 was found at /home/you/.local/bin/dbt, but this window keeps dbt Core mode because the interpreter has dbt-core.
+A window keeps dbt Core mode when dbt Core worked on this machine in the last 7 days, that is when either:
 
-The reason can also be "a dbt-loom config is present" or "dbt-core could not be checked in the selected interpreter in time". **Use dbt Fusion** sets `dbt.dbtIntegration` to `fusion` in the workspace settings, and the window reloads in dbt Fusion mode. **Dismiss** keeps dbt Core mode.
+- a dbt Core mode window read a dbt 1.x project on this machine. Power User records this for the machine (one VS Code profile), not for the workspace: dbt Core used in one repository keeps every other workspace in dbt Core mode for 7 days, including one that only uses dbt Fusion;
+- dbt Core's `partial_parse.msgpack` in one of the workspace's projects changed in that time. Power User looks in `DBT_TARGET_PATH`, else the project's `target-path`, else `target`. dbt Fusion doesn't write this file. A `partial_parse.msgpack` committed to the repository counts from its file time.
+
+To use dbt Fusion in such a workspace sooner, set `dbt.dbtIntegration` to `fusion`, or choose **Use dbt Fusion** where Power User offers it.
+
+### When the window keeps dbt Core mode
+
+Where dbt Core mode works, Power User tells you once per workspace why it didn't switch, for example:
+
+> Power User didn't switch this window to dbt Fusion 2.0.9 (/home/you/.local/bin/dbt): the selected interpreter has dbt-core, so the window keeps dbt Core mode.
+
+The reason can also be an adapter dbt Fusion doesn't support or runs only as experimental, a dbt profile that isn't found, a dbt-loom config, or a dbt-core check that couldn't tell. **Use dbt Fusion** sets `dbt.dbtIntegration` to `fusion` in the workspace settings, and the window reloads in dbt Fusion mode. **Dismiss** keeps dbt Core mode. A window waiting for its trial, held after a failed trial, or held because dbt Core worked recently shows nothing while dbt Core mode works.
+
+Where dbt Core mode can't start (the interpreter has no dbt-core), the same reason replaces the "dbt is not installed" error, and most reasons also offer **Install dbt Core**. Some, such as a profile that `profiles.yml` doesn't have, offer to open the file to fix instead. After a trial, that message gives its result. Where the trial parsed:
+
+> dbt Fusion 2.0.9 (/home/you/.local/bin/dbt) parsed jaffle_shop. dbt Core mode needs dbt-core, which the selected Python interpreter does not have. Reload the window to use dbt Fusion.
+
+**Reload with dbt Fusion** reloads the window, which then opens in dbt Fusion mode. Where it didn't pass, the error says why, such as dbt Fusion's first error or a package it couldn't install, and offers Install dbt Core and Use dbt Fusion.
+
+Without a usable Python (no Python extension, no interpreter, or one that no longer exists), Power User shows its Python error with its own fix, and adds one of two things:
+
+- where dbt Fusion can run (its trial is still running or has parsed, or the dbt-core check couldn't tell): "…, or use dbt Fusion 2.0.9 (/home/you/.local/bin/dbt), which is on your path and runs without Python." and **Use dbt Fusion**;
+- otherwise, the reason the window kept dbt Core mode, such as the unsupported adapter or the trial's first error.
 
 A `dbt.dbtIntegration` value you set, in user, workspace or folder settings, is always used as is. Choosing an integration type in the Get Started panel also sets it, so after that the mode no longer changes by itself. The mode applies to the whole window: in a multi-root workspace, every project uses it.
 

@@ -4,7 +4,15 @@ import {
   FusionReportedError,
 } from "@altimateai/dbt-integration";
 import { ChildProcess, spawn, SpawnOptions } from "child_process";
-import { copyFile, mkdir, mkdtemp, readFile, rm } from "fs/promises";
+import {
+  copyFile,
+  lstat,
+  mkdir,
+  mkdtemp,
+  readdir,
+  readFile,
+  rm,
+} from "fs/promises";
 import { homedir, tmpdir } from "os";
 import * as path from "path";
 import { parse as parseYaml } from "yaml";
@@ -93,6 +101,8 @@ const DEFAULT_TOTAL_TIMEOUT_MS = 300_000;
 const KILL_GRACE_MS = 2_000;
 const MAX_FIRST_ERROR_LENGTH = 300;
 const SCRATCH_PREFIX = "pu-fusion-trial-";
+// A scratch folder this old is a leftover: a trial takes 5 minutes at most.
+const LEFTOVER_SCRATCH_MS = 60 * 60 * 1000;
 const PACKAGE_FILES = ["packages.yml", "dependencies.yml"];
 const PACKAGE_LOCK_FILE = "package-lock.yml";
 
@@ -107,6 +117,8 @@ export async function runFusionTrial(
   const started = Date.now();
   const totalDeadline =
     started + (options.totalTimeoutMs ?? DEFAULT_TOTAL_TIMEOUT_MS);
+  // Alongside the trial, so a slow removal can't hold it up.
+  void removeLeftoverScratch(tmpdir());
   const projects: FusionTrialProject[] = [];
   for (const [index, root] of options.projectRoots.entries()) {
     const project = await trialProject(root, options, totalDeadline);
@@ -130,6 +142,28 @@ export async function runFusionTrial(
     ...(failed ? { failed } : {}),
     durationMs: Date.now() - started,
   };
+}
+
+/**
+ * Removes trial scratch folders in `dir` older than an hour. They're left
+ * when an extension host exited mid-trial, before the trial could remove its
+ * own. Only directories: a file or link with the same name is kept. Never
+ * rejects.
+ */
+export async function removeLeftoverScratch(dir: string): Promise<void> {
+  const now = Date.now();
+  const names = await readdir(dir).catch(() => [] as string[]);
+  for (const name of names.filter((n) => n.startsWith(SCRATCH_PREFIX))) {
+    const folder = path.join(dir, name);
+    try {
+      const found = await lstat(folder);
+      if (found.isDirectory() && now - found.mtimeMs > LEFTOVER_SCRATCH_MS) {
+        await rm(folder, { recursive: true, force: true, maxRetries: 3 });
+      }
+    } catch {
+      // Gone already, or not ours to remove.
+    }
+  }
 }
 
 async function trialProject(
@@ -399,7 +433,12 @@ function runFusion(
         return;
       }
       child.once("exit", () => finish(end));
-      graceTimer = setTimeout(() => finish(end), KILL_GRACE_MS);
+      graceTimer = setTimeout(() => {
+        // On Windows the run is killed once taskkill reports: kill it now
+        // if taskkill hasn't, so it doesn't outlive its scratch folder.
+        killProcess(child);
+        finish(end);
+      }, KILL_GRACE_MS);
     };
     const onAbort = () => stop({ kind: "canceled" });
     const timer = setTimeout(() => stop({ kind: "timeout" }), timeoutMs);
