@@ -12,6 +12,7 @@ describe("isPackageInstall", () => {
     "python -m pip install dbt-core",
     "python3.12 -m pip uninstall dbt-postgres",
     "py -3 -m pip install dbt-core",
+    "C:\\Python312\\python.exe -m pip install dbt-core",
     "uv pip install dbt-core",
     "uv pip sync requirements.txt",
     "uv add dbt-bigquery",
@@ -27,6 +28,11 @@ describe("isPackageInstall", () => {
     "PIP_INDEX_URL=https://x pip install dbt-core",
     "cd ~/proj && pip install dbt-core",
     "source .venv/bin/activate; pip install dbt-core",
+    'pip install "dbt-core>=1.8,<2"',
+    "uv --quiet pip install dbt-core",
+    "uv pip --quiet install dbt-core",
+    "uv -q add dbt-duckdb",
+    "pip install dbt-core 2>&1 | tee install.log",
   ])("takes %s for an install", (commandLine) => {
     expect(isPackageInstall(commandLine)).toBe(true);
   });
@@ -44,6 +50,10 @@ describe("isPackageInstall", () => {
     "echo pip install dbt-core",
     "git commit -m 'pip install'",
     "python -m dbt run",
+    "printf '%s\\n' 'note; pip install dbt-core'",
+    "echo 'a;pip' install dbt-core",
+    'echo "run: pip install dbt-core && dbt debug"',
+    "git commit -m 'docs: pip install dbt-core'",
     "",
   ])("doesn't take %s for an install", (commandLine) => {
     expect(isPackageInstall(commandLine)).toBe(false);

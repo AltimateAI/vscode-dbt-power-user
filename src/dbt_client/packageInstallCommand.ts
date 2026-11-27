@@ -31,19 +31,69 @@ function changesPackages(words: string[]): boolean {
   const module = rest.indexOf("-m");
   if (
     module > 0 &&
-    /^(python[\d.]*|py)(\.exe)?$/i.test(path.basename(rest[0]))
+    /^(python[\d.]*|py)(\.exe)?$/i.test(
+      path.basename(rest[0].replace(/\\/g, "/")),
+    )
   ) {
     rest = rest.slice(module + 1);
   }
   const tool = installer(rest[0] ?? "");
-  if (tool === "uv" && rest[1] === "pip") {
-    return PIP.includes(rest[2]) || rest[2] === "sync";
+  // The words after the installer that aren't options (`-q`, `--upgrade`).
+  const args = rest.slice(1).filter((word) => !word.startsWith("-"));
+  if (tool === "uv" && args[0] === "pip") {
+    return [...PIP, "sync"].includes(args[1]);
   }
-  // The first word after the installer that isn't an option.
-  const subcommand = rest.slice(1).find((word) => !word.startsWith("-"));
-  return (
-    subcommand !== undefined && (SUBCOMMANDS[tool] ?? []).includes(subcommand)
-  );
+  return args[0] !== undefined && (SUBCOMMANDS[tool] ?? []).includes(args[0]);
+}
+
+/**
+ * A command line's commands, each as its words: split at `;`, `&`, `|` (so
+ * `&&` and `||` too) and line breaks, and at spaces, outside quotes. Quotes
+ * are removed; a backslash escapes only a double quote inside double quotes
+ * (it's a path separator on Windows).
+ */
+function commands(line: string): string[][] {
+  const result: string[][] = [];
+  let words: string[] = [];
+  let word: string | undefined;
+  let quote: string | undefined;
+  const endWord = () => {
+    if (word !== undefined) {
+      words.push(word);
+      word = undefined;
+    }
+  };
+  const endCommand = () => {
+    endWord();
+    if (words.length) {
+      result.push(words);
+    }
+    words = [];
+  };
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (quote !== undefined) {
+      if (char === "\\" && quote === '"' && line[i + 1] === '"') {
+        word = (word ?? "") + '"';
+        i++;
+      } else if (char === quote) {
+        quote = undefined;
+      } else {
+        word = (word ?? "") + char;
+      }
+    } else if (char === "'" || char === '"') {
+      quote = char;
+      word = word ?? "";
+    } else if (";&|\n".includes(char)) {
+      endCommand();
+    } else if (/\s/.test(char)) {
+      endWord();
+    } else {
+      word = (word ?? "") + char;
+    }
+  }
+  endCommand();
+  return result;
 }
 
 /**
@@ -52,7 +102,5 @@ function changesPackages(words: string[]): boolean {
  * of the commands the line chains.
  */
 export function isPackageInstall(commandLine: string): boolean {
-  return commandLine
-    .split(/&&|\|\||[;|\n]/)
-    .some((command) => changesPackages(command.trim().split(/\s+/)));
+  return commands(commandLine).some(changesPackages);
 }
