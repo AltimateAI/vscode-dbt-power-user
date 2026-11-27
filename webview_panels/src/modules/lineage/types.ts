@@ -26,7 +26,9 @@ export interface LineageBannerAction {
   args?: { path: string; line?: number; package?: string };
 }
 
-export interface LineageBanner {
+export type LineageBanner = StaleGraphBanner | PartialGraphBanner;
+
+export interface StaleGraphBanner {
   id: "stale-graph-startup" | "stale-graph-midsession";
   severity: "warning";
   // The chip's text after "Out of date", e.g. "last parse 2 hours ago".
@@ -37,6 +39,32 @@ export interface LineageBanner {
   // dbt's own message, verbatim.
   dbtMessage: string;
   // The first action is the primary button.
+  actions: LineageBannerAction[];
+}
+
+// The notice over a graph drawn from a partial manifest: dbt Fusion wrote it
+// although some files failed to parse (src/webview_provider/lineagePartialGraph.ts).
+export interface PartialGraphFile {
+  // Relative to the project when inside it.
+  path: string;
+  line?: number;
+  // The first error's reason, in one line.
+  summary: string;
+  errorCount: number;
+  // Opens the file at that line, where its Problems entry points.
+  action: LineageBannerAction;
+}
+
+export interface PartialGraphBanner {
+  id: "partial-graph";
+  severity: "warning";
+  // The chip's text after "Partial graph", e.g. "customers.sql failed to parse".
+  age: string;
+  title: string;
+  detail: string;
+  files: PartialGraphFile[];
+  // dbt's messages, verbatim.
+  dbtMessage: string;
   actions: LineageBannerAction[];
 }
 

@@ -50,6 +50,12 @@ import { ValidationProvider } from "../validation_provider";
 import { AltimateWebviewProvider } from "./altimateWebviewProvider";
 import { LineagePanelView } from "./lineagePanel";
 import {
+  droppedModelCard,
+  PartialGraphBanner,
+  partialGraphBanner,
+  partialGraphKey,
+} from "./lineagePartialGraph";
+import {
   locateErrorFile,
   manifestAgeBucket,
   StaleGraphActionId,
@@ -72,6 +78,9 @@ import { classifyLineageError, nodeCountBucket } from "./lineageTelemetry";
 // how often a shown banner is rebuilt to keep its age current, in ms.
 const DIAGNOSTICS_SETTLE_MS = 250;
 const AGE_REFRESH_MS = 60 * 1000;
+
+// The notice over a drawn graph: out of date, or drawn from a partial manifest.
+type LineageBanner = StaleGraphBanner | PartialGraphBanner;
 
 // The banner's "Try again" runs this; the button is hidden while it isn't
 // registered.
@@ -128,6 +137,9 @@ export class NewLineagePanel
   private graphDrawn = false;
   private postedBanner: string | undefined;
   private reparseAvailable = false;
+  // The files missing from the manifest the webview's canvas was last drawn
+  // from (partialGraphKey), or undefined before a graph is drawn on it.
+  private canvasPartialKey: string | undefined;
   // The project and manifest event the drawn graph came from. The banner
   // follows them, not the active editor, which can close or move to a file
   // outside the project while the graph stays drawn.
@@ -244,10 +256,13 @@ export class NewLineagePanel
     this.noGraphShown = false;
     this.drawnFrom = undefined;
     this.postedBanner = undefined;
+    this.canvasPartialKey = undefined;
   }
 
   protected onWebviewReady() {
     super.onWebviewReady();
+    // A webview that (re)loads starts with an empty canvas.
+    this.canvasPartialKey = undefined;
     this.renderStartingNode();
     this.checkReparseAvailable();
   }
@@ -316,16 +331,17 @@ export class NewLineagePanel
     if (!this._panel || !this.graphDrawn) {
       return;
     }
-    this.postBanner(this.getStaleGraphBanner());
+    this.postBanner(this.getLineageBanner());
   }
 
-  // Keeps a minute timer running exactly while a banner shows.
-  private syncAgeTimer(banner: StaleGraphBanner | undefined) {
-    if (banner && this.ageTimer === undefined) {
+  // Keeps a minute timer running exactly while a banner with an age shows.
+  private syncAgeTimer(banner: LineageBanner | undefined) {
+    const aging = banner !== undefined && banner.id !== "partial-graph";
+    if (aging && this.ageTimer === undefined) {
       this.ageTimer = setInterval(() => this.refreshBanner(), AGE_REFRESH_MS);
       // The timer alone never keeps the extension host busy.
       this.ageTimer.unref?.();
-    } else if (!banner && this.ageTimer !== undefined) {
+    } else if (!aging && this.ageTimer !== undefined) {
       clearInterval(this.ageTimer);
       this.ageTimer = undefined;
     }
@@ -348,7 +364,7 @@ export class NewLineagePanel
     );
   }
 
-  private postBanner(banner: StaleGraphBanner | undefined) {
+  private postBanner(banner: LineageBanner | undefined) {
     this.syncAgeTimer(banner);
     const serialized = JSON.stringify(banner ?? null);
     if (serialized === this.postedBanner) {
@@ -398,14 +414,26 @@ export class NewLineagePanel
             event: this.queryManifestService.getEventByCurrentProject()?.event,
           }
         : undefined;
-    const lineageBanner = this.graphDrawn
-      ? this.getStaleGraphBanner()
-      : undefined;
+    const lineageBanner = this.graphDrawn ? this.getLineageBanner() : undefined;
     this.postedBanner = JSON.stringify(lineageBanner ?? null);
     this.syncAgeTimer(lineageBanner);
+    // The webview keeps its canvas when the starting node is already on it,
+    // and only highlights the node. A manifest that loses or regains what
+    // failed to parse must be drawn afresh, or the canvas keeps the graph
+    // from before and the notice describes a graph that isn't shown.
+    const partialKey = this.graphDrawn
+      ? partialGraphKey(this.drawnFrom?.event?.partialManifest)
+      : undefined;
+    const redraw =
+      partialKey !== undefined &&
+      this.canvasPartialKey !== undefined &&
+      partialKey !== this.canvasPartialKey;
+    if (partialKey !== undefined) {
+      this.canvasPartialKey = partialKey;
+    }
     this._panel.webview.postMessage({
       command: "render",
-      args: { ...startingNode, lineageBanner },
+      args: { ...startingNode, lineageBanner, ...(redraw ? { redraw } : {}) },
     });
     if (startingNode?.node) {
       this.reportLineageRendered();
@@ -428,6 +456,7 @@ export class NewLineagePanel
       const properties: { [key: string]: string } = {
         nodeCountBucket: nodeCountBucket(nodeCount),
         staleManifest: String(stale),
+        partialManifest: String(event?.partialManifest !== undefined),
         manifestAgeBucket: stale
           ? manifestAgeBucket(this.getManifestInfo().writtenAt, Date.now())
           : "none",
@@ -1032,6 +1061,8 @@ export class NewLineagePanel
   }
 
   private static readonly DBT_FILE_EXTENSIONS = [".sql", ".py", ".csv"];
+  // The files a model is defined in.
+  private static readonly MODEL_FILE_EXTENSIONS = [".sql", ".py"];
 
   // Sources are declared in YAML, which has no 1:1 file→node mapping (one file
   // can define many sources/tables). These extensions opt a file into the
@@ -1051,14 +1082,22 @@ export class NewLineagePanel
     return path.basename(fileName);
   }
 
-  // What the panel shows when it can't draw a graph.
-  private getNoGraphState(): {
+  // What the panel shows when it can't draw a graph. `dropped` is the card for
+  // an active model a partial manifest left out; it takes the error's place.
+  private getNoGraphState(dropped?: LineageCard): {
     lineageCard?: LineageCard;
     missingLineageMessage?: { message: string };
   } {
     const blocking = this.findBlockingDiagnostic();
     this.renderedBlocking = blocking?.message;
-    if (!blocking) {
+    if (blocking) {
+      this.reportLineageError(blocking.message, blocking.category);
+    }
+    const card =
+      dropped ??
+      (blocking &&
+        this.buildCard(blocking, this.queryManifestService.getProject()));
+    if (!card) {
       return {
         missingLineageMessage: {
           message:
@@ -1066,11 +1105,6 @@ export class NewLineagePanel
         },
       };
     }
-    this.reportLineageError(blocking.message, blocking.category);
-    const card = this.buildCard(
-      blocking,
-      this.queryManifestService.getProject(),
-    );
     if (!this.reportedCardKinds.has(card.kind)) {
       this.reportedCardKinds.add(card.kind);
       this.telemetry.sendTelemetryEvent("lineageStateShown", {
@@ -1177,6 +1211,57 @@ export class NewLineagePanel
         return;
       }
     }
+  }
+
+  // A partial manifest's notice takes the out-of-date one's place: the graph is
+  // from the latest parse, which dbt reported errors for.
+  private getLineageBanner(): LineageBanner | undefined {
+    return this.getPartialGraphBanner() ?? this.getStaleGraphBanner();
+  }
+
+  private getPartialGraphBanner(): PartialGraphBanner | undefined {
+    try {
+      const project = this.drawnFrom?.project;
+      if (!project) {
+        return undefined;
+      }
+      return partialGraphBanner({
+        graphDrawn: this.graphDrawn,
+        partial: this.drawnFrom?.event?.partialManifest,
+        projectRoot: project.projectRoot.fsPath,
+      });
+    } catch (error) {
+      this.dbtTerminal.debug(
+        "Lineage:getPartialGraphBanner",
+        "Could not build the partial-graph notice",
+        error,
+      );
+      return undefined;
+    }
+  }
+
+  // The card for the active model when a partial manifest left it out because
+  // its own file failed to parse.
+  private getDroppedModelCard(
+    event: ManifestCacheProjectAddedEvent,
+    filePath: string,
+    modelName: string,
+  ): LineageCard | undefined {
+    const ext = path.extname(filePath).toLowerCase();
+    if (!NewLineagePanel.MODEL_FILE_EXTENSIONS.includes(ext)) {
+      return undefined;
+    }
+    const project = this.queryManifestService.getProject();
+    return this.safely(
+      () =>
+        project &&
+        droppedModelCard({
+          partial: event.partialManifest,
+          projectRoot: project.projectRoot.fsPath,
+          filePath,
+          modelName,
+        }),
+    );
   }
 
   private getStaleGraphBanner(): StaleGraphBanner | undefined {
@@ -1528,7 +1613,13 @@ export class NewLineagePanel
     );
     return {
       aiEnabled,
-      ...this.getNoGraphState(),
+      ...this.getNoGraphState(
+        this.getDroppedModelCard(
+          event.event,
+          editor.document.fileName,
+          tableName,
+        ),
+      ),
     };
   }
 

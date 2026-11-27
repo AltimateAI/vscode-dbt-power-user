@@ -17,6 +17,7 @@ export type LineageCardKind =
   | "packages"
   | "bridge-stopped"
   | "cloud-busy"
+  | "model-not-parsed"
   | "other";
 
 export type LineageCardActionId =
