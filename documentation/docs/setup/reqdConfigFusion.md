@@ -39,7 +39,7 @@ If you haven't set `dbt.dbtIntegration` yourself, Power User for dbt chooses the
 - the `dbt` it finds for your project is dbt Fusion (version 2.x);
 - the selected Python interpreter, if there is one, can't import dbt-core;
 - dbt Core hasn't worked on this machine in the last 7 days (see [When dbt Core worked recently](#when-dbt-core-worked-recently));
-- dbt Fusion supports the adapter in your dbt profile, or runs it as an experimental adapter and you've added `DBT_ALLOW_EXPERIMENTAL_ADAPTERS=true` to `terminal.integrated.env.<os>`; and the profile is found;
+- dbt Fusion supports the adapter in your dbt profile, or runs it as an experimental adapter and `DBT_ALLOW_EXPERIMENTAL_ADAPTERS=true` is set (in `terminal.integrated.env.<os>`, or in the environment VS Code starts with); and the profile is found;
 - there is no dbt-loom config: no `dbt_loom.config.yml` at a workspace folder root or next to a `dbt_project.yml`, and no `DBT_LOOM_CONFIG_PATH` environment variable;
 - this dbt Fusion has parsed every project in the workspace in a trial run.
 
@@ -77,7 +77,7 @@ Where dbt Core mode works, Power User tells you once per workspace why it didn't
 
 The reason can also be an adapter dbt Fusion doesn't support or runs only as experimental, a dbt profile that isn't found, a dbt-loom config, or a dbt-core check that couldn't tell. **Use dbt Fusion** sets `dbt.dbtIntegration` to `fusion` in the workspace settings, and the window reloads in dbt Fusion mode. **Dismiss** keeps dbt Core mode. A window waiting for its trial, held after a failed trial, or held because dbt Core worked recently shows nothing while dbt Core mode works.
 
-Where dbt Core mode can't start (the interpreter has no dbt-core), the same reason replaces the "dbt is not installed" error and also offers **Install dbt Core**. After a trial, that message gives its result. Where the trial parsed:
+Where dbt Core mode can't start (the interpreter has no dbt-core), the same reason replaces the "dbt is not installed" error, and most reasons also offer **Install dbt Core**. A profile that isn't found offers to open `profiles.yml` or `dbt_project.yml` instead. After a trial, that message gives its result. Where the trial parsed:
 
 > dbt Fusion 2.0.9 (/home/you/.local/bin/dbt) parsed jaffle_shop. dbt Core mode needs dbt-core, which the selected Python interpreter does not have. Reload the window to use dbt Fusion.
 
