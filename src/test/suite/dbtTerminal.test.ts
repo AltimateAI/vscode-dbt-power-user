@@ -95,6 +95,32 @@ describe("DBTTerminal Test Suite", () => {
     );
   });
 
+  it("sends on a warning only the hinted config names on dbt-integration's list", () => {
+    const library = require("@altimateai/dbt-integration") as Record<
+      string,
+      unknown
+    >;
+    library.DBT_PROJECT_CONFIG_NAMES = new Set(["materialized"]);
+    try {
+      terminal.warn("DBTFusionCommandInitializeTargetError", "reported", true, {
+        errorCodes: "dbt1013",
+        unprefixedConfigKeys: "materialized,customer_private_model",
+      });
+      delete library.DBT_PROJECT_CONFIG_NAMES;
+      terminal.warn("DBTFusionCommandInitializeTargetError", "reported", true, {
+        errorCodes: "dbt1013",
+        unprefixedConfigKeys: "materialized",
+      });
+    } finally {
+      delete library.DBT_PROJECT_CONFIG_NAMES;
+    }
+    const sent = (mockTelemetry.sendTelemetryEvent as jest.Mock).mock.calls.map(
+      (call) =>
+        (call[1] as { unprefixedConfigKeys?: string }).unprefixedConfigKeys,
+    );
+    expect(sent).toEqual(["materialized", undefined]);
+  });
+
   it("should handle errors with proper error message formatting", () => {
     const name = "test_error";
     const message = "Test error message";

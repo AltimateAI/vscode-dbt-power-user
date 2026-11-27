@@ -146,47 +146,82 @@ describe("TelemetryService.sendTelemetryError forwards diagnostic fields", () =>
 
   // dbt-integration names the config keys dbt Fusion rejected in
   // dbt_project.yml for a missing `+`, so that case counts apart from other
-  // dbt1013 errors (YAML syntax errors carry the same code).
-  it("forwards the config names dbt-integration reports for a missing +", () => {
-    const err = Object.assign(new Error("dbt1013"), {
-      errorCodes: "dbt1013",
-      errorCount: 2,
-      unprefixedConfigKeys: "materialized,pre-hook",
-    });
-    telemetry.sendTelemetryError("dbtFusionParseProjectUserError", err);
-    const { properties } = captureCall();
-    expect(properties.errorCodes).toBe("dbt1013");
-    expect(properties.unprefixedConfigKeys).toBe("materialized,pre-hook");
-  });
-
-  it.each<[string, unknown, string | undefined]>([
-    [
-      "absent, as from dbt-integration releases before it",
-      undefined,
-      undefined,
-    ],
-    ["not a string", ["materialized"], undefined],
-    ["empty", "", undefined],
-    [
-      "partly not config names",
-      "schema,/home/user/x,Bad Key,tags",
-      "schema,tags",
-    ],
-  ])(
-    "sends only config-name-shaped unprefixedConfigKeys when they are %s",
-    (_, unprefixedConfigKeys, expected) => {
+  // dbt1013 errors (YAML syntax errors carry the same code). Only names on
+  // its exported DBT_PROJECT_CONFIG_NAMES are sent; the installed
+  // dbt-integration (0.3.22) exports no list, so each test sets one on the
+  // module and removes it after.
+  describe("unprefixedConfigKeys", () => {
+    const library = require("@altimateai/dbt-integration") as Record<
+      string,
+      unknown
+    >;
+    const LISTED = new Set(["materialized", "schema", "tags", "pre-hook"]);
+    const sendWith = (unprefixedConfigKeys: unknown) => {
       telemetry.sendTelemetryError(
         "dbtFusionParseProjectUserError",
-        Object.assign(new Error("boom"), {
+        Object.assign(new Error("dbt1013"), {
           errorCodes: "dbt1013",
+          errorCount: 2,
           unprefixedConfigKeys,
         }),
       );
-      const { properties } = captureCall();
+      return captureCall().properties;
+    };
+
+    beforeEach(() => {
+      library.DBT_PROJECT_CONFIG_NAMES = LISTED;
+    });
+    afterEach(() => {
+      delete library.DBT_PROJECT_CONFIG_NAMES;
+    });
+
+    it("forwards the listed config names dbt-integration reports", () => {
+      const properties = sendWith("materialized,pre-hook");
+      expect(properties.errorCodes).toBe("dbt1013");
+      expect(properties.unprefixedConfigKeys).toBe("materialized,pre-hook");
+    });
+
+    it("drops config-name-shaped items that aren't on the list", () => {
+      expect(
+        sendWith("materialized,customer_private_model,internal_schema_name")
+          .unprefixedConfigKeys,
+      ).toBe("materialized");
+    });
+
+    it.each<[string, unknown, string | undefined]>([
+      [
+        "absent, as from dbt-integration releases before it",
+        undefined,
+        undefined,
+      ],
+      ["not a string", ["materialized"], undefined],
+      ["empty", "", undefined],
+      ["only unlisted names", "customer_private_model", undefined],
+      [
+        "partly not config names",
+        "schema,/home/user/x,Bad Key,tags",
+        "schema,tags",
+      ],
+    ])("sends only listed names when they are %s", (_, keys, expected) => {
+      const properties = sendWith(keys);
       expect(properties.unprefixedConfigKeys).toBe(expected);
       expect(properties.errorCodes).toBe("dbt1013");
-    },
-  );
+    });
+
+    it.each<[string, unknown]>([
+      ["exports no list (dbt-integration 0.3.22)", undefined],
+      ["exports something that isn't a set", ["materialized"]],
+    ])("sends no config names when dbt-integration %s", (_, list) => {
+      if (list === undefined) {
+        delete library.DBT_PROJECT_CONFIG_NAMES;
+      } else {
+        library.DBT_PROJECT_CONFIG_NAMES = list;
+      }
+      const properties = sendWith("materialized,schema");
+      expect(properties.unprefixedConfigKeys).toBeUndefined();
+      expect(properties.errorCodes).toBe("dbt1013");
+    });
+  });
 
   it("sends the error without the fields when reading them throws", () => {
     const err = new Error("boom");

@@ -1,3 +1,4 @@
+import dbtIntegration = require("@altimateai/dbt-integration");
 import TelemetryReporter from "@vscode/extension-telemetry";
 import { createHash } from "crypto";
 import * as vscode from "vscode";
@@ -174,12 +175,34 @@ const DBT_ERROR_CODE = /^dbt\d{4}$/;
 /** A dbt config name ("materialized", "pre-hook"), as dbt-integration names one. */
 const DBT_CONFIG_NAME = /^[a-z][a-z0-9_-]{0,63}$/;
 
-/** The comma-joined items of `value` that match `shape`, or undefined for none. */
-function joinedMatching(value: unknown, shape: RegExp): string | undefined {
-  const items =
-    typeof value === "string"
-      ? value.split(",").filter((item) => shape.test(item))
-      : [];
+/**
+ * The config names dbt-integration may put in `unprefixedConfigKeys`, from
+ * its `DBT_PROJECT_CONFIG_NAMES`, or undefined. dbt-integration 0.3.22 and
+ * earlier don't export it (nor set the field), so it is read by name at call
+ * time rather than imported, and without it no config name is sent.
+ */
+function dbtProjectConfigNames(): { has(name: string): boolean } | undefined {
+  try {
+    const names: unknown = Reflect.get(
+      dbtIntegration,
+      "DBT_PROJECT_CONFIG_NAMES",
+    );
+    return typeof names === "object" &&
+      names !== null &&
+      typeof (names as { has?: unknown }).has === "function"
+      ? (names as { has(name: string): boolean })
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** The comma-joined items of `value` that `keep` accepts, or undefined for none. */
+function joinedMatching(
+  value: unknown,
+  keep: (item: string) => boolean,
+): string | undefined {
+  const items = typeof value === "string" ? value.split(",").filter(keep) : [];
   return items.length > 0 ? items.join(",") : undefined;
 }
 
@@ -191,8 +214,8 @@ function joinedMatching(value: unknown, shape: RegExp): string | undefined {
  * config names dbt Fusion rejected in dbt_project.yml for a missing `+`
  * ("materialized,schema"), from dbt-integration releases that set it. Sent
  * as properties and a measurement of their own: VS Code's redactor can blank
- * the whole message that holds them. Only values shaped like a code or a
- * config name are sent.
+ * the whole message that holds them. Only values shaped like a code, and
+ * config names on dbt-integration's `DBT_PROJECT_CONFIG_NAMES`, are sent.
  */
 export function dbtErrorReport(error: unknown): {
   properties: { errorCodes?: string; unprefixedConfigKeys?: string };
@@ -214,8 +237,16 @@ export function dbtErrorReport(error: unknown): {
     // A getter that throws: telemetry never breaks its caller.
     return { properties: {}, measurements: {} };
   }
-  const codes = joinedMatching(errorCodes, DBT_ERROR_CODE);
-  const configKeys = joinedMatching(unprefixedConfigKeys, DBT_CONFIG_NAME);
+  const codes = joinedMatching(errorCodes, (code) => DBT_ERROR_CODE.test(code));
+  // Only names on dbt-integration's own list leave the machine: anything else
+  // in the field could be a model, schema or other name from the project.
+  const configNames = dbtProjectConfigNames();
+  const configKeys = configNames
+    ? joinedMatching(
+        unprefixedConfigKeys,
+        (key) => DBT_CONFIG_NAME.test(key) && configNames.has(key),
+      )
+    : undefined;
   return {
     properties: {
       ...(codes ? { errorCodes: codes } : {}),
