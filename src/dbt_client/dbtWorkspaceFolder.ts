@@ -33,6 +33,7 @@ import {
   resolvePackagesInstallPath,
 } from "@altimateai/dbt-integration";
 import { getDbtIntegrationMode } from "./integrationMode";
+import { ProjectStartQueue } from "./projectStartQueue";
 
 // Sentinel for the empty-after-retries case in `retryWithBackoff`. Lets the
 // caller distinguish "this folder has no dbt project" (silent, expected for
@@ -52,6 +53,8 @@ export class DBTWorkspaceFolder implements Disposable {
   readonly projectDiscoveryDiagnostics =
     languages.createDiagnosticCollection("dbt");
   private dbtProjects: DBTProject[] = [];
+  /** Roots of the projects waiting in the start queue. */
+  private waitingToStart = new Set<string>();
   private disposables: Disposable[] = [];
   private _onRebuildManifestStatusChange =
     new EventEmitter<RebuildManifestStatusChange>();
@@ -73,6 +76,7 @@ export class DBTWorkspaceFolder implements Disposable {
     public workspaceFolder: WorkspaceFolder,
     private _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
     private _onProjectRegisteredUnregistered: EventEmitter<ProjectRegisteredUnregisteredEvent>,
+    private projectStartQueue: ProjectStartQueue,
   ) {
     this.watcher = this.createConfigWatcher();
     this.disposables.push(this.watcher);
@@ -223,11 +227,41 @@ export class DBTWorkspaceFolder implements Disposable {
       filteredProjects,
     );
 
+    // The project of the file being edited starts first, ahead of this
+    // folder's projects and of those other folders queued already.
+    const activeProject = this.innermostProjectOf(
+      filteredProjects,
+      window.activeTextEditor?.document.uri,
+    );
+    const startOrder = activeProject
+      ? [activeProject, ...filteredProjects.filter((p) => p !== activeProject)]
+      : filteredProjects;
     await Promise.all(
-      filteredProjects.map(async (projectPath) => {
-        await this.registerDBTProject(Uri.file(projectPath));
+      startOrder.map(async (projectPath) => {
+        await this.registerDBTProject(
+          Uri.file(projectPath),
+          projectPath === activeProject,
+        );
       }),
     );
+  }
+
+  /** The deepest of `projectRoots` that holds `file`. */
+  private innermostProjectOf(
+    projectRoots: string[],
+    file: Uri | undefined,
+  ): string | undefined {
+    // By fsPath alone, as `contains` matches: a document of another scheme
+    // (a diff view of the file) still names its project.
+    if (!file?.fsPath) {
+      return undefined;
+    }
+    return projectRoots
+      .filter(
+        (root) =>
+          file.fsPath === root || file.fsPath.startsWith(root + path.sep),
+      )
+      .sort((a, b) => b.length - a.length)[0];
   }
 
   findDBTProject(uri: Uri): DBTProject | undefined {
@@ -257,6 +291,7 @@ export class DBTWorkspaceFolder implements Disposable {
   }
 
   dispose() {
+    this.waitingToStart.clear();
     this.dbtProjects.forEach((project) => project.dispose());
     while (this.disposables.length) {
       const x = this.disposables.pop();
@@ -266,7 +301,25 @@ export class DBTWorkspaceFolder implements Disposable {
     }
   }
 
-  private async registerDBTProject(uri: Uri) {
+  /**
+   * Starts the project through the window's start queue: each start spawns
+   * Python and parses the project, so a few run at a time. `first` puts it
+   * ahead of the projects waiting.
+   */
+  private async registerDBTProject(uri: Uri, first = false) {
+    const root = uri.fsPath;
+    this.waitingToStart.add(root);
+    await this.projectStartQueue.run(async () => {
+      // Skipped when it was removed while it waited (its dbt_project.yml
+      // deleted, or this folder closed), or when another event for the same
+      // root, queued alongside it, started it.
+      if (this.waitingToStart.delete(root)) {
+        await this.startDBTProject(uri);
+      }
+    }, first);
+  }
+
+  private async startDBTProject(uri: Uri) {
     try {
       const projectConfig = readAndParseProjectConfig(uri.fsPath);
       const dbtProject = this.dbtProjectFactory(
@@ -322,6 +375,8 @@ export class DBTWorkspaceFolder implements Disposable {
   }
 
   private async unregisterDBTProject(uri: Uri) {
+    // One still waiting to start never starts.
+    this.waitingToStart.delete(uri.fsPath);
     const projectToDelete = this.dbtProjects.find(
       (dbtProject) => dbtProject.projectRoot.fsPath === uri.fsPath,
     );
@@ -386,7 +441,7 @@ export class DBTWorkspaceFolder implements Disposable {
   }
 
   private knownPackagesInstallPaths(): string[] {
-    return this.dbtProjects.map((project) => {
+    const registered = this.dbtProjects.map((project) => {
       // `getPackageInstallPath()` stays undefined until a project finishes
       // initializing, and `dbt deps` writes each package's `dbt_project.yml`
       // during that window — so a watcher event arriving mid-initialization
@@ -397,5 +452,11 @@ export class DBTWorkspaceFolder implements Disposable {
         resolvePackagesInstallPath(project.projectRoot.fsPath)
       );
     });
+    // A project waiting in the start queue isn't registered yet, but a
+    // `dbt deps` run meanwhile still writes into its packages path.
+    const waiting = [...this.waitingToStart].map((root) =>
+      resolvePackagesInstallPath(root),
+    );
+    return [...registered, ...waiting];
   }
 }

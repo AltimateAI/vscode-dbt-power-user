@@ -11,6 +11,7 @@ import { tmpdir } from "os";
 import * as path from "path";
 import { EventEmitter, workspace } from "vscode";
 import { DBTWorkspaceFolder } from "../../dbt_client/dbtWorkspaceFolder";
+import { ProjectStartQueue } from "../../dbt_client/projectStartQueue";
 
 /**
  * Reproduces the startup race that registers `dbt_project.yml` files living
@@ -75,6 +76,7 @@ describe("DBTWorkspaceFolder config watcher: dbt_packages race", () => {
       { uri: { fsPath: tmpRoot }, name: "root", index: 0 } as never,
       new EventEmitter() as never,
       new EventEmitter() as never,
+      new ProjectStartQueue(),
     );
   }
 

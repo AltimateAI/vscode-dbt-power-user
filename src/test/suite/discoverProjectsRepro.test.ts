@@ -30,6 +30,7 @@
 import { afterAll, beforeAll, describe, expect, it, jest } from "@jest/globals";
 import { EventEmitter, Uri, workspace } from "vscode";
 import { DBTWorkspaceFolder } from "../../dbt_client/dbtWorkspaceFolder";
+import { ProjectStartQueue } from "../../dbt_client/projectStartQueue";
 
 // Lightweight stand-ins for the DI graph. None of the project-registration
 // path is exercised — we're testing the discoverProjects → retryWithBackoff
@@ -67,6 +68,7 @@ function makeFolder(): DBTWorkspaceFolder {
     ws,
     new EventEmitter() as any,
     new EventEmitter() as any,
+    new ProjectStartQueue(),
   );
 }
 

@@ -1446,6 +1446,11 @@ describe("DBTProject Test Suite", () => {
   });
 
   describe("dbt Loom Integration", () => {
+    beforeEach(() => {
+      // Probes are shared per interpreter path across projects.
+      (DBTProject as any).dbtLoomProbes.clear();
+    });
+
     it("should check if dbt loom is installed", async () => {
       const pythonBridge = mockExecutionInfrastructure.createPythonBridge();
       (pythonBridge.ex as any).mockResolvedValue(undefined);
@@ -1514,6 +1519,34 @@ describe("DBTProject Test Suite", () => {
       }
       return unhandled;
     };
+
+    it("probes once for the projects that share an interpreter", async () => {
+      const pythonBridge = mockExecutionInfrastructure.createPythonBridge();
+      (pythonBridge.ex as any).mockResolvedValue(undefined);
+      mockExecutionInfrastructure.createPythonBridge.mockClear();
+
+      construct();
+      construct();
+      construct();
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      expect(
+        mockExecutionInfrastructure.createPythonBridge,
+      ).toHaveBeenCalledTimes(1);
+
+      // Another interpreter gets its own probe.
+      Object.defineProperty(mockPythonEnvironment, "pythonPath", {
+        value: "/venvs/other/bin/python",
+        configurable: true,
+      });
+      dbtProject = construct();
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      expect(
+        mockExecutionInfrastructure.createPythonBridge,
+      ).toHaveBeenCalledTimes(2);
+      expect(
+        mockTelemetry.setTelemetryCustomAttribute,
+      ).toHaveBeenLastCalledWith("dbtLoomInstalled", "true");
+    });
 
     it("records dbt loom as not installed when the probe bridge cannot be spawned", async () => {
       mockExecutionInfrastructure.createPythonBridge.mockImplementationOnce(
