@@ -1756,6 +1756,116 @@ describe("DBTProject Test Suite", () => {
       });
     });
 
+    describe("dbtParser", () => {
+      afterEach(() => {
+        delete mockProjectIntegration.getParserStatus;
+      });
+
+      it.each([
+        [{ parser: "v2", v2Requested: true, v2Failed: false }, "v2"],
+        [
+          {
+            parser: "v2",
+            v2Requested: true,
+            v2Failed: true,
+            v2ErrorCodes: "dbt1005",
+          },
+          "v2",
+        ],
+        [{ parser: "v1", v2Requested: false, v2Failed: false }, "v1"],
+        [
+          {
+            parser: "v1",
+            v2Requested: true,
+            v2Unsupported:
+              "dbt-core 1.11.15 has no v2 parser (it arrived in dbt-core 1.12)",
+            v2Failed: false,
+          },
+          "v2_unsupported",
+        ],
+      ])(
+        "stamps the parser dbt-integration reports after a rebuild: %o",
+        (status, label) => {
+          useMode("core");
+          mockProjectIntegration.getParserStatus = jest.fn(() => status);
+          dbtProject = construct();
+
+          emit(
+            DBTProjectIntegrationAdapterEvents.REBUILD_MANIFEST_STATUS_CHANGE,
+            { inProgress: false },
+          );
+
+          expect(stamped()).toMatchObject({
+            dbtParser: label,
+            dbtVersion: "1.12.6",
+            dbtAdapter: "snowflake",
+          });
+        },
+      );
+
+      it("doesn't stamp while a rebuild is still running", () => {
+        useMode("core");
+        mockProjectIntegration.getParserStatus = jest.fn(() => ({
+          parser: "v2",
+          v2Requested: true,
+          v2Failed: false,
+        }));
+        dbtProject = construct();
+
+        emit(
+          DBTProjectIntegrationAdapterEvents.REBUILD_MANIFEST_STATUS_CHANGE,
+          { inProgress: true },
+        );
+
+        expect(stamped()).not.toHaveProperty("dbtParser");
+      });
+
+      it("stamps fusion for a Fusion project", () => {
+        useMode("fusion");
+        mockProjectIntegration.getVersion = jest.fn(() => [2, 0, 9]);
+        mockProjectIntegration.getParserStatus = jest.fn(() => ({
+          parser: "fusion",
+          v2Requested: false,
+          v2Failed: false,
+        }));
+        dbtProject = construct();
+
+        emit(DBTProjectIntegrationAdapterEvents.PROJECT_CONFIG_CHANGED);
+
+        expect(stamped()).toMatchObject({ dbtParser: "fusion" });
+      });
+
+      it.each([
+        ["core", "unknown"],
+        ["fusion", "fusion"],
+      ])(
+        "stamps by the mode when dbt-integration can't report the parser (%s)",
+        (mode, label) => {
+          useMode(mode);
+          dbtProject = construct();
+
+          emit(DBTProjectIntegrationAdapterEvents.MANIFEST_PARSED, {});
+
+          expect(stamped()).toMatchObject({ dbtParser: label });
+        },
+      );
+
+      it("stamps unknown when the parser can't be read", () => {
+        useMode("core");
+        mockProjectIntegration.getParserStatus = jest.fn(() => {
+          throw new Error("bridge not ready");
+        });
+        dbtProject = construct();
+
+        emit(DBTProjectIntegrationAdapterEvents.PROJECT_CONFIG_CHANGED);
+
+        expect(stamped()).toMatchObject({
+          dbtParser: "unknown",
+          dbtVersion: "1.12.6",
+        });
+      });
+    });
+
     it("does not let a telemetry failure stop a parse from being delivered", () => {
       useMode("core");
       dbtProject = construct();

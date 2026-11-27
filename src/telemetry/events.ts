@@ -117,6 +117,21 @@ export enum DbtEnvironmentTelemetryProperty {
   DbtAdapter = "dbtAdapter",
   // The Fusion binary's version, `major.minor.patch`. Set in fusion mode only.
   DbtFusionVersion = "dbtFusionVersion",
+  // Which parser built the manifest, one of `DbtParser`.
+  DbtParser = "dbtParser",
+}
+
+export enum DbtParser {
+  // dbt-core's own parser.
+  V1 = "v1",
+  // dbt-core 1.12's v2 parser (`DBT_ENGINE_USE_V2_PARSER`), including a v2
+  // parse that failed.
+  V2 = "v2",
+  // The v2 parser was asked for on a dbt-core without it, so dbt-core's own
+  // parser ran.
+  V2Unsupported = "v2_unsupported",
+  // dbt Fusion, which is its own parser.
+  Fusion = "fusion",
 }
 
 // The value of a dbt setup property that could not be detected, including a

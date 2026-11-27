@@ -296,6 +296,10 @@ export class DBTProject implements Disposable {
           `Received rebuildManifestStatusChange event: inProgress=${status.inProgress}`,
         );
         this.noteRebuildStatus(status.inProgress);
+        if (!status.inProgress) {
+          // A failed parse sends no manifest, and still says which parser ran.
+          this.stampDbtEnvironmentOnTelemetry();
+        }
         const event: RebuildManifestStatusChange = {
           project: this,
           inProgress: status.inProgress,
@@ -458,10 +462,11 @@ export class DBTProject implements Disposable {
   }
 
   /**
-   * Stamps the detected dbt version, its `major.minor`, the adapter and, in
-   * fusion mode, the Fusion version on every later event. Runs when the
-   * project config is read and after each parse, when the integration has
-   * read the version. Never throws: a value it cannot read is `unknown`.
+   * Stamps the detected dbt version, its `major.minor`, the adapter, the
+   * parser and, in fusion mode, the Fusion version on every later event. Runs
+   * when the project config is read and after each parse, when the
+   * integration has read the version. Never throws: a value it cannot read is
+   * `unknown`.
    */
   private stampDbtEnvironmentOnTelemetry(): void {
     try {
@@ -470,6 +475,11 @@ export class DBTProject implements Disposable {
         mode,
         () => this.getDBTVersion(),
         () => this.dbtProjectIntegration.getAdapterType(),
+        // `getParserStatus` is new after @altimateai/dbt-integration 0.3.22.
+        () =>
+          (
+            this.dbtProjectIntegration as { getParserStatus?: () => unknown }
+          ).getParserStatus?.(),
       );
       for (const [key, value] of Object.entries(properties)) {
         if (value === undefined) {
