@@ -331,6 +331,7 @@ export class DBTProject implements Disposable {
           staleManifest: (
             parsedManifest as ParsedManifest & { stale?: StaleManifest }
           ).stale,
+          partialManifest: parsedManifest.partial,
         };
         this._manifestCacheEvent = manifestCacheEvent;
         this.stampManifestFreshness();

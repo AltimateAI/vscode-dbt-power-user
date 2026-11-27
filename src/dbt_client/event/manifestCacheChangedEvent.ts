@@ -32,6 +32,14 @@ export interface ManifestCacheProjectAddedEvent {
   // Set when the manifest was read from disk after the project check failed,
   // so it is what dbt last wrote, not a parse from this session.
   staleManifest?: StaleManifest;
+  // Set while the latest parse reported errors and dbt (Fusion) wrote the
+  // manifest anyway, so what the failing files would add is missing from it.
+  partialManifest?: PartialManifest;
+}
+
+export interface PartialManifest {
+  // The file each error points at, and dbt's message.
+  errors: { filePath: string; message: string }[];
 }
 
 export interface StaleManifest {

@@ -44,6 +44,9 @@ const LineageView = (): JSX.Element | null => {
   >();
   const [banner, setBanner] = useState<LineageBannerState | undefined>();
   const [card, setCard] = useState<LineageCard | undefined>();
+  // Changes to mount a new graph, with an empty canvas that asks the extension
+  // for its graph again (as on load).
+  const [graphKey, setGraphKey] = useState(0);
   // A graph drawn earlier stays mounted under the card; while the card covers
   // it, keyboard focus and screen readers skip it.
   const graphLayer = useCallback(
@@ -107,11 +110,20 @@ const LineageView = (): JSX.Element | null => {
       missingLineageMessage?: MissingLineageMessage;
       lineageBanner?: LineageBannerState;
       lineageCard?: LineageCard;
+      // The graph on the canvas is from a different manifest than this one.
+      redraw?: boolean;
     } & StaticLineageProps,
   ) => {
     setMissingLineageMessage(data.missingLineageMessage);
     setBanner(data.lineageBanner);
     setCard(data.lineageCard);
+    // The graph keeps its canvas when the starting node is already on it.
+    // A new graph draws from an empty one once it mounts.
+    if (data.redraw) {
+      setGraphKey((key) => key + 1);
+      setRenderNode(data);
+      return;
+    }
     const event = new CustomEvent("renderStartNode", {
       detail: {
         ...data,
@@ -194,6 +206,7 @@ const LineageView = (): JSX.Element | null => {
           {/* No box of its own, so the graph's layout doesn't change. */}
           <div ref={graphLayer} style={{ display: "contents" }}>
             <Lineage
+              key={graphKey}
               theme={theme}
               dynamicLineage={renderNode}
               lineageType={lineageType}

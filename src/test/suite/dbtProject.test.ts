@@ -786,6 +786,27 @@ describe("DBTProject Test Suite", () => {
       });
     });
 
+    it("passes a partial manifest's parse errors on with the manifest", () => {
+      const partial = {
+        errors: [
+          {
+            filePath: "/ws/models/customers.sql",
+            message:
+              "[error] [DependencyNotFound (dbt1048)]: Ref 'x' not found",
+          },
+        ],
+      };
+      const onCall = mockProjectIntegration.on.mock.calls.find(
+        (call: any) =>
+          call[0] === DBTProjectIntegrationAdapterEvents.MANIFEST_PARSED,
+      );
+      onCall![1]({ nodeMetaMap: {}, partial } as unknown as ParsedManifest);
+
+      expect(mockManifestChangedEmitter.fire).toHaveBeenCalledWith({
+        added: [expect.objectContaining({ partialManifest: partial })],
+      });
+    });
+
     it("should handle run results parsed events", () => {
       const runResultsData: RunResultsEventData = {
         id: "run-1",

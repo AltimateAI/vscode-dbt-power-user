@@ -92,7 +92,9 @@ const runAction = (action: LineageBannerAction) =>
 
 // Says the drawn graph is out of date with a small chip beside the toolbar:
 // "Out of date · last parse 2 hours ago". The chip opens a popover with why:
-// the error's one line, dbt's message behind a toggle, and the buttons.
+// the error's one line, dbt's message behind a toggle, and the buttons. Over a
+// graph from a partial manifest it says "Partial graph · customers.sql failed
+// to parse" instead, and the popover lists each file that failed.
 const StaleGraphChip = ({
   banner,
 }: {
@@ -104,6 +106,8 @@ const StaleGraphChip = ({
   const [open, setOpen] = useState(false);
   const popoverId = useId();
   const titleId = useId();
+  const partial = banner.id === "partial-graph";
+  const testId = partial ? "lineage-partial-graph" : "lineage-stale-graph";
 
   // Escape or a click anywhere else closes the popover.
   useEffect(() => {
@@ -140,7 +144,7 @@ const StaleGraphChip = ({
           : // Hidden for the first layout pass, before it's measured.
             { top: EDGE, visibility: "hidden" }
       }
-      data-testid="lineage-stale-graph"
+      data-testid={testId}
     >
       <div role="status">
         <button
@@ -152,10 +156,14 @@ const StaleGraphChip = ({
           aria-controls={open ? popoverId : undefined}
           title={banner.title}
           onClick={() => setOpen(!open)}
-          data-testid="lineage-stale-graph-chip"
+          data-testid={`${testId}-chip`}
         >
-          <i className={`codicon codicon-history ${styles.icon}`} />
-          <span className={styles.chipLabel}>Out of date</span>
+          <i
+            className={`codicon codicon-${partial ? "warning" : "history"} ${styles.icon}`}
+          />
+          <span className={styles.chipLabel}>
+            {partial ? "Partial graph" : "Out of date"}
+          </span>
           {banner.age ? (
             <span className={styles.chipAge}>· {banner.age}</span>
           ) : null}
@@ -178,12 +186,41 @@ const StaleGraphChip = ({
                 }
               : undefined
           }
-          data-testid="lineage-stale-graph-popover"
+          data-testid={`${testId}-popover`}
         >
           <p id={titleId} className={styles.title}>
             {banner.title}
           </p>
           <p className={styles.detail}>{banner.detail}</p>
+          {partial ? (
+            <ul
+              className={styles.files}
+              aria-label="Files that failed to parse"
+            >
+              {banner.files.map((file) => (
+                <li key={file.path} className={styles.file}>
+                  <button
+                    type="button"
+                    className={styles.linkButton}
+                    title={file.action.label}
+                    onClick={() => {
+                      setOpen(false);
+                      runAction(file.action);
+                    }}
+                  >
+                    {file.path}
+                    {file.line !== undefined ? `, line ${file.line}` : ""}
+                  </button>
+                  <span className={styles.fileSummary}>
+                    {file.summary}
+                    {file.errorCount > 1
+                      ? ` (and ${file.errorCount - 1} more)`
+                      : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
           <DbtMessageBlock message={banner.dbtMessage} collapsed />
           <div className={styles.actions}>
             {banner.actions.map((action, index) => (

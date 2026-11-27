@@ -890,6 +890,7 @@ describe("NewLineagePanel — lineage telemetry", () => {
     expect(rendered()[0][1]).toEqual({
       nodeCountBucket: "100-499",
       staleManifest: "false",
+      partialManifest: "false",
       manifestAgeBucket: "none",
       errorKindsBefore: "none",
     });
@@ -912,6 +913,7 @@ describe("NewLineagePanel — lineage telemetry", () => {
     expect(rendered()[0][1]).toEqual({
       nodeCountBucket: "1-99",
       staleManifest: "false",
+      partialManifest: "false",
       manifestAgeBucket: "none",
       errorKindsBefore: "dbt_not_found",
     });
@@ -1995,5 +1997,234 @@ describe("NewLineagePanel — state card", () => {
         expect.stringContaining(`${PROFILES_FILE} wasn't found`),
       );
     });
+  });
+});
+
+describe("NewLineagePanel — partial-graph notice", () => {
+  let panel: NewLineagePanel;
+  let blocking: { message: string; category: string } | undefined;
+  let event: any;
+  let postMessage: jest.Mock;
+  let sendTelemetryEvent: jest.Mock;
+
+  // dbt Fusion 2.0.12 after `ref('stg_orders')` became `ref('stg_orderz')`:
+  // the error is a blocking diagnostic and marks the manifest it wrote partial.
+  const BROKEN_REF =
+    "[error] [DependencyNotFound (dbt1048)]: Ref 'stg_orderz' not found in project. Searched for 'jaffle_shop.stg_orderz, stg_orderz'\n  --> models/customers.sql:9:19";
+  const SYNTAX =
+    "[error] [MacroSyntaxInvalid (dbt1502)]: Failed to render SQL syntax error: unexpected `}`, expected end of variable block\n  --> models/customers.sql:9:40";
+  const failed = (message: string) => ({
+    errors: [{ filePath: native("/ws/models/customers.sql"), message }],
+  });
+
+  // A manifest whose nodes are `models`; `partialManifest` as dbtProject sets it.
+  const manifest = (models: string[], partialManifest?: unknown) => ({
+    event: {
+      nodeMetaMap: {
+        lookupByBaseName: jest.fn((name: string) =>
+          models.includes(name) ? { unique_id: `model.p.${name}` } : undefined,
+        ),
+        nodes: () => [],
+      },
+      functionMetaMap: new Map(),
+      ...(partialManifest ? { partialManifest } : {}),
+    },
+  });
+
+  const posted = (command: string) =>
+    postMessage.mock.calls
+      .map((call) => call[0] as { command: string; args: any })
+      .filter((message) => message.command === command);
+  const lastRender = () => posted("render").slice(-1)[0].args;
+  const activate = (file: string) => {
+    (window as any).activeTextEditor = {
+      document: {
+        fileName: native(`/ws/models/${file}`),
+        uri: { path: `/ws/models/${file}` },
+      },
+    };
+  };
+
+  beforeEach(() => {
+    blocking = undefined;
+    event = undefined;
+    postMessage = jest.fn();
+    sendTelemetryEvent = jest.fn();
+    panel = Object.create(NewLineagePanel.prototype);
+    Object.assign(panel as any, {
+      reportedCardKinds: new Set<string>(),
+      reportedErrorKinds: new Set<string>(),
+      setupToastShown: false,
+      dbtProjectContainer: { getProjects: () => [] },
+      renderReported: false,
+      graphDrawn: false,
+      noGraphShown: false,
+      postedBanner: undefined,
+      reparseAvailable: true,
+    });
+    (panel as any)._panel = { visible: true, webview: { postMessage } };
+    (panel as any).telemetry = {
+      sendTelemetryEvent,
+      sendTelemetryError: jest.fn(),
+    };
+    (panel as any).queryManifestService = {
+      getEventByCurrentProject: jest.fn(() => event),
+      getProject: jest.fn(() => ({
+        projectRoot: { fsPath: native("/ws") },
+        getProjectName: () => "jaffle_shop",
+        getBlockingDiagnostic: () => blocking,
+        getManifestPath: () => "/ws/target/manifest.json",
+        getPythonPath: () => undefined,
+        getProfilesDirEnv: () => undefined,
+      })),
+    };
+    (panel as any).validationProvider = {
+      isAuthenticated: jest.fn().mockReturnValue(false),
+    };
+    (panel as any).dbtTerminal = {
+      info: jest.fn(),
+      debug: jest.fn(),
+      error: jest.fn(),
+    };
+    (panel as any).dbtLineageService = {
+      createTable: jest.fn((_event: unknown, _url: string, key: string) => ({
+        table: key,
+      })),
+    };
+    activate("stg_orders.sql");
+  });
+
+  afterEach(() => {
+    (window as any).activeTextEditor = undefined;
+    clearTimeout((panel as any).diagnosticsTimer);
+    clearInterval((panel as any).ageTimer);
+    jest.useRealTimers();
+  });
+
+  it("shows the partial notice, not the out-of-date one, over a partial manifest's graph", () => {
+    blocking = { message: BROKEN_REF, category: "manifest-rebuild" };
+    event = manifest(["stg_orders"], failed(BROKEN_REF));
+    panel.eventMapChanged(new Map());
+
+    expect(lastRender().node).toEqual({ table: "model.p.stg_orders" });
+    expect(lastRender().lineageBanner).toMatchObject({
+      id: "partial-graph",
+      age: "customers.sql failed to parse",
+      title:
+        "This graph is missing parts because customers.sql failed to parse.",
+      files: [
+        {
+          path: "models/customers.sql",
+          line: 9,
+          action: { id: "openFile", args: { path: "models/customers.sql" } },
+        },
+      ],
+    });
+  });
+
+  it("keeps the out-of-date notice for a whole manifest under an error", () => {
+    blocking = { message: BROKEN_REF, category: "manifest-rebuild" };
+    event = manifest(["stg_orders"]);
+    panel.eventMapChanged(new Map());
+
+    expect(lastRender().lineageBanner.id).toBe("stale-graph-midsession");
+    expect(lastRender().redraw).toBeUndefined();
+  });
+
+  it("keeps the notice when the diagnostics clear before the clean manifest arrives", () => {
+    jest.useFakeTimers();
+    blocking = { message: BROKEN_REF, category: "manifest-rebuild" };
+    event = manifest(["stg_orders"], failed(BROKEN_REF));
+    panel.eventMapChanged(new Map());
+
+    // The file is fixed; the drawn graph is still the partial manifest's.
+    blocking = undefined;
+    panel.changedDiagnostics();
+    jest.advanceTimersByTime(250);
+    expect(posted("lineageBanner")).toHaveLength(0);
+
+    event = manifest(["stg_orders"]);
+    panel.eventMapChanged(new Map());
+    expect(lastRender().lineageBanner).toBeUndefined();
+  });
+
+  it("redraws the canvas when the manifest turns partial and when a clean parse ends it", () => {
+    event = manifest(["stg_orders"]);
+    panel.eventMapChanged(new Map());
+    expect(lastRender().redraw).toBeUndefined();
+
+    blocking = { message: BROKEN_REF, category: "manifest-rebuild" };
+    event = manifest(["stg_orders"], failed(BROKEN_REF));
+    panel.eventMapChanged(new Map());
+    expect(lastRender().redraw).toBe(true);
+    // The remounted graph asks for its graph again ("init"): drawn as is.
+    (panel as any).renderStartingNode();
+    expect(lastRender().redraw).toBeUndefined();
+    // Another manifest that misses the same file keeps the canvas.
+    event = manifest(["stg_orders"], failed(SYNTAX));
+    panel.eventMapChanged(new Map());
+    expect(lastRender().redraw).toBeUndefined();
+
+    blocking = undefined;
+    event = manifest(["stg_orders"]);
+    panel.eventMapChanged(new Map());
+    expect(lastRender().redraw).toBe(true);
+  });
+
+  it("doesn't redraw a new view's first graph, or a manifest that was never partial", () => {
+    event = manifest(["stg_orders"], failed(BROKEN_REF));
+    panel.eventMapChanged(new Map());
+    expect(lastRender().redraw).toBeUndefined();
+
+    (panel as any).forgetDrawnGraph();
+    event = manifest(["stg_orders"]);
+    panel.eventMapChanged(new Map());
+    expect(lastRender().redraw).toBeUndefined();
+    panel.eventMapChanged(new Map());
+    expect(lastRender().redraw).toBeUndefined();
+  });
+
+  it("says the active model is missing because its own file failed to parse", () => {
+    blocking = { message: SYNTAX, category: "manifest-rebuild" };
+    event = manifest(["stg_orders"], failed(SYNTAX));
+    activate("customers.sql");
+    panel.eventMapChanged(new Map());
+
+    expect(lastRender().node).toBeUndefined();
+    expect(lastRender().lineageCard).toMatchObject({
+      kind: "model-not-parsed",
+      title: "customers isn't in the graph",
+      actions: [
+        { id: "openFile", args: { path: "models/customers.sql", line: 9 } },
+        { id: "showProblems" },
+      ],
+    });
+    expect(sendTelemetryEvent).toHaveBeenCalledWith("lineageStateShown", {
+      kind: "model-not-parsed",
+    });
+  });
+
+  it("keeps today's card for a model missing from a manifest that isn't partial", () => {
+    blocking = { message: SYNTAX, category: "manifest-rebuild" };
+    event = manifest(["stg_orders"]);
+    activate("customers.sql");
+    panel.eventMapChanged(new Map());
+
+    expect(lastRender().lineageCard.kind).not.toBe("model-not-parsed");
+  });
+
+  it("marks the first graph drawn from a partial manifest in lineageRendered", () => {
+    blocking = { message: BROKEN_REF, category: "manifest-rebuild" };
+    event = manifest(["stg_orders"], failed(BROKEN_REF));
+    panel.eventMapChanged(new Map());
+
+    expect(sendTelemetryEvent).toHaveBeenCalledWith(
+      "lineageRendered",
+      expect.objectContaining({
+        staleManifest: "true",
+        partialManifest: "true",
+      }),
+      undefined,
+    );
   });
 });
