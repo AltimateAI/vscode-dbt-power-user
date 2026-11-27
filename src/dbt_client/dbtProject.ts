@@ -55,6 +55,7 @@ import {
   ProgressLocation,
   Range,
   RelativePattern,
+  TerminalShellExecutionEndEvent,
   Uri,
   ViewColumn,
   Webview,
@@ -87,6 +88,7 @@ import {
 import { ProjectConfigChangedEvent } from "./event/projectConfigChangedEvent";
 import { RunResultsEvent } from "./event/runResultsEvent";
 import { getDbtIntegrationMode } from "./integrationMode";
+import { isPackageInstall } from "./packageInstallCommand";
 import { PythonEnvironment } from "./pythonEnvironment";
 
 interface FileNameTemplateMap {
@@ -406,6 +408,16 @@ export class DBTProject implements Disposable {
 
     // Initialize Python environment and set up change listener
     this.initializePythonEnvironmentListener();
+    // A package installed or removed from a terminal (shell integration):
+    // dbt's process sees it only once it starts again. Not every editor has
+    // the event.
+    if (typeof window.onDidEndTerminalShellExecution === "function") {
+      this.disposables.push(
+        window.onDidEndTerminalShellExecution((event) =>
+          this.shellCommandEnded(event),
+        ),
+      );
+    }
 
     this.terminal.debug(
       "DbtProject",
@@ -422,6 +434,9 @@ export class DBTProject implements Disposable {
           this.PythonEnvironment.onPythonEnvironmentChanged(() =>
             this.onPythonEnvironmentChanged(),
           ),
+          this.PythonEnvironment.onEnvironmentVariablesChanged((folder) =>
+            this.recheckAfter("envChange", folder),
+          ),
         );
       })
       .catch((err) => {
@@ -431,6 +446,63 @@ export class DBTProject implements Disposable {
           err,
         );
       });
+  }
+
+  // A terminal command ended: one that installed or removed packages, and
+  // didn't fail, checks the project again. Never throws.
+  private shellCommandEnded(event: TerminalShellExecutionEndEvent): void {
+    try {
+      const failed = event.exitCode !== undefined && event.exitCode !== 0;
+      if (!failed && isPackageInstall(event.execution.commandLine.value)) {
+        this.recheckAfter("terminalInstall");
+      }
+    } catch (error) {
+      this.terminal.debug(
+        "dbtProject:shellCommandEnded",
+        "Could not read the terminal command",
+        error,
+      );
+    }
+  }
+
+  /**
+   * Checks the project again, restarting dbt's process, after a change it reads
+   * only as it starts (the environment variables, the installed packages) and
+   * no watcher sees. Only while the project shows an error; a change for
+   * another workspace folder is skipped. Never throws.
+   */
+  private recheckAfter(
+    trigger: "envChange" | "terminalInstall",
+    folder?: Uri,
+  ): void {
+    try {
+      if (!this.isProjectCheckFailed() && !this.getBlockingDiagnostic()) {
+        return;
+      }
+      if (
+        folder !== undefined &&
+        workspace.getWorkspaceFolder(this.projectRoot)?.uri.fsPath !==
+          folder.fsPath
+      ) {
+        return;
+      }
+      this.telemetry.sendTelemetryEvent("projectRecheckRequested", {
+        trigger,
+      });
+      this.reparseProject().catch((error) =>
+        this.terminal.debug(
+          "dbtProject:recheckAfter",
+          "The check after a change outside the project failed",
+          error,
+        ),
+      );
+    } catch (error) {
+      this.terminal.debug(
+        "dbtProject:recheckAfter",
+        "Could not check the project again",
+        error,
+      );
+    }
   }
 
   private async isDbtLoomInstalled(): Promise<boolean> {
