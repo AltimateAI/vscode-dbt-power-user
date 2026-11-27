@@ -1644,6 +1644,7 @@ container
       context.container.get(CteCodeLensProvider),
       context.container.get(TelemetryService),
       context.container.get(WhatsNewPanel),
+      context.container.get("NotebookDependencies"),
     );
   })
   .inSingletonScope();

@@ -2591,15 +2591,28 @@ class He {
     this._disposables.forEach((e) => e.dispose());
   }
   provideCellStatusBarItems(e) {
-    if (e.document.languageId !== "jinja-sql") return;
+    // Profiling reads the result a SQL cell stores in the kernel: a cell
+    // without an id has no variable yet, and a compile-only cell stores none.
+    const n = e.metadata || {};
+    if (
+      e.document.languageId !== "jinja-sql" ||
+      !n.cellId ||
+      n.execution_type === "compile"
+    )
+      return;
     const t = new u.NotebookCellStatusBarItem(
       "$(globe) Profile your query",
       u.NotebookCellStatusBarAlignment.Left,
     );
     return (
-      (t.command = "dbtPowerUser.datapilotProfileYourQuery"),
-      (t.tooltip = "Profile your query"),
-      []
+      (t.command = {
+        title: "Profile your query",
+        command: "dbtPowerUser.datapilotProfileYourQuery",
+        arguments: [e],
+      }),
+      (t.tooltip =
+        "Run this query and profile its results in a new Python cell below"),
+      [t]
     );
   }
 }

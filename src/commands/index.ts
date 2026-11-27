@@ -3,7 +3,11 @@ import {
   ExecutionsExhaustedException,
   RunModelType,
 } from "@altimateai/dbt-integration";
-import { DatapilotNotebookController, OpenNotebookRequest } from "@lib";
+import {
+  DatapilotNotebookController,
+  NotebookDependencies,
+  OpenNotebookRequest,
+} from "@lib";
 import { existsSync, readFileSync } from "fs";
 import { inject } from "inversify";
 import { basename } from "path";
@@ -18,6 +22,7 @@ import {
   env,
   extensions,
   languages,
+  NotebookCell,
   ProgressLocation,
   Range,
   TextEditor,
@@ -84,6 +89,7 @@ import { WhatsNewPanel } from "../webview_provider/whatsNewPanel";
 import { AltimateScan } from "./altimateScan";
 import { BigQueryCostEstimate } from "./bigQueryCostEstimate";
 import { dbtSetupDiagnostics } from "./diagnosticsSetup";
+import { profileNotebookCell } from "./profileNotebookCell";
 import { RunModel } from "./runModel";
 import { RunTest } from "./runTest";
 import { SqlToModel } from "./sqlToModel";
@@ -121,6 +127,7 @@ export class VSCodeCommands implements Disposable {
     private cteCodeLensProvider: CteCodeLensProvider,
     private telemetry: TelemetryService,
     private whatsNewPanel: WhatsNewPanel,
+    private notebookDependencies: NotebookDependencies,
   ) {
     this.disposables.push(
       this.cteProfilerService,
@@ -1177,6 +1184,15 @@ export class VSCodeCommands implements Disposable {
           const notebookQuickPick = new NotebookQuickPick();
           await notebookQuickPick.showNotebookPicker();
         },
+      ),
+      commands.registerCommand(
+        "dbtPowerUser.datapilotProfileYourQuery",
+        (cell?: NotebookCell) =>
+          profileNotebookCell(
+            cell,
+            () => this.queryManifestService.getOrPickProjectFromWorkspace(),
+            this.notebookDependencies,
+          ),
       ),
       commands.registerCommand(
         "dbtPowerUser.showNotebookProfileQuery",
