@@ -97,6 +97,20 @@ function lineAtOffset(text: string, offset: number): number {
   return line;
 }
 
+// A run of errors in one project, as the panel showed them.
+interface ErrorEpisode {
+  // The first error's.
+  errorKind: string;
+  diagnosticCategory: string;
+  errorPhase: string;
+  since: number;
+  // A graph showed under the error at some point.
+  graphShown: boolean;
+  // The manifests the error showed with. A recovery is a graph from a later
+  // parse, not one of these drawn while a parse runs.
+  seen: WeakSet<ManifestCacheProjectAddedEvent>;
+}
+
 class DerivedCancellationTokenSource extends CancellationTokenSource {
   constructor(linkedToken: CancellationToken) {
     super();
@@ -118,15 +132,22 @@ export class NewLineagePanel
   // active file. Used to avoid redundant re-renders on every cursor move; the
   // panel only re-roots when the cursor moves onto a different source table.
   private lastRenderedSourceKey: string | undefined;
-  // Telemetry is per window session: one error event per error kind, and one
-  // lineageRendered for the first graph, with the kinds shown before it.
+  // Telemetry is per window session: one error event per error kind and phase,
+  // and one lineageRendered for the first graph, with the kinds shown before it.
+  private reportedErrors = new Set<string>();
   private reportedErrorKinds = new Set<string>();
   private firstErrorAt: number | undefined;
   private renderReported = false;
+  // Each project's error episode, from the first error the panel shows for it
+  // until a current graph of it is drawn: a recovery. One lineageRecovered per
+  // error kind and phase, as for the error events.
+  private errorEpisodes = new Map<string, ErrorEpisode>();
+  private reportedRecoveries = new Set<string>();
   // The stale-graph banner as last sent, and whether a graph was drawn with
   // it, so a diagnostics change only posts when the banner changes.
   private graphDrawn = false;
   private postedBanner: string | undefined;
+  private postedBannerKind: string | undefined;
   private reparseAvailable = false;
   // The project and manifest event the drawn graph came from. The banner
   // follows them, not the active editor, which can close or move to a file
@@ -244,6 +265,7 @@ export class NewLineagePanel
     this.noGraphShown = false;
     this.drawnFrom = undefined;
     this.postedBanner = undefined;
+    this.postedBannerKind = undefined;
   }
 
   protected onWebviewReady() {
@@ -316,7 +338,11 @@ export class NewLineagePanel
     if (!this._panel || !this.graphDrawn) {
       return;
     }
-    this.postBanner(this.getStaleGraphBanner());
+    const banner = this.getStaleGraphBanner();
+    if (banner) {
+      this.noteErrorShown(this.drawnFrom?.project, true, this.drawnFrom?.event);
+    }
+    this.postBanner(banner);
   }
 
   // Keeps a minute timer running exactly while a banner shows.
@@ -355,6 +381,7 @@ export class NewLineagePanel
       return;
     }
     this.postedBanner = serialized;
+    this.postedBannerKind = banner?.id;
     this._panel?.webview.postMessage({
       command: "lineageBanner",
       args: { banner },
@@ -402,19 +429,30 @@ export class NewLineagePanel
       ? this.getStaleGraphBanner()
       : undefined;
     this.postedBanner = JSON.stringify(lineageBanner ?? null);
+    this.postedBannerKind = lineageBanner?.id;
     this.syncAgeTimer(lineageBanner);
     this._panel.webview.postMessage({
       command: "render",
       args: { ...startingNode, lineageBanner },
     });
     if (startingNode?.node) {
-      this.reportLineageRendered();
+      // An error still stands, so the graph comes from the last good parse.
+      const blocking = this.findBlockingDiagnostic();
+      if (blocking) {
+        this.noteErrorShown(project, true, this.drawnFrom?.event, blocking);
+      } else {
+        this.reportRecovery(project, this.drawnFrom?.event);
+      }
+      this.reportLineageRendered(project, blocking);
     }
   }
 
   // The panel draws while hidden too (the webview is retained), so this counts
   // the first graph of the session whether or not the user was looking.
-  private reportLineageRendered() {
+  private reportLineageRendered(
+    project: DBTProject | undefined,
+    blocking: { message: string; category: string } | undefined,
+  ) {
     if (this.renderReported) {
       return;
     }
@@ -423,8 +461,7 @@ export class NewLineagePanel
     try {
       const event = this.queryManifestService.getEventByCurrentProject()?.event;
       const nodeCount = event ? [...event.nodeMetaMap.nodes()].length : 0;
-      // An error still stands, so the graph comes from the last good parse.
-      const stale = this.findBlockingDiagnostic() !== undefined;
+      const stale = blocking !== undefined;
       const properties: { [key: string]: string } = {
         nodeCountBucket: nodeCountBucket(nodeCount),
         staleManifest: String(stale),
@@ -433,6 +470,10 @@ export class NewLineagePanel
           : "none",
         errorKindsBefore:
           [...this.reportedErrorKinds].sort().join(",") || "none",
+        // The error the stale graph stands under.
+        errorKind: blocking ? classifyLineageError(blocking.message) : "none",
+        diagnosticCategory: blocking?.category ?? "none",
+        errorPhase: blocking ? this.errorPhase(project) : "none",
       };
       const measurements =
         this.firstErrorAt !== undefined
@@ -461,6 +502,20 @@ export class NewLineagePanel
     const { id = syncRequestId, params } = args;
 
     if (command === "lineageBannerAction") {
+      // The button runs whether or not its report goes out.
+      try {
+        this.telemetry.sendTelemetryEvent("lineageAction", {
+          kind: this.postedBannerKind ?? "unknown",
+          action: args.action,
+          from: "banner",
+        });
+      } catch (error) {
+        this.dbtTerminal.debug(
+          "Lineage:lineageBannerAction",
+          "Could not report the chip's button",
+          error,
+        );
+      }
       await this.runLineageAction(args.action, args.params);
       return;
     }
@@ -1066,11 +1121,19 @@ export class NewLineagePanel
         },
       };
     }
-    this.reportLineageError(blocking.message, blocking.category);
-    const card = this.buildCard(
-      blocking,
-      this.queryManifestService.getProject(),
+    const project = this.queryManifestService.getProject();
+    this.reportLineageError(
+      blocking.message,
+      blocking.category,
+      this.errorPhase(project),
     );
+    this.noteErrorShown(
+      project,
+      false,
+      this.queryManifestService.getEventByCurrentProject()?.event,
+      blocking,
+    );
+    const card = this.buildCard(blocking, project);
     if (!this.reportedCardKinds.has(card.kind)) {
       this.reportedCardKinds.add(card.kind);
       this.telemetry.sendTelemetryEvent("lineageStateShown", {
@@ -1403,8 +1466,8 @@ export class NewLineagePanel
   }
 
   // The output channel logs every render; telemetry gets the first render of
-  // each error kind in the session.
-  private reportLineageError(message: string, category: string) {
+  // each error kind in each phase of the session.
+  private reportLineageError(message: string, category: string, phase: string) {
     const err = new Error(message);
     const sendTelemetry = false;
     this.dbtTerminal.error(
@@ -1414,9 +1477,11 @@ export class NewLineagePanel
       sendTelemetry,
     );
     const errorKind = classifyLineageError(message);
-    if (this.reportedErrorKinds.has(errorKind)) {
+    const reported = `${phase}:${errorKind}`;
+    if (this.reportedErrors.has(reported)) {
       return;
     }
+    this.reportedErrors.add(reported);
     this.reportedErrorKinds.add(errorKind);
     this.firstErrorAt ??= Date.now();
     // The event keeps the name it had when the terminal sent it, so existing
@@ -1426,7 +1491,103 @@ export class NewLineagePanel
       message,
       errorKind,
       diagnosticCategory: category,
+      errorPhase: phase,
     });
+  }
+
+  // Whether the project's error came at startup or later; "unknown" when that
+  // can't be read.
+  private errorPhase(project: DBTProject | undefined): string {
+    try {
+      return project?.getErrorPhase() ?? "unknown";
+    } catch {
+      return "unknown";
+    }
+  }
+
+  // An error of the project shows, with the manifest the panel has: as the
+  // card, or under a graph drawn before it (`graphShown`). The first one starts
+  // the project's error episode.
+  private noteErrorShown(
+    project: DBTProject | undefined,
+    graphShown: boolean,
+    manifest: ManifestCacheProjectAddedEvent | undefined,
+    blocking?: { message: string; category: string },
+  ) {
+    try {
+      if (!project) {
+        return;
+      }
+      const key = project.projectRoot.fsPath;
+      let episode = this.errorEpisodes.get(key);
+      if (!episode) {
+        const error = blocking ?? project.getBlockingDiagnostic();
+        if (!error) {
+          return;
+        }
+        episode = {
+          errorKind: classifyLineageError(error.message),
+          diagnosticCategory: error.category,
+          errorPhase: this.errorPhase(project),
+          since: Date.now(),
+          graphShown: false,
+          seen: new WeakSet(),
+        };
+        this.errorEpisodes.set(key, episode);
+      }
+      episode.graphShown ||= graphShown;
+      if (manifest) {
+        episode.seen.add(manifest);
+      }
+    } catch (error) {
+      this.dbtTerminal.debug(
+        "Lineage:noteErrorShown",
+        "Could not note the error shown",
+        error,
+      );
+    }
+  }
+
+  // A graph of the project is drawn with no error standing. From a manifest
+  // parsed since the error showed, it ends the project's error episode, if any:
+  // a recovery, whatever was drawn before.
+  private reportRecovery(
+    project: DBTProject | undefined,
+    manifest: ManifestCacheProjectAddedEvent | undefined,
+  ) {
+    try {
+      if (!project || !manifest) {
+        return;
+      }
+      const key = project.projectRoot.fsPath;
+      const episode = this.errorEpisodes.get(key);
+      if (!episode || episode.seen.has(manifest)) {
+        return;
+      }
+      this.errorEpisodes.delete(key);
+      const reported = `${episode.errorPhase}:${episode.errorKind}`;
+      if (this.reportedRecoveries.has(reported)) {
+        return;
+      }
+      this.reportedRecoveries.add(reported);
+      this.telemetry.sendTelemetryEvent(
+        "lineageRecovered",
+        {
+          errorKind: episode.errorKind,
+          diagnosticCategory: episode.diagnosticCategory,
+          errorPhase: episode.errorPhase,
+          // "stale": a graph drawn before the fix showed while the error stood.
+          graphBefore: episode.graphShown ? "stale" : "none",
+        },
+        { msSinceError: Date.now() - episode.since },
+      );
+    } catch (error) {
+      this.dbtTerminal.debug(
+        "Lineage:reportRecovery",
+        "Could not report the recovery",
+        error,
+      );
+    }
   }
 
   private getStartingNode(resolvedSource?: ResolvedSourceTable):

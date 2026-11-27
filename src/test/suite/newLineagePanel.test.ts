@@ -760,6 +760,7 @@ describe("NewLineagePanel — source YAML rooting", () => {
 describe("NewLineagePanel — lineage telemetry", () => {
   let panel: NewLineagePanel;
   let blocking: { message: string; category: string } | undefined;
+  let phase: string;
   let event: any;
   let sendTelemetryEvent: jest.Mock;
   let sendTelemetryError: jest.Mock;
@@ -796,6 +797,7 @@ describe("NewLineagePanel — lineage telemetry", () => {
 
   beforeEach(() => {
     blocking = undefined;
+    phase = "startup";
     event = undefined;
     sendTelemetryEvent = jest.fn();
     sendTelemetryError = jest.fn();
@@ -806,6 +808,9 @@ describe("NewLineagePanel — lineage telemetry", () => {
       setupToastShown: false,
       dbtProjectContainer: { getProjects: () => [] },
       reportedErrorKinds: new Set<string>(),
+      reportedErrors: new Set<string>(),
+      errorEpisodes: new Map(),
+      reportedRecoveries: new Set<string>(),
       firstErrorAt: undefined,
       renderReported: false,
     });
@@ -820,6 +825,7 @@ describe("NewLineagePanel — lineage telemetry", () => {
       getProject: jest.fn(() => ({
         projectRoot: { fsPath: "/ws" },
         getBlockingDiagnostic: () => blocking,
+        getErrorPhase: () => phase,
         // No manifest file on disk in these tests.
         getManifestPath: () => "/ws/target/manifest.json",
       })),
@@ -859,6 +865,7 @@ describe("NewLineagePanel — lineage telemetry", () => {
       message: DBT_NOT_FOUND,
       errorKind: "dbt_not_found",
       diagnosticCategory: "project-config",
+      errorPhase: "startup",
     });
     // The output channel still logs every render, without telemetry.
     expect((panel as any).dbtTerminal.error).toHaveBeenCalledTimes(5);
@@ -892,6 +899,9 @@ describe("NewLineagePanel — lineage telemetry", () => {
       staleManifest: "false",
       manifestAgeBucket: "none",
       errorKindsBefore: "none",
+      errorKind: "none",
+      diagnosticCategory: "none",
+      errorPhase: "none",
     });
     expect(rendered()[0][2]).toBeUndefined();
     expect(lineageErrors()).toHaveLength(0);
@@ -914,6 +924,9 @@ describe("NewLineagePanel — lineage telemetry", () => {
       staleManifest: "false",
       manifestAgeBucket: "none",
       errorKindsBefore: "dbt_not_found",
+      errorKind: "none",
+      diagnosticCategory: "none",
+      errorPhase: "none",
     });
     expect((rendered()[0][2] as any).msSinceFirstError).toBeGreaterThanOrEqual(
       0,
@@ -981,6 +994,158 @@ describe("NewLineagePanel — lineage telemetry", () => {
       message: "diagnostics unavailable",
       errorKind: "other",
       diagnosticCategory: "unknown",
+      // This project can't say either.
+      errorPhase: "unknown",
+    });
+  });
+
+  it("sends an error kind again when it comes back after the project loaded", () => {
+    blocking = { message: DBT_NOT_FOUND, category: "project-config" };
+    panel.eventMapChanged(new Map());
+    panel.eventMapChanged(new Map());
+    phase = "recheck";
+    panel.eventMapChanged(new Map());
+    panel.eventMapChanged(new Map());
+
+    expect(
+      lineageErrors().map((call) => [
+        (call[2] as any).errorKind,
+        (call[2] as any).errorPhase,
+      ]),
+    ).toEqual([
+      ["dbt_not_found", "startup"],
+      ["dbt_not_found", "recheck"],
+    ]);
+  });
+
+  it("names the error a stale first graph stands under", () => {
+    blocking = { message: MISSING_REF, category: "manifest-rebuild" };
+    event = loadedEvent(3);
+    panel.eventMapChanged(new Map());
+
+    expect(rendered()[0][1]).toMatchObject({
+      staleManifest: "true",
+      errorKindsBefore: "none",
+      errorKind: "missing_reference",
+      diagnosticCategory: "manifest-rebuild",
+      errorPhase: "startup",
+    });
+  });
+
+  describe("lineageRecovered", () => {
+    const recovered = () =>
+      sendTelemetryEvent.mock.calls.filter(
+        (call) => call[0] === "lineageRecovered",
+      );
+
+    it("reports a recovery from a startup error with no graph before it", () => {
+      blocking = { message: DBT_NOT_FOUND, category: "project-config" };
+      panel.eventMapChanged(new Map());
+      expect(recovered()).toHaveLength(0);
+
+      blocking = undefined;
+      event = loadedEvent(12);
+      panel.eventMapChanged(new Map());
+
+      expect(recovered()).toHaveLength(1);
+      expect(recovered()[0][1]).toEqual({
+        errorKind: "dbt_not_found",
+        diagnosticCategory: "project-config",
+        errorPhase: "startup",
+        graphBefore: "none",
+      });
+      expect((recovered()[0][2] as any).msSinceError).toBeGreaterThanOrEqual(0);
+    });
+
+    it("reports a recovery after the window's first graph, which lineageRendered can't", () => {
+      event = loadedEvent(12);
+      panel.eventMapChanged(new Map());
+      // A later check fails; the graph drawn before stays, out of date.
+      phase = "recheck";
+      blocking = { message: MISSING_REF, category: "manifest-rebuild" };
+      panel.eventMapChanged(new Map());
+
+      blocking = undefined;
+      event = loadedEvent(12);
+      panel.eventMapChanged(new Map());
+
+      expect(rendered()).toHaveLength(1);
+      expect(recovered().map((call) => call[1])).toEqual([
+        {
+          errorKind: "missing_reference",
+          diagnosticCategory: "manifest-rebuild",
+          errorPhase: "recheck",
+          graphBefore: "stale",
+        },
+      ]);
+    });
+
+    it("takes the first error of the episode, and its phase", () => {
+      blocking = { message: DBT_NOT_FOUND, category: "project-config" };
+      panel.eventMapChanged(new Map());
+      phase = "recheck";
+      blocking = { message: MISSING_REF, category: "manifest-rebuild" };
+      panel.eventMapChanged(new Map());
+      blocking = undefined;
+      event = loadedEvent(12);
+      panel.eventMapChanged(new Map());
+
+      expect(recovered()[0][1]).toMatchObject({
+        errorKind: "dbt_not_found",
+        errorPhase: "startup",
+      });
+    });
+
+    it("doesn't take the manifest the error showed with for a recovery", () => {
+      blocking = { message: MISSING_REF, category: "manifest-rebuild" };
+      event = loadedEvent(3);
+      panel.eventMapChanged(new Map());
+      // The error clears as a parse starts; a render meanwhile still draws
+      // the old manifest.
+      blocking = undefined;
+      panel.eventMapChanged(new Map());
+      expect(recovered()).toHaveLength(0);
+
+      // The parse ends with a new manifest.
+      event = loadedEvent(3);
+      panel.eventMapChanged(new Map());
+      expect(recovered()).toHaveLength(1);
+      expect((recovered()[0][1] as any).graphBefore).toBe("stale");
+    });
+
+    it("reports one recovery per error kind and phase", () => {
+      for (let i = 0; i < 2; i++) {
+        blocking = { message: DBT_NOT_FOUND, category: "project-config" };
+        event = undefined;
+        panel.eventMapChanged(new Map());
+        blocking = undefined;
+        event = loadedEvent(1);
+        panel.eventMapChanged(new Map());
+      }
+      expect(recovered()).toHaveLength(1);
+    });
+
+    it("keeps each project's errors apart", () => {
+      blocking = { message: DBT_NOT_FOUND, category: "project-config" };
+      panel.eventMapChanged(new Map());
+
+      // A graph of another, healthy project of the window.
+      const getProject = (panel as any).queryManifestService.getProject;
+      (panel as any).queryManifestService.getProject = jest.fn(() => ({
+        projectRoot: { fsPath: "/other" },
+        getBlockingDiagnostic: () => undefined,
+        getErrorPhase: () => "startup",
+        getManifestPath: () => "/other/target/manifest.json",
+      }));
+      event = loadedEvent(1);
+      panel.eventMapChanged(new Map());
+      expect(recovered()).toHaveLength(0);
+
+      (panel as any).queryManifestService.getProject = getProject;
+      blocking = undefined;
+      event = loadedEvent(1);
+      panel.eventMapChanged(new Map());
+      expect(recovered()).toHaveLength(1);
     });
   });
 
@@ -1042,6 +1207,9 @@ describe("NewLineagePanel — stale-graph banner", () => {
       setupToastShown: false,
       dbtProjectContainer: { getProjects: () => [] },
       reportedErrorKinds: new Set<string>(),
+      reportedErrors: new Set<string>(),
+      errorEpisodes: new Map(),
+      reportedRecoveries: new Set<string>(),
       renderReported: false,
       graphDrawn: false,
       postedBanner: undefined,
@@ -1344,6 +1512,88 @@ describe("NewLineagePanel — stale-graph banner", () => {
     ]);
   });
 
+  it("starts an error episode when the banner appears over a graph, and reports its recovery", () => {
+    jest.useFakeTimers();
+    event = graphEvent();
+    panel.eventMapChanged(new Map());
+
+    // A mid-session break, seen only through the banner: no render under it.
+    blocking = { message: MISSING_REF, category: "manifest-rebuild" };
+    panel.changedDiagnostics();
+    jest.advanceTimersByTime(250);
+    blocking = undefined;
+    panel.changedDiagnostics();
+    jest.advanceTimersByTime(250);
+    expect(posted("render")).toHaveLength(1);
+
+    // The parse after the fix draws a new manifest.
+    event = graphEvent();
+    panel.eventMapChanged(new Map());
+
+    const sendTelemetryEvent = (panel as any).telemetry
+      .sendTelemetryEvent as jest.Mock;
+    const recovered = sendTelemetryEvent.mock.calls.filter(
+      (call) => call[0] === "lineageRecovered",
+    );
+    expect(recovered.map((call) => call[1])).toEqual([
+      {
+        errorKind: "missing_reference",
+        diagnosticCategory: "manifest-rebuild",
+        // This project doesn't say.
+        errorPhase: "unknown",
+        graphBefore: "stale",
+      },
+    ]);
+  });
+
+  it("reports the chip's buttons as the card's are, with the chip's kind", async () => {
+    jest.useFakeTimers();
+    event = graphEvent();
+    panel.eventMapChanged(new Map());
+    blocking = { message: MISSING_REF, category: "manifest-rebuild" };
+    panel.changedDiagnostics();
+    jest.advanceTimersByTime(250);
+
+    await panel.handleCommand({
+      command: "lineageBannerAction",
+      args: { action: "showProblems" },
+    });
+
+    const sendTelemetryEvent = (panel as any).telemetry
+      .sendTelemetryEvent as jest.Mock;
+    expect(
+      sendTelemetryEvent.mock.calls.filter(
+        (call) => call[0] === "lineageAction",
+      ),
+    ).toEqual([
+      [
+        "lineageAction",
+        {
+          kind: "stale-graph-midsession",
+          action: "showProblems",
+          from: "banner",
+        },
+      ],
+    ]);
+  });
+
+  it("still runs the chip's button when its report fails", async () => {
+    (panel as any).telemetry.sendTelemetryEvent = jest.fn(() => {
+      throw new Error("reporter failed");
+    });
+    const executeCommand = commands.executeCommand as jest.Mock;
+    executeCommand.mockClear();
+
+    await panel.handleCommand({
+      command: "lineageBannerAction",
+      args: { action: "showProblems" },
+    });
+
+    expect(executeCommand.mock.calls).toEqual([
+      ["workbench.action.problems.focus"],
+    ]);
+  });
+
   it("runs the banner's buttons", async () => {
     const showTextDocument = jest.fn();
     (window as any).showTextDocument = showTextDocument;
@@ -1578,6 +1828,9 @@ describe("NewLineagePanel — state card", () => {
     Object.assign(panel as any, {
       reportedCardKinds: new Set<string>(),
       reportedErrorKinds: new Set<string>(),
+      reportedErrors: new Set<string>(),
+      errorEpisodes: new Map(),
+      reportedRecoveries: new Set<string>(),
       setupToastShown: false,
       rebuildInProgress: false,
       renderReported: false,
