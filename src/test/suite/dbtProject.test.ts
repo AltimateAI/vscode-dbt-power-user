@@ -19,6 +19,8 @@ import {
 } from "@jest/globals";
 import childProcess from "child_process";
 import { EventEmitter } from "events";
+import * as fs from "fs";
+import * as os from "os";
 import * as path from "path";
 import * as vscode from "vscode";
 import { AltimateRequest } from "../../altimate";
@@ -175,6 +177,7 @@ describe("DBTProject Test Suite", () => {
       sendTelemetryEvent: jest.fn(),
       sendTelemetryError: jest.fn(),
       setTelemetryCustomAttribute: jest.fn(),
+      getTelemetryCustomAttribute: jest.fn(),
       deleteTelemetryCustomAttribute: jest.fn(),
       startTelemetryEvent: jest.fn(),
       endTelemetryEvent: jest.fn(),
@@ -1442,6 +1445,92 @@ describe("DBTProject Test Suite", () => {
       expect(mockProjectIntegration.dispose).toHaveBeenCalled();
       // dbtProjectLog is created in constructor and added to disposables in initialize
       expect(mockDbtProjectLog.dispose).toHaveBeenCalled();
+    });
+  });
+
+  describe("dbtLoomConfigured telemetry in dbt Fusion mode", () => {
+    let attributes: Record<string, string>;
+    let sandbox: string;
+    const configuredPath = process.env.DBT_LOOM_CONFIG_PATH;
+
+    /** A project folder, with `dbt_loom.config.yml` holding `loomConfig` when given. */
+    const projectWith = (name: string, loomConfig?: string) => {
+      const root = path.join(sandbox, name);
+      fs.mkdirSync(root, { recursive: true });
+      if (loomConfig !== undefined) {
+        fs.writeFileSync(path.join(root, "dbt_loom.config.yml"), loomConfig);
+      }
+      return root;
+    };
+    const UPSTREAM = "manifests:\n  - name: upstream\n    type: file\n";
+
+    const constructAt = (root: string) =>
+      new DBTProject(
+        mockPythonEnvironment,
+        dbtProjectLogFactory as any,
+        mockCommandFactory,
+        mockTerminal,
+        mockSharedStateService,
+        mockTelemetry,
+        mockExecutionInfrastructure,
+        jest.fn().mockReturnValue(mockProjectIntegration) as any,
+        mockAltimate,
+        mockValidationProvider,
+        mockAltimateAuthService,
+        mockRunHistoryService,
+        vscode.Uri.file(root),
+        {},
+        mockManifestChangedEmitter,
+      );
+
+    beforeEach(() => {
+      delete process.env.DBT_LOOM_CONFIG_PATH;
+      sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "pu-dbt-loom-"));
+      attributes = {};
+      mockTelemetry.setTelemetryCustomAttribute.mockImplementation(
+        (key: string, value: string) => {
+          attributes[key] = value;
+        },
+      );
+      mockTelemetry.getTelemetryCustomAttribute.mockImplementation(
+        (key: string) => attributes[key],
+      );
+      setEffectiveDbtIntegrationMode("fusion");
+    });
+
+    afterEach(() => {
+      setEffectiveDbtIntegrationMode(undefined);
+      fs.rmSync(sandbox, { recursive: true, force: true });
+      if (configuredPath !== undefined) {
+        process.env.DBT_LOOM_CONFIG_PATH = configuredPath;
+      }
+    });
+
+    it("stamps true for a project whose dbt-loom config names an upstream project", () => {
+      dbtProject = constructAt(projectWith("loom", UPSTREAM));
+      expect(attributes.dbtLoomConfigured).toBe("true");
+    });
+
+    it.each<[string, string | undefined]>([
+      ["no config", undefined],
+      ["no upstream project", "manifests: []\n"],
+      ["entries without a name", "manifests:\n  - type: file\n"],
+      ["a config that doesn't parse", "manifests: [\n"],
+    ])("stamps false for a project with %s", (_, config) => {
+      dbtProject = constructAt(projectWith("plain", config));
+      expect(attributes.dbtLoomConfigured).toBe("false");
+    });
+
+    it("keeps true once any project in the window has a dbt-loom config", () => {
+      constructAt(projectWith("loom", UPSTREAM));
+      dbtProject = constructAt(projectWith("plain"));
+      expect(attributes.dbtLoomConfigured).toBe("true");
+    });
+
+    it("doesn't stamp it outside dbt Fusion mode", () => {
+      setEffectiveDbtIntegrationMode("corecommand");
+      dbtProject = constructAt(projectWith("loom", UPSTREAM));
+      expect(attributes.dbtLoomConfigured).toBeUndefined();
     });
   });
 

@@ -144,6 +144,50 @@ describe("TelemetryService.sendTelemetryError forwards diagnostic fields", () =>
     },
   );
 
+  // dbt-integration names the config keys dbt Fusion rejected in
+  // dbt_project.yml for a missing `+`, so that case counts apart from other
+  // dbt1013 errors (YAML syntax errors carry the same code).
+  it("forwards the config names dbt-integration reports for a missing +", () => {
+    const err = Object.assign(new Error("dbt1013"), {
+      errorCodes: "dbt1013",
+      errorCount: 2,
+      unprefixedConfigKeys: "materialized,pre-hook",
+    });
+    telemetry.sendTelemetryError("dbtFusionParseProjectUserError", err);
+    const { properties } = captureCall();
+    expect(properties.errorCodes).toBe("dbt1013");
+    expect(properties.unprefixedConfigKeys).toBe("materialized,pre-hook");
+  });
+
+  it.each<[string, unknown, string | undefined]>([
+    [
+      "absent, as from dbt-integration releases before it",
+      undefined,
+      undefined,
+    ],
+    ["not a string", ["materialized"], undefined],
+    ["empty", "", undefined],
+    [
+      "partly not config names",
+      "schema,/home/user/x,Bad Key,tags",
+      "schema,tags",
+    ],
+  ])(
+    "sends only config-name-shaped unprefixedConfigKeys when they are %s",
+    (_, unprefixedConfigKeys, expected) => {
+      telemetry.sendTelemetryError(
+        "dbtFusionParseProjectUserError",
+        Object.assign(new Error("boom"), {
+          errorCodes: "dbt1013",
+          unprefixedConfigKeys,
+        }),
+      );
+      const { properties } = captureCall();
+      expect(properties.unprefixedConfigKeys).toBe(expected);
+      expect(properties.errorCodes).toBe("dbt1013");
+    },
+  );
+
   it("sends the error without the fields when reading them throws", () => {
     const err = new Error("boom");
     Object.defineProperty(err, "errorCodes", {

@@ -20,6 +20,7 @@ import {
   DBTTerminal,
   DeferConfig,
   extractOutputColumns,
+  getExternalProjectNamesFromDbtLoomConfig,
   HealthcheckArgs,
   isInlinePreviewError,
   isResourceHasDbColumns,
@@ -87,6 +88,9 @@ import { ProjectConfigChangedEvent } from "./event/projectConfigChangedEvent";
 import { RunResultsEvent } from "./event/runResultsEvent";
 import { getDbtIntegrationMode } from "./integrationMode";
 import { PythonEnvironment } from "./pythonEnvironment";
+
+/** Telemetry attribute: a dbt-loom config is present, in dbt Fusion mode. */
+const DBT_LOOM_CONFIGURED = "dbtLoomConfigured";
 
 interface FileNameTemplateMap {
   [key: string]: string;
@@ -256,6 +260,12 @@ export class DBTProject implements Disposable {
         });
     }
 
+    // dbt Fusion doesn't load dbt-loom: a dbt-loom config here means its
+    // cross-project refs fail in this mode.
+    if (dbtIntegrationMode === "fusion") {
+      this.recordDbtLoomConfigured();
+    }
+
     // Create the integration adapter which will handle the integration selection internally
     this.dbtProjectIntegration = this.dbtIntegrationAdapterFactory(
       this.projectRoot.fsPath,
@@ -410,6 +420,28 @@ export class DBTProject implements Disposable {
           err,
         );
       });
+  }
+
+  /**
+   * Stamps `dbtLoomConfigured` on the window's telemetry in dbt Fusion mode:
+   * "true" once any of its projects has a dbt-loom config that names an
+   * upstream project (as dbt-integration reads it, which never throws),
+   * "false" while none has. `dbtLoomInstalled` is its dbt Core mode
+   * counterpart: whether dbt-loom imports in the interpreter.
+   */
+  private recordDbtLoomConfigured(): void {
+    const configured = (
+      getExternalProjectNamesFromDbtLoomConfig(this.projectRoot.fsPath) ?? []
+    ).some((name) => typeof name === "string" && name.length > 0);
+    if (
+      configured ||
+      this.telemetry.getTelemetryCustomAttribute(DBT_LOOM_CONFIGURED) !== "true"
+    ) {
+      this.telemetry.setTelemetryCustomAttribute(
+        DBT_LOOM_CONFIGURED,
+        `${configured}`,
+      );
+    }
   }
 
   private async isDbtLoomInstalled(): Promise<boolean> {
