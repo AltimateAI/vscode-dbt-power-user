@@ -14,7 +14,7 @@ This page provides a comprehensive overview of all available configuration setti
 #### dbt.dbtIntegration
 
 - **Type**: string
-- **Default**: "core", or dbt Fusion mode when you haven't set it, the `dbt` it finds is dbt Fusion (2.x), the selected Python interpreter (if any) can't import dbt-core, and there is no dbt-loom config. See [Automatic dbt Fusion mode](reqdConfigFusion.md#automatic-dbt-fusion-mode-for-dbt-2x-projects).
+- **Default**: "core", or dbt Fusion mode when you haven't set it, the `dbt` it finds is dbt Fusion (2.x) and has parsed your projects in a trial run, the selected Python interpreter (if any) can't import dbt-core, and dbt Core hasn't worked on this machine in the last 7 days. See [Automatic dbt Fusion mode](reqdConfigFusion.md#automatic-dbt-fusion-mode-for-dbt-2x-projects) for every condition.
 - **Options**: ["core", "cloud", "fusion", "corecommand"]
 - **Description**: Choose how you want to integrate with dbt. Use "core" for local dbt installations with Python bridge, "cloud" for dbt Cloud integration, "fusion" for dbt Fusion CLI integration, or "corecommand" for command-line based dbt core integration. This setting determines how the extension interacts with your dbt environment. "core", "corecommand" and "cloud" run dbt through the Python extension (`ms-python.python`); "fusion" needs neither Python nor the Python extension. A value you set is always used as is, and changing it reloads the window.
 
