@@ -21,20 +21,21 @@ export function dbtCoreRecordFile(): string {
 /** manifest.json opens with its metadata: this is plenty to hold `dbt_version`. */
 const MANIFEST_HEAD_BYTES = 512;
 /** The record is a few bytes: a bigger file isn't one. */
-const RECORD_HEAD_BYTES = 256;
+const RECORD_MAX_BYTES = 256;
 /**
  * `{"metadata": {"dbt_schema_version": "…", "dbt_version": "1.12.6", …`, as
  * dbt Core 1.5 to 1.12 write it; dbt Fusion writes its 2.x version the same
- * way. Only a `dbt_version` before any nested object counts: the metadata's own.
+ * way. Only a whole `dbt_version` before any nested object counts: the
+ * metadata's own.
  */
 const MANIFEST_DBT_MAJOR =
-  /^\s*\{\s*"metadata"\s*:\s*\{[^{}]*?"dbt_version"\s*:\s*"(\d+)\./;
+  /^\s*\{\s*"metadata"\s*:\s*\{[^{}]*?"dbt_version"\s*:\s*"(\d+)\.[^"\\]*"/;
 
-/** The first `bytes` of a regular file and its mtime; undefined when it can't be read. */
+/** The first `bytes` of a regular file, its size and mtime; undefined when it can't be read. */
 function readHead(
   file: string,
   bytes: number,
-): { text: string; mtimeMs: number } | undefined {
+): { text: string; size: number; mtimeMs: number } | undefined {
   let fd: number | undefined;
   try {
     const stats = statSync(file);
@@ -45,7 +46,11 @@ function readHead(
     fd = openSync(file, "r");
     const buffer = Buffer.alloc(bytes);
     const read = readSync(fd, buffer, 0, bytes, 0);
-    return { text: buffer.toString("utf8", 0, read), mtimeMs: stats.mtimeMs };
+    return {
+      text: buffer.toString("utf8", 0, read),
+      size: stats.size,
+      mtimeMs: stats.mtimeMs,
+    };
   } catch {
     return undefined;
   } finally {
@@ -78,8 +83,8 @@ export function dbtCoreManifestWrittenAt(
 
 /** The time in a record file; undefined when it is missing, unreadable or not a record. */
 export function readDbtCoreRecord(file: string): number | undefined {
-  const head = readHead(file, RECORD_HEAD_BYTES);
-  if (!head) {
+  const head = readHead(file, RECORD_MAX_BYTES);
+  if (!head || head.size > RECORD_MAX_BYTES) {
     return undefined;
   }
   try {

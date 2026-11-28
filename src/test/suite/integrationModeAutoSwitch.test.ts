@@ -3038,6 +3038,7 @@ describe("the safe switch to dbt Fusion", () => {
         ["empty", ""],
         ["not JSON", "not json at all"],
         ["cut short", '{"metadata": {"dbt_schema_ver'],
+        ["cut short in its dbt_version", '{"metadata":{"dbt_version":"1.'],
         ["without a dbt_version", '{"metadata": {"generated_at": "x"}}'],
         [
           "with dbt_version only in a nested value",
@@ -3142,6 +3143,10 @@ describe("the safe switch to dbt Fusion", () => {
         [
           "too big to be a record",
           `{"pad": "${"x".repeat(300)}", "dbtCoreWorkedAt": ${Date.now()}}`,
+        ],
+        [
+          "a record padded past 256 bytes",
+          JSON.stringify({ dbtCoreWorkedAt: Date.now() }).padEnd(300, " "),
         ],
       ])("goes on as without one when it is %s", async (_case, text) => {
         const recordFile = freshRecordFile();
