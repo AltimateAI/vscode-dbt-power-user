@@ -1,4 +1,4 @@
-import { closeSync, openSync, readSync, statSync } from "fs";
+import { closeSync, constants, fstatSync, openSync, readSync } from "fs";
 import { mkdir, writeFile } from "fs/promises";
 import { homedir } from "os";
 import * as path from "path";
@@ -23,6 +23,12 @@ const MANIFEST_HEAD_BYTES = 512;
 /** The record is a few bytes: a bigger file isn't one. */
 const RECORD_MAX_BYTES = 256;
 /**
+ * Opening a pipe for reading waits for a writer, which would block the window:
+ * O_NONBLOCK returns at once and the open file is then checked. Windows has no
+ * pipes in the file system, and no such flag.
+ */
+const OPEN_FLAGS = constants.O_RDONLY | (constants.O_NONBLOCK ?? 0);
+/**
  * `{"metadata": {"dbt_schema_version": "…", "dbt_version": "1.12.6", …`, as
  * dbt Core 1.5 to 1.12 write it; dbt Fusion writes its 2.x version the same
  * way. Only a whole `dbt_version` before any nested object counts: the
@@ -38,12 +44,11 @@ function readHead(
 ): { text: string; size: number; mtimeMs: number } | undefined {
   let fd: number | undefined;
   try {
-    const stats = statSync(file);
-    // Opening a pipe or device could block the window.
+    fd = openSync(file, OPEN_FLAGS);
+    const stats = fstatSync(fd);
     if (!stats.isFile()) {
       return undefined;
     }
-    fd = openSync(file, "r");
     const buffer = Buffer.alloc(bytes);
     const read = readSync(fd, buffer, 0, bytes, 0);
     return {

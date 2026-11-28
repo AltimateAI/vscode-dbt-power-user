@@ -10,6 +10,7 @@ import {
   expect,
   it,
 } from "@jest/globals";
+import { execFileSync } from "child_process";
 import {
   mkdirSync,
   mkdtempSync,
@@ -3073,6 +3074,20 @@ describe("the safe switch to dbt Fusion", () => {
         );
         expect(held(telemetry)).toMatchObject({ reason: "fusionTrial" });
       });
+
+      (process.platform === "win32" ? it.skip : it)(
+        "doesn't wait on a pipe named manifest.json",
+        async () => {
+          mkdirSync(path.join(root, "target"), { recursive: true });
+          execFileSync("mkfifo", [path.join(root, "target", "manifest.json")]);
+          const { svc, telemetry } = shipped({ trial: "never" });
+          await svc.resolve(
+            new FakeMemento() as never,
+            new FakeMemento() as never,
+          );
+          expect(held(telemetry)).toMatchObject({ reason: "fusionTrial" });
+        },
+      );
     });
 
     describe("from the record in the user's home", () => {
