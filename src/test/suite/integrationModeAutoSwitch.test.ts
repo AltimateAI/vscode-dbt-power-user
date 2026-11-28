@@ -2,8 +2,22 @@ import type {
   PythonDbtCore,
   PythonDbtCoreUnknownReason,
 } from "@altimateai/dbt-integration";
-import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
-import { mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from "fs";
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+} from "@jest/globals";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  utimesSync,
+  writeFileSync,
+} from "fs";
 import { tmpdir } from "os";
 import * as path from "path";
 import { commands, ConfigurationTarget, Uri, window, workspace } from "vscode";
@@ -92,6 +106,16 @@ afterEach(() => {
   });
 });
 
+/**
+ * The record in the user's home: each service gets its own file here unless a
+ * test shares one, so no test reads or writes the real home.
+ */
+const RECORD_ROOT = mkdtempSync(path.join(tmpdir(), "dbt-core-record-"));
+let recordFiles = 0;
+const freshRecordFile = () =>
+  path.join(RECORD_ROOT, String(++recordFiles), "dbt-core-worked.json");
+afterAll(() => rmSync(RECORD_ROOT, { recursive: true, force: true }));
+
 class FakeMemento {
   private values = new Map<string, unknown>();
   keys() {
@@ -148,6 +172,8 @@ function service({
   switchGate = "none" as SwitchGate | "none" | "shipped",
   // What the trial parse returns; "never": it does not finish.
   trial = undefined as FusionTrialResult | "never" | undefined,
+  // The record in the user's home; a fresh, missing file unless given.
+  recordFile = freshRecordFile() as string | (() => string),
 } = {}) {
   const telemetry = {
     sendTelemetryEvent: jest.fn(),
@@ -191,6 +217,7 @@ function service({
     { findBinary, probeDbtCore, findProjectFiles, runTrial } as never,
     probeTimeoutMs,
     switchGate === "shipped" ? undefined : switchGate,
+    typeof recordFile === "string" ? () => recordFile : recordFile,
   );
   return {
     svc,
@@ -1278,6 +1305,7 @@ describe("IntegrationModeService.resolve: the dbt-core check", () => {
       sendTelemetryEvent: jest.fn(),
       setTelemetryCustomAttribute: jest.fn(),
     };
+    const recordFile = freshRecordFile();
     const svc = new IntegrationModeService(
       {
         initialize: () => Promise.resolve(),
@@ -1297,6 +1325,9 @@ describe("IntegrationModeService.resolve: the dbt-core check", () => {
         probeDbtCore,
         findProjectFiles: () => Promise.resolve([]),
       } as never,
+      undefined,
+      undefined,
+      () => recordFile,
     );
     const resolving = svc.resolve(new FakeMemento() as never);
     await new Promise((resolve) => setImmediate(resolve));
@@ -2708,6 +2739,23 @@ describe("the safe switch to dbt Fusion", () => {
       ...options,
     });
   const settle = () => new Promise((resolve) => setImmediate(resolve));
+  /** A manifest.json as dbt writes it, `ageMs` old, in the project's `target`. */
+  const manifest = (dbtVersion: string, ageMs = 0, head?: string) => {
+    mkdirSync(path.join(root, "target"), { recursive: true });
+    const file = path.join(root, "target", "manifest.json");
+    writeFileSync(
+      file,
+      head ??
+        `{"metadata": {"dbt_schema_version": "https://schemas.getdbt.com/dbt/manifest/v12.json", "dbt_version": "${dbtVersion}", "generated_at": "2026-11-28T11:40:34.529260Z"}, "nodes": {}}`,
+    );
+    const at = new Date(Date.now() - ageMs);
+    utimesSync(file, at, at);
+  };
+  /** The record in the user's home, as another VS Code build or profile wrote it. */
+  const homeRecord = (file: string, at: number) => {
+    mkdirSync(path.dirname(file), { recursive: true });
+    writeFileSync(file, JSON.stringify({ dbtCoreWorkedAt: at }));
+  };
   const held = (telemetry: ReturnType<typeof service>["telemetry"]) =>
     (telemetry.sendTelemetryEvent.mock.calls as unknown[][]).find(
       ([name]) => name === "dbtIntegrationSwitchHeld",
@@ -2927,6 +2975,306 @@ describe("the safe switch to dbt Fusion", () => {
         globalState.get<number>(DBT_CORE_WORKED_KEY),
       ).toBeGreaterThanOrEqual(first!);
     });
+
+    describe("from the project's manifest.json", () => {
+      it("holds when dbt Core 1.x wrote it in the last 7 days, with no record and no partial parse file", async () => {
+        manifest("1.12.6", 2 * DAY);
+        const { svc, telemetry, runTrial } = shipped({ trial: parsed() });
+        await expect(
+          svc.resolve(new FakeMemento() as never, new FakeMemento() as never),
+        ).resolves.toBe("core");
+        expect(held(telemetry)).toMatchObject({
+          reason: "dbtCoreRecent",
+          dbtCoreEvidence: "manifest",
+        });
+        expect(runTrial).not.toHaveBeenCalled();
+
+        await svc.notifyHeldWithoutDbtCore();
+        expect(errors()[0][0]).toContain(
+          "dbt Core parsed jaffle in the last 7 days, so the window keeps dbt Core mode.",
+        );
+      });
+
+      it("reads it from the project's target-path", async () => {
+        writeFileSync(
+          path.join(root, "dbt_project.yml"),
+          'name: jaffle\nversion: "1.0"\nprofile: jaffle\ntarget-path: build\n',
+        );
+        mkdirSync(path.join(root, "build"));
+        writeFileSync(
+          path.join(root, "build", "manifest.json"),
+          '{"metadata": {"dbt_schema_version": "v12", "dbt_version": "1.5.12"}}',
+        );
+        const { svc, telemetry } = shipped();
+        await svc.resolve(new FakeMemento() as never);
+        expect(held(telemetry)).toMatchObject({
+          reason: "dbtCoreRecent",
+          dbtCoreEvidence: "manifest",
+        });
+      });
+
+      it("lets one older than 7 days go to the trial", async () => {
+        manifest("1.12.6", 8 * DAY);
+        const { svc, telemetry, runTrial } = shipped({ trial: "never" });
+        await svc.resolve(
+          new FakeMemento() as never,
+          new FakeMemento() as never,
+        );
+        expect(held(telemetry)).toMatchObject({ reason: "fusionTrial" });
+        expect(runTrial).toHaveBeenCalled();
+      });
+
+      it("doesn't count one dbt Fusion wrote", async () => {
+        manifest("2.0.12");
+        const { svc, telemetry } = shipped({ trial: "never" });
+        await svc.resolve(
+          new FakeMemento() as never,
+          new FakeMemento() as never,
+        );
+        expect(held(telemetry)).toMatchObject({ reason: "fusionTrial" });
+      });
+
+      it.each([
+        ["empty", ""],
+        ["not JSON", "not json at all"],
+        ["cut short", '{"metadata": {"dbt_schema_ver'],
+        ["without a dbt_version", '{"metadata": {"generated_at": "x"}}'],
+        [
+          "with dbt_version only in a nested value",
+          '{"metadata": {"env": {"dbt_version": "1.12.6"}}, "nodes": {}}',
+        ],
+        [
+          "with metadata after other keys",
+          '{"nodes": {}, "metadata": {"dbt_version": "1.12.6"}}',
+        ],
+        [
+          "with dbt_version past its first 512 bytes",
+          `{"metadata": {"pad": "${"x".repeat(600)}", "dbt_version": "1.12.6"}}`,
+        ],
+      ])("doesn't count one that is %s", async (_case, head) => {
+        manifest("", 0, head);
+        const { svc, telemetry } = shipped({ trial: "never" });
+        await svc.resolve(
+          new FakeMemento() as never,
+          new FakeMemento() as never,
+        );
+        expect(held(telemetry)).toMatchObject({ reason: "fusionTrial" });
+      });
+
+      it("doesn't count a folder named manifest.json, and goes on without one", async () => {
+        mkdirSync(path.join(root, "target", "manifest.json"), {
+          recursive: true,
+        });
+        const { svc, telemetry } = shipped({ trial: "never" });
+        await svc.resolve(
+          new FakeMemento() as never,
+          new FakeMemento() as never,
+        );
+        expect(held(telemetry)).toMatchObject({ reason: "fusionTrial" });
+      });
+    });
+
+    describe("from the record in the user's home", () => {
+      it("holds when another VS Code build or profile recorded dbt Core there", async () => {
+        const recordFile = freshRecordFile();
+        homeRecord(recordFile, Date.now() - DAY);
+        const { svc, telemetry, runTrial } = shipped({
+          recordFile,
+          trial: parsed(),
+        });
+        await svc.resolve(
+          new FakeMemento() as never,
+          new FakeMemento() as never,
+        );
+        expect(held(telemetry)).toMatchObject({
+          reason: "dbtCoreRecent",
+          dbtCoreEvidence: "machineRecord",
+        });
+        expect(runTrial).not.toHaveBeenCalled();
+
+        await svc.notifyHeldWithoutDbtCore();
+        expect(errors()[0][0]).toContain(
+          "dbt Core ran on this machine in the last 7 days, so the window keeps dbt Core mode.",
+        );
+      });
+
+      it("holds on a recent home record when globalState's is older than 7 days", async () => {
+        const recordFile = freshRecordFile();
+        homeRecord(recordFile, Date.now() - DAY);
+        const globalState = new FakeMemento();
+        await globalState.update(DBT_CORE_WORKED_KEY, Date.now() - 8 * DAY);
+        const { svc, telemetry } = shipped({ recordFile });
+        await svc.resolve(new FakeMemento() as never, globalState as never);
+        expect(held(telemetry)).toMatchObject({
+          reason: "dbtCoreRecent",
+          dbtCoreEvidence: "machineRecord",
+        });
+      });
+
+      it("holds on a recent globalState record when the home record is older than 7 days", async () => {
+        const recordFile = freshRecordFile();
+        homeRecord(recordFile, Date.now() - 8 * DAY);
+        const globalState = new FakeMemento();
+        await globalState.update(DBT_CORE_WORKED_KEY, Date.now() - DAY);
+        const { svc, telemetry } = shipped({ recordFile });
+        await svc.resolve(new FakeMemento() as never, globalState as never);
+        expect(held(telemetry)).toMatchObject({
+          reason: "dbtCoreRecent",
+          dbtCoreEvidence: "record",
+        });
+      });
+
+      it("lets the trial go when both records are older than 7 days", async () => {
+        const recordFile = freshRecordFile();
+        homeRecord(recordFile, Date.now() - 9 * DAY);
+        const globalState = new FakeMemento();
+        await globalState.update(DBT_CORE_WORKED_KEY, Date.now() - 8 * DAY);
+        const { svc, telemetry } = shipped({ recordFile, trial: "never" });
+        await svc.resolve(new FakeMemento() as never, globalState as never);
+        expect(held(telemetry)).toMatchObject({ reason: "fusionTrial" });
+      });
+
+      it.each([
+        ["not JSON", "{dbtCoreWorkedAt: "],
+        ["without the time", '{"other": 1}'],
+        ["with a time that isn't a number", '{"dbtCoreWorkedAt": "yesterday"}'],
+        ["JSON null", "null"],
+        [
+          "too big to be a record",
+          `{"pad": "${"x".repeat(300)}", "dbtCoreWorkedAt": ${Date.now()}}`,
+        ],
+      ])("goes on as without one when it is %s", async (_case, text) => {
+        const recordFile = freshRecordFile();
+        mkdirSync(path.dirname(recordFile), { recursive: true });
+        writeFileSync(recordFile, text);
+        const { svc, telemetry } = shipped({ recordFile, trial: "never" });
+        await svc.resolve(
+          new FakeMemento() as never,
+          new FakeMemento() as never,
+        );
+        expect(held(telemetry)).toMatchObject({ reason: "fusionTrial" });
+      });
+
+      it("goes on as without one when there is no home", async () => {
+        const { svc, telemetry } = shipped({
+          recordFile: () => {
+            throw new Error("no home directory");
+          },
+          trial: "never",
+        });
+        await expect(
+          svc.resolve(new FakeMemento() as never, new FakeMemento() as never),
+        ).resolves.toBe("core");
+        expect(held(telemetry)).toMatchObject({ reason: "fusionTrial" });
+      });
+
+      it("is written by a dbt Core window and holds a window of another build or profile", async () => {
+        const recordFile = freshRecordFile();
+        const core = shipped({ recordFile });
+        await core.svc.resolve(
+          new FakeMemento() as never,
+          new FakeMemento() as never,
+        );
+        const before = Date.now();
+        await core.svc.dbtCoreWorked();
+        const written = JSON.parse(readFileSync(recordFile, "utf8"));
+        expect(written.dbtCoreWorkedAt).toBeGreaterThanOrEqual(before);
+
+        // Its own globalState: another VS Code build or profile.
+        const other = shipped({ recordFile, trial: "never" });
+        await other.svc.resolve(
+          new FakeMemento() as never,
+          new FakeMemento() as never,
+        );
+        expect(held(other.telemetry)).toMatchObject({
+          reason: "dbtCoreRecent",
+          dbtCoreEvidence: "machineRecord",
+        });
+      });
+
+      it("is written at most once an hour, and again after that", async () => {
+        const recordFile = freshRecordFile();
+        const { svc } = shipped({ recordFile });
+        await svc.resolve(
+          new FakeMemento() as never,
+          new FakeMemento() as never,
+        );
+        const tenMinutesAgo = Date.now() - 10 * 60 * 1000;
+        homeRecord(recordFile, tenMinutesAgo);
+        await svc.dbtCoreWorked();
+        expect(JSON.parse(readFileSync(recordFile, "utf8"))).toEqual({
+          dbtCoreWorkedAt: tenMinutesAgo,
+        });
+
+        homeRecord(recordFile, Date.now() - 2 * 60 * 60 * 1000);
+        const before = Date.now();
+        await svc.dbtCoreWorked();
+        expect(
+          JSON.parse(readFileSync(recordFile, "utf8")).dbtCoreWorkedAt,
+        ).toBeGreaterThanOrEqual(before);
+      });
+
+      it("still records in globalState when the home can't be written, counts it once, and doesn't try again", async () => {
+        // A file where the record's folder would go: the folder can't be made.
+        const blocked = mkdtempSync(
+          path.join(tmpdir(), "dbt-core-record-blocked-"),
+        );
+        writeFileSync(path.join(blocked, "dbt-power-user"), "");
+        const recordFile = path.join(
+          blocked,
+          "dbt-power-user",
+          "dbt-core-worked.json",
+        );
+        try {
+          const globalState = new FakeMemento();
+          const { svc, telemetry } = shipped({ recordFile });
+          await svc.resolve(new FakeMemento() as never, globalState as never);
+
+          await expect(svc.dbtCoreWorked()).resolves.toBeUndefined();
+          expect(typeof globalState.get(DBT_CORE_WORKED_KEY)).toBe("number");
+          expect(telemetry.sendTelemetryError).toHaveBeenCalledTimes(1);
+          expect(telemetry.sendTelemetryError).toHaveBeenCalledWith(
+            "dbtIntegrationDbtCoreRecordError",
+            expect.anything(),
+          );
+
+          await globalState.update(DBT_CORE_WORKED_KEY, undefined);
+          await svc.dbtCoreWorked();
+          expect(typeof globalState.get(DBT_CORE_WORKED_KEY)).toBe("number");
+          expect(telemetry.sendTelemetryError).toHaveBeenCalledTimes(1);
+        } finally {
+          rmSync(blocked, { recursive: true, force: true });
+        }
+      });
+
+      it("still records in globalState when there is no home", async () => {
+        const globalState = new FakeMemento();
+        const { svc, telemetry } = shipped({
+          recordFile: () => {
+            throw new Error("no home directory");
+          },
+        });
+        await svc.resolve(new FakeMemento() as never, globalState as never);
+        await expect(svc.dbtCoreWorked()).resolves.toBeUndefined();
+        expect(typeof globalState.get(DBT_CORE_WORKED_KEY)).toBe("number");
+        expect(telemetry.sendTelemetryError).toHaveBeenCalledWith(
+          "dbtIntegrationDbtCoreRecordError",
+          expect.anything(),
+        );
+      });
+
+      it("is written even when the globalState write fails", async () => {
+        const recordFile = freshRecordFile();
+        const globalState = new FakeMemento();
+        globalState.update = () => Promise.reject(new Error("storage closed"));
+        const { svc } = shipped({ recordFile });
+        await svc.resolve(new FakeMemento() as never, globalState as never);
+        await expect(svc.dbtCoreWorked()).rejects.toThrow("storage closed");
+        expect(
+          JSON.parse(readFileSync(recordFile, "utf8")).dbtCoreWorkedAt,
+        ).toEqual(expect.any(Number));
+      });
+    });
   });
 
   describe("the trial parse", () => {
@@ -3051,6 +3399,98 @@ describe("the safe switch to dbt Fusion", () => {
           answer: "reloadWithFusion",
         }),
       );
+    });
+
+    describe("when dbt Core worked on the machine while a trial ran", () => {
+      /** A trial that passes when `finish` is called. */
+      const pendingTrial = (
+        runTrial: ReturnType<typeof service>["runTrial"],
+      ) => {
+        let finish: () => void = () => undefined;
+        runTrial.mockImplementationOnce(
+          () =>
+            new Promise<FusionTrialResult>((resolve) => {
+              finish = () => resolve(parsed());
+            }),
+        );
+        return () => finish();
+      };
+
+      it.each([
+        [
+          "another VS Code build or profile recorded it",
+          (recordFile: string) => homeRecord(recordFile, Date.now()),
+          "dbt Core ran on this machine in the last 7 days",
+        ],
+        [
+          "a dbt Core command wrote the project's manifest.json",
+          () => manifest("1.12.6"),
+          "dbt Core parsed jaffle in the last 7 days",
+        ],
+      ])(
+        "says so instead of offering to reload with dbt Fusion: %s",
+        async (_case, coreRan, blocker) => {
+          const recordFile = freshRecordFile();
+          const memento = new FakeMemento();
+          const { svc, runTrial, telemetry } = shipped({ recordFile });
+          const finish = pendingTrial(runTrial);
+          await svc.resolve(memento as never, new FakeMemento() as never);
+          expect(held(telemetry)).toMatchObject({ reason: "fusionTrial" });
+          (window.showErrorMessage as jest.Mock).mockReturnValueOnce(
+            Promise.resolve(undefined),
+          );
+          await expect(svc.notifyHeldWithoutDbtCore()).resolves.toBe(true);
+
+          coreRan(recordFile);
+          finish();
+          await settle();
+
+          expect(shown()).toHaveLength(0);
+          expect(errors()).toEqual([
+            [
+              `Power User didn't switch this window to dbt Fusion 2.0.9 (/home/user/.local/bin/dbt): ${blocker}, so the window keeps dbt Core mode. dbt Core mode needs dbt-core, which the selected Python interpreter does not have.`,
+              "Select interpreter",
+              "Install dbt Core",
+              "Use dbt Fusion",
+            ],
+          ]);
+          expect(telemetry.sendTelemetryEvent).toHaveBeenCalledWith(
+            "dbtIntegrationSwitchHeldAnswer",
+            expect.objectContaining({
+              reason: "dbtCoreRecent",
+              answer: "dismissed",
+              shownAs: "error",
+            }),
+          );
+          // The trial is remembered: the next window checks dbt Core again
+          // before it switches, and holds.
+          expect(memento.get(FUSION_TRIAL_KEY)).toMatchObject({
+            outcome: "parsed",
+          });
+          const next = shipped({ recordFile });
+          await expect(
+            next.svc.resolve(memento as never, new FakeMemento() as never),
+          ).resolves.toBe("core");
+          expect(held(next.telemetry)).toMatchObject({
+            reason: "dbtCoreRecent",
+          });
+        },
+      );
+
+      it("still names dbt Fusion's first error when the trial failed", async () => {
+        const recordFile = freshRecordFile();
+        const { svc } = shipped({ recordFile, trial: failed() });
+        await svc.resolve(
+          new FakeMemento() as never,
+          new FakeMemento() as never,
+        );
+        homeRecord(recordFile, Date.now());
+        await svc.notifyHeldWithoutDbtCore();
+        await settle();
+        expect(errors()[0][0]).toContain(
+          "is on your path, but it couldn't parse jaffle: Environment variable 'DUCKDB_PATH' not found.",
+        );
+      });
     });
 
     it("names dbt Fusion's first error when the trial fails, where dbt Core mode can't start", async () => {

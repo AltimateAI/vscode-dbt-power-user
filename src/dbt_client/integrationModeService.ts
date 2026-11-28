@@ -25,6 +25,12 @@ import {
 } from "vscode";
 import { parse as parseYaml } from "yaml";
 import { TelemetryService } from "../telemetry";
+import {
+  dbtCoreManifestWrittenAt,
+  dbtCoreRecordFile,
+  readDbtCoreRecord,
+  writeDbtCoreRecord,
+} from "./dbtCoreEvidence";
 import { PROJECT_EXCLUDE_PATTERN } from "./dbtWorkspaceFolder";
 import {
   FusionTrialOutcome,
@@ -345,10 +351,15 @@ export interface AutoSwitch {
 
 /** What shows that dbt Core worked recently, for a "dbtCoreRecent" hold. */
 export interface DbtCoreEvidence {
-  /** A dbt Core mode window's record, or dbt Core's own partial parse file. */
-  source: "record" | "partialParse";
+  /**
+   * A dbt Core mode window's record, in this VS Code build and profile
+   * (`record`) or in the user's home (`machineRecord`), or a file dbt Core
+   * wrote in a project's target path: its partial parse file or its
+   * manifest.json.
+   */
+  source: "record" | "machineRecord" | "partialParse" | "manifest";
   ageMs: number;
-  /** The project whose partial parse file it is. */
+  /** The project whose file it is. */
   project?: string;
 }
 
@@ -482,6 +493,8 @@ export class IntegrationModeService {
   private globalState?: Memento;
   /** The trial parse running in this window, for a "fusionTrial" hold. */
   private trial?: WindowTrial;
+  /** Writing the record in the user's home failed in this window: not tried again. */
+  private dbtCoreRecordFailed = false;
 
   constructor(
     private pythonEnvironment: PythonEnvironment,
@@ -496,6 +509,8 @@ export class IntegrationModeService {
     private probeTimeoutMs = DBT_CORE_PROBE_TIMEOUT_MS,
     /** "none": a window nothing holds switches without a trial. */
     private switchGate: SwitchGate | "none" = SWITCH_GATE,
+    /** Where the record in the user's home is; may throw when there is no home. */
+    private recordFile: () => string = dbtCoreRecordFile,
   ) {}
 
   get autoSwitched(): AutoSwitch | undefined {
@@ -659,38 +674,57 @@ export class IntegrationModeService {
 
   /**
    * Whether dbt Core worked on this machine within `DBT_CORE_RECENT_MS`: a
-   * dbt Core mode window's record (`dbtCoreWorked`), else the partial parse
-   * file dbt Core writes in a project's target path (dbt Fusion doesn't).
+   * dbt Core mode window's record (`dbtCoreWorked`), in this VS Code build
+   * and profile or in the user's home, else a file dbt Core writes in a
+   * project's target path and dbt Fusion doesn't: the partial parse file, or
+   * a manifest.json whose `dbt_version` is 1.x. dbt rewrites the partial parse
+   * file only when project files changed, and manifest.json on every command.
+   * A file that can't be read shows nothing.
    */
   private dbtCoreRecently(
     projectRoots: string[],
     env: EnvironmentVariables,
   ): DbtCoreEvidence | undefined {
     const now = Date.now();
-    const recent = (at: number) => Math.abs(now - at) <= DBT_CORE_RECENT_MS;
+    const recent = (at: number | undefined): at is number =>
+      at !== undefined && Math.abs(now - at) <= DBT_CORE_RECENT_MS;
     const recorded = this.globalState?.get<unknown>(DBT_CORE_WORKED_KEY);
     if (typeof recorded === "number" && recent(recorded)) {
       return { source: "record", ageMs: now - recorded };
     }
+    const machineRecorded = this.readMachineRecord();
+    if (recent(machineRecorded)) {
+      return { source: "machineRecord", ageMs: now - machineRecorded };
+    }
     for (const root of projectRoots) {
-      const file = path.join(
-        this.targetPath(root, this.projectEnvironment(root, env)),
-        "partial_parse.msgpack",
-      );
+      const target = this.targetPath(root, this.projectEnvironment(root, env));
+      const project = path.basename(root);
+      let partialParsed: number | undefined;
       try {
-        const { mtimeMs } = statSync(file);
-        if (recent(mtimeMs)) {
-          return {
-            source: "partialParse",
-            ageMs: now - mtimeMs,
-            project: path.basename(root),
-          };
-        }
+        partialParsed = statSync(
+          path.join(target, "partial_parse.msgpack"),
+        ).mtimeMs;
       } catch {
         // No partial parse file: dbt Core hasn't parsed this project here.
       }
+      if (recent(partialParsed)) {
+        return { source: "partialParse", ageMs: now - partialParsed, project };
+      }
+      const manifestWritten = dbtCoreManifestWrittenAt(target);
+      if (recent(manifestWritten)) {
+        return { source: "manifest", ageMs: now - manifestWritten, project };
+      }
     }
     return undefined;
+  }
+
+  /** The time in the record in the user's home; undefined when there is none or it can't be read. */
+  private readMachineRecord(): number | undefined {
+    try {
+      return readDbtCoreRecord(this.recordFile());
+    } catch {
+      return undefined;
+    }
   }
 
   /**
@@ -760,7 +794,12 @@ export class IntegrationModeService {
   ): void {
     const controller = new AbortController();
     const version = binary.version.join(".");
-    const entry: WindowTrial = { controller, done: Promise.resolve(undefined) };
+    const entry: WindowTrial = {
+      controller,
+      done: Promise.resolve(undefined),
+      projectRoots,
+      env,
+    };
     entry.done = this.probes
       .runTrial({
         binary: binary.path,
@@ -826,22 +865,50 @@ export class IntegrationModeService {
   }
 
   /**
-   * A dbt Core mode window read dbt 1.x: remembers it for the machine, so
-   * other windows aren't switched for `DBT_CORE_RECENT_MS`, and stops this
-   * window's trial, which dbt Core working makes moot.
+   * A dbt Core mode window read dbt 1.x: remembers it, in this VS Code build
+   * and profile and in the user's home, so other windows aren't switched for
+   * `DBT_CORE_RECENT_MS`, and stops this window's trial, which dbt Core
+   * working makes moot. Each record is written at most once an hour.
    */
   async dbtCoreWorked(): Promise<void> {
     this.trial?.controller.abort();
-    const last = this.globalState?.get<unknown>(DBT_CORE_WORKED_KEY);
     const now = Date.now();
-    if (
-      typeof last === "number" &&
-      now - last >= 0 &&
-      now - last < DBT_CORE_WORKED_EVERY_MS
-    ) {
+    const writtenLately = (at: unknown) =>
+      typeof at === "number" &&
+      now - at >= 0 &&
+      now - at < DBT_CORE_WORKED_EVERY_MS;
+    // First: it never rejects, so a failed globalState write can't skip it.
+    await this.recordInHome(now, writtenLately);
+    if (!writtenLately(this.globalState?.get<unknown>(DBT_CORE_WORKED_KEY))) {
+      await this.globalState?.update(DBT_CORE_WORKED_KEY, now);
+    }
+  }
+
+  /**
+   * Writes the record in the user's home, which every VS Code build and
+   * profile of this user reads. A failure (no home, a read-only one) is
+   * counted once and not tried again in this window: the globalState record
+   * still holds this build and profile, as before.
+   */
+  private async recordInHome(
+    now: number,
+    writtenLately: (at: unknown) => boolean,
+  ): Promise<void> {
+    if (this.dbtCoreRecordFailed) {
       return;
     }
-    await this.globalState?.update(DBT_CORE_WORKED_KEY, now);
+    try {
+      const file = this.recordFile();
+      if (!writtenLately(readDbtCoreRecord(file))) {
+        await writeDbtCoreRecord(file, now);
+      }
+    } catch (error) {
+      this.dbtCoreRecordFailed = true;
+      this.telemetry.sendTelemetryError(
+        "dbtIntegrationDbtCoreRecordError",
+        error,
+      );
+    }
   }
 
   /**
@@ -1365,10 +1432,8 @@ export class IntegrationModeService {
         .then(() =>
           // dbt Core may have started working while the result was saved,
           // or a later error told the window already.
-          // With the result known in this window, saved or not; without one
-          // when the trial failed to run.
           !trial.controller.signal.aborted && shown === this.heldErrors
-            ? this.showHeld({ ...held, trial: trial.result })
+            ? this.showHeld(this.heldAfterTrial(held, trial))
             : undefined,
         )
         .catch((error) =>
@@ -1381,6 +1446,32 @@ export class IntegrationModeService {
     }
     await this.showHeld(held);
     return true;
+  }
+
+  /**
+   * The hold to show once this window's trial is done: with its result, known
+   * in this window whether saved or not, and none when it failed to run. A
+   * passed trial is checked against dbt Core again first: another window,
+   * VS Code build or profile, or a dbt Core command, may have run dbt Core on
+   * this machine while the trial ran. Then a reload would keep dbt Core mode
+   * too, so the window says that instead of offering to reload.
+   */
+  private heldAfterTrial(held: SwitchHeld, trial: WindowTrial): SwitchHeld {
+    if (trial.result?.outcome === "parsed") {
+      const dbtCoreEvidence = this.dbtCoreRecently(
+        trial.projectRoots,
+        trial.env,
+      );
+      if (dbtCoreEvidence) {
+        this.terminal.info(
+          "dbtIntegrationSwitchHeld",
+          `${held.binary.path} parsed the window's projects, but dbt Core worked on this machine while it ran (${dbtCoreEvidence.source}): keeping dbt Core mode`,
+          false,
+        );
+        return { ...held, reason: "dbtCoreRecent", dbtCoreEvidence };
+      }
+    }
+    return { ...held, trial: trial.result };
   }
 
   /** Shows a held window's message where dbt Core mode cannot start. */
@@ -1546,10 +1637,9 @@ function heldMessage(
       return offerFusion();
     case "dbtCoreRecent": {
       const evidence = held.dbtCoreEvidence;
-      const blocker =
-        evidence?.source === "partialParse" && evidence.project
-          ? `dbt Core parsed ${evidence.project} in the last 7 days`
-          : "dbt Core ran on this machine in the last 7 days";
+      const blocker = evidence?.project
+        ? `dbt Core parsed ${evidence.project} in the last 7 days`
+        : "dbt Core ran on this machine in the last 7 days";
       return {
         text: withNeeds(
           lead("this window", `${blocker}, so the window keeps dbt Core mode`),
@@ -1604,6 +1694,9 @@ function trialMessage(
 /** A trial parse started in this window. */
 interface WindowTrial {
   controller: AbortController;
+  /** What it was started with, to check dbt Core again once it passed. */
+  projectRoots: string[];
+  env: EnvironmentVariables;
   /** Its result once remembered; undefined when canceled or not saved. */
   done: Promise<RememberedTrial | undefined>;
   /** Its result as soon as it's known, saved or not. */
